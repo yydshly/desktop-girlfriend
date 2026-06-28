@@ -56,3 +56,18 @@ def test_delay_zero_completes_immediately() -> None:
 
     assert elapsed < 0.05
     assert response.duration_seconds == 0.0
+
+
+def test_speak_str_subclass_raises_tts_provider_error() -> None:
+    """Test speak with str subclass raises TTSProviderError (strict type contract)."""
+
+    class CustomStr(str):
+        pass
+
+    provider = FakeTTSProvider(delay_seconds=0.0)
+
+    try:
+        provider.speak(TTSRequest(text=CustomStr("Hello")))
+        assert False, "Expected TTSProviderError"
+    except TTSProviderError as e:
+        assert str(e) == "Empty TTS text"

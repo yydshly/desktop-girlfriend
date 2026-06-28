@@ -25,7 +25,7 @@ from app.core.logging import setup_logging
 from app.core.state_controller import StateController
 from app.core.state_machine import StateMachine
 from app.expression.tts.controller import TTSController
-from app.expression.tts.providers.fake import FakeTTSProvider
+from app.expression.tts.providers import TTSProviderError, create_tts_provider
 from app.ui.qt_event_bridge import QtEventBridge
 from app.ui.view_model import DesktopViewModel
 from app.ui.window import DesktopWindow
@@ -145,7 +145,13 @@ def main() -> None:
     )
 
     # Initialize TTS components
-    tts_provider = FakeTTSProvider(delay_seconds=0.1)
+    try:
+        tts_provider = create_tts_provider(config)
+    except TTSProviderError:
+        logger.exception("Failed to create configured TTS provider; falling back to FakeTTSProvider")
+        from app.expression.tts.providers.fake import FakeTTSProvider
+
+        tts_provider = FakeTTSProvider(delay_seconds=0.1)
     tts_controller = TTSController(
         event_bus=event_bus,
         provider=tts_provider,

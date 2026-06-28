@@ -36,7 +36,7 @@ class FakeTTSProvider(TTSProvider):
             TTSProviderError: If text is empty/whitespace, or should_fail is True.
         """
         text = request.text
-        if not isinstance(text, str) or not text.strip():
+        if type(text) is not str or not text.strip():
             raise TTSProviderError("Empty TTS text")
 
         if self._should_fail:

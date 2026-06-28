@@ -32,6 +32,25 @@ class AppConfig:
             "MINIMAX_CHAT_PATH", "/text/chatcompletion_v2"
         )
 
+        # TTS provider configuration
+        self.tts_provider_mode: str = os.getenv("TTS_PROVIDER_MODE", "fake")
+        self.minimax_tts_api_key: str | None = os.getenv(
+            "MINIMAX_TTS_API_KEY", self.minimax_api_key
+        )
+        self.minimax_tts_group_id: str | None = os.getenv(
+            "MINIMAX_TTS_GROUP_ID", self.minimax_group_id
+        )
+        self.minimax_tts_base_url: str = os.getenv(
+            "MINIMAX_TTS_BASE_URL", "https://api.minimax.chat/v1"
+        )
+        self.minimax_tts_model: str = os.getenv("MINIMAX_TTS_MODEL", "speech-02-hd")
+        self.minimax_tts_voice_id: str = os.getenv("MINIMAX_TTS_VOICE_ID", "female-shaonv")
+        self.minimax_tts_timeout_seconds: float = float(
+            os.getenv("MINIMAX_TTS_TIMEOUT_SECONDS", "30.0")
+        )
+        self.minimax_tts_path: str = os.getenv("MINIMAX_TTS_PATH", "/t2a_v2")
+        self.minimax_tts_output_dir: str = os.getenv("MINIMAX_TTS_OUTPUT_DIR", ".tmp/tts")
+
 
 _config: AppConfig | None = None
 
