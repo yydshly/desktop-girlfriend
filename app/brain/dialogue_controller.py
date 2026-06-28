@@ -71,6 +71,12 @@ class DialogueController:
             ]
             request = ChatRequest(messages=cast(list[PromptMessageLike], prompt_messages))
             response = self._provider.generate(request)
+            response_text = response.text
+
+            if type(response_text) is not str or not response_text.strip():
+                self._publish_error(request_id, "Unexpected error during generation")
+                self._request_state(AppState.ERROR, "dialogue_error")
+                return
 
             # Mark dialogue generation complete before publishing assistant text.
             # TTS subscribers may turn assistant text into SPEAKING state.
@@ -81,12 +87,16 @@ class DialogueController:
                 event_type=ASSISTANT_TEXT_RECEIVED,
                 request_id=request_id,
                 source="dialogue_controller",
-                payload={"text": response.text},
+                payload={"text": response_text},
             )
             self._event_bus.publish(assistant_event)
 
         except ChatProviderError:
             self._publish_error(request_id, "Provider failed to generate response")
+            self._request_state(AppState.ERROR, "dialogue_error")
+
+        except Exception:
+            self._publish_error(request_id, "Unexpected error during generation")
             self._request_state(AppState.ERROR, "dialogue_error")
 
     def _request_state(self, target_state: AppState, reason: str) -> None:
