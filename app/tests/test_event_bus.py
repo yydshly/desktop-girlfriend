@@ -41,6 +41,22 @@ def test_multiple_handlers() -> None:
     assert count == 3
 
 
+def test_duplicate_subscribe_is_ignored() -> None:
+    """Test subscribing the same handler twice does not duplicate delivery."""
+    bus = EventBus()
+    received: list[BaseEvent] = []
+
+    def handler(event: BaseEvent) -> None:
+        received.append(event)
+
+    bus.subscribe("test.event", handler)
+    bus.subscribe("test.event", handler)
+    event = BaseEvent(event_type="test.event", request_id="req1", source="test")
+    bus.publish(event)
+
+    assert received == [event]
+
+
 def test_unsubscribe() -> None:
     """Test unsubscribe removes handler."""
     bus = EventBus()

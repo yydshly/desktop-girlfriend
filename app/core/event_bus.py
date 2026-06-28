@@ -24,6 +24,8 @@ class EventBus:
             event_type: The type of event to subscribe to.
             handler: Callback function to invoke when event is published.
         """
+        if handler in self._handlers[event_type]:
+            return
         self._handlers[event_type].append(handler)
 
     def publish(self, event: BaseEvent) -> None:
