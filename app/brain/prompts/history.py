@@ -42,7 +42,7 @@ class CurrentSessionHistory:
         Raises:
             ValueError: If text is not a non-empty string.
         """
-        if not isinstance(text, str) or not text.strip():
+        if type(text) is not str or not text.strip():
             raise ValueError("append_user_text requires a non-empty str")
         self._turns.append(DialogueTurn(role="user", text=text.strip()))
         self._trim()
@@ -56,7 +56,7 @@ class CurrentSessionHistory:
         Raises:
             ValueError: If text is not a non-empty string.
         """
-        if not isinstance(text, str) or not text.strip():
+        if type(text) is not str or not text.strip():
             raise ValueError("append_assistant_text requires a non-empty str")
         self._turns.append(DialogueTurn(role="assistant", text=text.strip()))
         self._trim()

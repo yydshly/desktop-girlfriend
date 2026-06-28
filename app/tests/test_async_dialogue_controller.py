@@ -55,6 +55,16 @@ class SpyProvider(ChatProvider):
         return ChatResponse(text=self._reply_text)
 
 
+class EmptyResponseFakeProvider(ChatProvider):
+    """Fake provider that returns an empty or whitespace-only response."""
+
+    def __init__(self, reply_text: str = "") -> None:
+        self._reply_text = reply_text
+
+    def generate(self, request: ChatRequest) -> ChatResponse:
+        return ChatResponse(text=self._reply_text)
+
+
 def make_dispatch_collector() -> tuple[list[BaseEvent], Callable[[BaseEvent], None]]:
     """Create a list and a callback that appends to it."""
     events: list[BaseEvent] = []
@@ -392,4 +402,71 @@ class TestAsyncDialogueControllerSessionHistory:
         assert len(history2.recent_turns()) == 2
         assert history1.recent_turns()[0].text == "User1"
         assert history2.recent_turns()[0].text == "User2"
+
+    def test_empty_assistant_response_does_not_append_to_history(self) -> None:
+        """Test that empty/whitespace assistant response does not append to history."""
+        event_bus = MagicMock()
+        provider = EmptyResponseFakeProvider(reply_text="")
+        registry = PromptRegistry()
+        session_history = CurrentSessionHistory()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+
+        controller = AsyncDialogueController(
+            event_bus=event_bus,
+            provider=provider,
+            prompt_registry=registry,
+            dispatch_event=dispatch_event,
+            session_history=session_history,
+        )
+
+        controller._on_user_text_submitted(self._make_event("我的问题"))
+        time.sleep(0.05)
+
+        # History should still be empty - user was not appended because response was empty
+        assert session_history.recent_turns() == []
+
+        # Should have dispatched system.error
+        error_events = [e for e in dispatch_events if e.event_type == "system.error"]
+        assert len(error_events) >= 1
+
+        # Should have dispatched error state
+        error_state_events = [
+            e for e in dispatch_events
+            if e.event_type == "state.change_requested" and e.payload.get("target_state") == "error"
+        ]
+        assert len(error_state_events) >= 1
+
+        # Should NOT have dispatched assistant.text_received
+        assistant_events = [
+            e for e in dispatch_events if e.event_type == "assistant.text_received"
+        ]
+        assert len(assistant_events) == 0
+
+    def test_whitespace_assistant_response_treated_as_empty(self) -> None:
+        """Test that whitespace-only assistant response is treated as empty."""
+        event_bus = MagicMock()
+        provider = EmptyResponseFakeProvider(reply_text="   ")
+        registry = PromptRegistry()
+        session_history = CurrentSessionHistory()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+
+        controller = AsyncDialogueController(
+            event_bus=event_bus,
+            provider=provider,
+            prompt_registry=registry,
+            dispatch_event=dispatch_event,
+            session_history=session_history,
+        )
+
+        controller._on_user_text_submitted(self._make_event("我的问题"))
+        time.sleep(0.05)
+
+        # History should still be empty
+        assert session_history.recent_turns() == []
+
+        # Should NOT have dispatched assistant.text_received
+        assistant_events = [
+            e for e in dispatch_events if e.event_type == "assistant.text_received"
+        ]
+        assert len(assistant_events) == 0
 

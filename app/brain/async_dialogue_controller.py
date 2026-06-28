@@ -108,10 +108,17 @@ class AsyncDialogueController:
             ]
             request = ChatRequest(messages=cast(list[PromptMessageLike], prompt_messages))
             response = self._provider.generate(request)
+            response_text = response.text
+
+            # Validate response before committing to history
+            if type(response_text) is not str or not response_text.strip():
+                self._dispatch_error(request_id, "Unexpected error during generation")
+                self._dispatch_state_request(AppState.ERROR, "dialogue_error")
+                return
 
             # Append to session history only on success
             self._session_history.append_user_text(text)
-            self._session_history.append_assistant_text(response.text)
+            self._session_history.append_assistant_text(response_text)
 
             # Dispatch success events back to UI thread
             self._dispatch_event(
@@ -119,7 +126,7 @@ class AsyncDialogueController:
                     event_type=ASSISTANT_TEXT_RECEIVED,
                     request_id=request_id,
                     source="async_dialogue_controller",
-                    payload={"text": response.text},
+                    payload={"text": response_text},
                 )
             )
             self._dispatch_state_request(AppState.IDLE, "dialogue_complete")

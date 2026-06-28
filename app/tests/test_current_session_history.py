@@ -60,6 +60,18 @@ def test_append_user_text_rejects_non_str() -> None:
         history.append_user_text(None)  # type: ignore[arg-type]
 
 
+class CustomStr(str):
+    """A subclass of str used to verify strict type契约."""
+
+    pass
+
+
+def test_append_user_text_rejects_str_subclass() -> None:
+    history = CurrentSessionHistory()
+    with pytest.raises(ValueError, match="non-empty str"):
+        history.append_user_text(CustomStr("hello"))
+
+
 def test_append_assistant_text_rejects_empty_string() -> None:
     history = CurrentSessionHistory()
     with pytest.raises(ValueError, match="non-empty str"):
@@ -76,6 +88,12 @@ def test_append_assistant_text_rejects_non_str() -> None:
     history = CurrentSessionHistory()
     with pytest.raises(ValueError):
         history.append_assistant_text(456)  # type: ignore[arg-type]
+
+
+def test_append_assistant_text_rejects_str_subclass() -> None:
+    history = CurrentSessionHistory()
+    with pytest.raises(ValueError, match="non-empty str"):
+        history.append_assistant_text(CustomStr("hello"))
 
 
 def test_trims_to_max_turns() -> None:
