@@ -37,7 +37,7 @@ class EventBus:
         Handler exceptions are logged and isolated so later subscribers still
         receive the event.
         """
-        handlers = self._handlers.get(event.event_type, [])
+        handlers = list(self._handlers.get(event.event_type, []))
         for handler in handlers:
             try:
                 handler(event)

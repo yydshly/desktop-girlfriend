@@ -57,6 +57,31 @@ def test_duplicate_subscribe_is_ignored() -> None:
     assert received == [event]
 
 
+def test_subscribe_during_publish_does_not_receive_current_event() -> None:
+    """Test handlers added during publish only receive future events."""
+    bus = EventBus()
+    received: list[str] = []
+
+    def late_handler(_: BaseEvent) -> None:
+        received.append("late")
+
+    def first_handler(_: BaseEvent) -> None:
+        received.append("first")
+        bus.subscribe("test.event", late_handler)
+
+    bus.subscribe("test.event", first_handler)
+
+    first_event = BaseEvent(event_type="test.event", request_id="req1", source="test")
+    bus.publish(first_event)
+
+    assert received == ["first"]
+
+    second_event = BaseEvent(event_type="test.event", request_id="req2", source="test")
+    bus.publish(second_event)
+
+    assert received == ["first", "first", "late"]
+
+
 def test_unsubscribe() -> None:
     """Test unsubscribe removes handler."""
     bus = EventBus()
