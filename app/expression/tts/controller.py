@@ -120,14 +120,15 @@ class TTSController:
             if use_embedded:
                 # Embedded path: synthesize audio file, play via QtAudioPlayer
                 response = self._provider.synthesize(request)
-                # Check if stop was requested for this request
+                # Check if stop was requested for this request.
+                # Do NOT discard here — let _should_ignore_request in _on_audio_ready
+                # consume it so stale audio_ready events are also ignored.
                 with self._lock:
                     stopped = request_id in self._stop_requested_request_ids
-                    if stopped:
-                        self._stop_requested_request_ids.discard(request_id)
                 if stopped:
-                    # Stop was requested during synthesize; do not play audio
-                    self._release_speaking()
+                    # Stop was requested during synthesize; do not play audio.
+                    # Do not call _release_speaking(request_id) — stop handler
+                    # already set _is_speaking=False and _active_request_id=None.
                     return
 
                 if response.audio_path is None:
@@ -147,13 +148,19 @@ class TTSController:
                 self._dispatch_state_request(AppState.IDLE, "tts_complete")
                 self._release_speaking()
         except TTSProviderError:
+            # Silently ignore if request was already stopped
+            if self._should_ignore_request(request_id):
+                return
             self._dispatch_error(request_id, _SAFE_TTS_ERROR_MESSAGE)
             self._dispatch_state_request(AppState.ERROR, "tts_error")
-            self._release_speaking()
+            self._release_speaking(request_id)
         except Exception:
+            # Silently ignore if request was already stopped
+            if self._should_ignore_request(request_id):
+                return
             self._dispatch_error(request_id, _SAFE_TTS_ERROR_MESSAGE)
             self._dispatch_state_request(AppState.ERROR, "tts_error")
-            self._release_speaking()
+            self._release_speaking(request_id)
 
     def _on_tts_stop_requested(self, event: BaseEvent) -> None:
         """Handle tts.stop_requested event from UI.
@@ -187,37 +194,82 @@ class TTSController:
         if event.event_type != TTS_AUDIO_READY:
             return
 
+        # Ignore if this request was stopped or is stale.
+        # Also ignore if _is_speaking is False — stop handler already cleared state.
+        with self._lock:
+            _in_stop = event.request_id in self._stop_requested_request_ids
+            _not_active = self._active_request_id != event.request_id
+            _not_speaking = not self._is_speaking
+            if _not_speaking or _not_active:
+                # Clean up stop set only if this specific request was stopped
+                # (not just stale — stale requests don't have an entry)
+                if _in_stop:
+                    self._stop_requested_request_ids.discard(event.request_id)
+                return
+
         audio_path = event.payload.get("audio_path")
         if not audio_path:
-            self._release_speaking()
-            self._dispatch_error(event.request_id, _SAFE_TTS_ERROR_MESSAGE)
-            self._dispatch_state_request(AppState.ERROR, "tts_error")
+            if self._release_speaking(event.request_id):
+                self._dispatch_error(event.request_id, _SAFE_TTS_ERROR_MESSAGE)
+                self._dispatch_state_request(AppState.ERROR, "tts_error")
             return
 
         # Callbacks release _is_speaking and dispatch events
         def on_finished() -> None:
-            self._release_speaking()
-            self._dispatch_state_request(AppState.IDLE, "tts_complete")
+            if self._release_speaking(event.request_id):
+                self._dispatch_state_request(AppState.IDLE, "tts_complete")
 
         def on_error(message: str) -> None:
-            self._release_speaking()
-            self._dispatch_error(event.request_id, _SAFE_TTS_ERROR_MESSAGE)
-            self._dispatch_state_request(AppState.ERROR, "tts_error")
+            if self._release_speaking(event.request_id):
+                self._dispatch_error(event.request_id, _SAFE_TTS_ERROR_MESSAGE)
+                self._dispatch_state_request(AppState.ERROR, "tts_error")
 
         assert self._audio_player is not None
         try:
             self._audio_player.play(audio_path, on_finished, on_error)
         except Exception:
             # audio_player.play() should not raise, but guard against it
-            self._release_speaking()
-            self._dispatch_error(event.request_id, _SAFE_TTS_ERROR_MESSAGE)
-            self._dispatch_state_request(AppState.ERROR, "tts_error")
+            if self._release_speaking(event.request_id):
+                self._dispatch_error(event.request_id, _SAFE_TTS_ERROR_MESSAGE)
+                self._dispatch_state_request(AppState.ERROR, "tts_error")
 
-    def _release_speaking(self) -> None:
-        """Release the _is_speaking flag (thread-safe)."""
+    def _should_ignore_request(self, request_id: str) -> bool:
+        """Check if a request should be ignored (stopped or stale).
+
+        Atomically checks if request_id is in the stopped set (and consumes it)
+        or is not the current active request. Thread-safe.
+
+        Args:
+            request_id: The request ID to check.
+
+        Returns:
+            True if the request should be ignored, False otherwise.
+        """
         with self._lock:
+            if request_id in self._stop_requested_request_ids:
+                self._stop_requested_request_ids.discard(request_id)
+                return True
+            return self._active_request_id != request_id
+
+    def _release_speaking(self, request_id: str | None = None) -> bool:
+        """Release the _is_speaking flag (thread-safe).
+
+        Args:
+            request_id: Optional request ID to verify before releasing.
+                       If provided, only releases if request_id matches active request.
+                       If None, releases unconditionally (legacy behavior).
+
+        Returns:
+            True if released, False if request_id mismatch (guarded release).
+        """
+        with self._lock:
+            if request_id is not None and self._active_request_id != request_id:
+                return False
             self._is_speaking = False
             self._active_request_id = None
+            if request_id is not None:
+                self._stop_requested_request_ids.discard(request_id)
+            return True
 
     def _request_state(self, target_state: AppState, reason: str) -> None:
         """Request a state change via event bus (UI thread only).

@@ -1050,3 +1050,257 @@ class TestTTSControllerStop:
 
         # Should have at least 2 speak calls (one per TTS)
         assert provider.speak_calls >= 2
+
+    def test_stale_audio_ready_after_stop_is_ignored(self) -> None:
+        """Test that TTS_AUDIO_READY dispatched before stop is ignored after stop.
+
+        Simulates the real Qt behavior where dispatch_event is async (Signal.emit
+        queues to Qt event loop), so the worker dispatches audio_ready but it
+        hasn't been processed by the UI thread yet when stop is called.
+        """
+        from app.contracts.events import TTS_AUDIO_READY, TTS_STOP_REQUESTED
+
+        # Capture audio_ready without immediately publishing to event_bus.
+        # This simulates async dispatch where the event is queued but not yet
+        # processed by the UI thread when stop arrives.
+        captured_audio_ready: list[BaseEvent] = []
+        all_dispatched: list[BaseEvent] = []
+
+        def capturing_dispatch(event: BaseEvent) -> None:
+            all_dispatched.append(event)
+            if event.event_type == TTS_AUDIO_READY:
+                captured_audio_ready.append(event)
+            else:
+                event_bus.publish(event)
+
+        event_bus = EventBus()
+        provider = SynthesizeOnlyProvider(audio_path="/tmp/test.mp3")
+        mock_player = MockAudioPlayer()
+
+        controller = TTSController(
+            event_bus,
+            provider,
+            capturing_dispatch,
+            audio_player=mock_player,  # type: ignore[arg-type]
+        )
+        controller.start()
+
+        # Start TTS - capture the actual request_id used by the worker
+        original_event = _make_assistant_event("Hello")
+        stale_request_id = original_event.request_id
+        event_bus.publish(original_event)
+        time.sleep(0.05)
+
+        # Worker has dispatched audio_ready (captured, not yet published)
+        assert len(captured_audio_ready) >= 1
+        audio_ready_events = [e for e in captured_audio_ready if e.event_type == TTS_AUDIO_READY]
+        assert len(audio_ready_events) >= 1
+
+        # Stop BEFORE the audio_ready is processed (UI thread hasn't received it yet)
+        stop_event = BaseEvent(
+            event_type=TTS_STOP_REQUESTED,
+            request_id="stop_stale",
+            source="test",
+            payload={},
+        )
+        event_bus.publish(stop_event)
+        time.sleep(0.05)
+
+        # Now publish the stale audio_ready (simulating Qt event loop processing it late)
+        for ae in audio_ready_events:
+            event_bus.publish(ae)
+        time.sleep(0.05)
+
+        # audio_player.play should NOT have been called (stop should have ignored it)
+        assert len(mock_player.play_calls) == 0
+
+        # No SYSTEM_ERROR should be dispatched
+        error_events = [
+            e for e in all_dispatched if e.event_type == "system.error"
+        ]
+        assert len(error_events) == 0
+
+        # No ERROR state should be dispatched
+        error_state_events = [
+            e for e in all_dispatched if e.payload.get("target_state") == "error"
+        ]
+        assert len(error_state_events) == 0
+
+    def test_synthesize_error_after_stop_is_silently_discarded(self) -> None:
+        """Test that synthesize error after stop does not dispatch error."""
+        import threading
+
+        from app.contracts.events import TTS_STOP_REQUESTED
+
+        # Provider that blocks during synthesize then raises error
+        class BlockingFailingProvider(TTSProvider):
+            supports_audio_path_playback = True
+
+            def __init__(self) -> None:
+                self._block_event = threading.Event()
+                self.synthesize_called = False
+
+            def unblock(self) -> None:
+                self._block_event.set()
+
+            def synthesize(self, request: TTSRequest) -> TTSResponse:
+                self.synthesize_called = True
+                self._block_event.wait()
+                raise TTSProviderError("Synthesize failed after stop")
+
+            def speak(self, request: TTSRequest) -> TTSResponse:
+                return self.synthesize(request)
+
+        event_bus = EventBus()
+        provider = BlockingFailingProvider()
+        mock_player = MockAudioPlayer()
+        dispatch_events, dispatch_event = _make_dispatch_collector(event_bus)
+
+        controller = TTSController(
+            event_bus,
+            provider,
+            dispatch_event,
+            audio_player=mock_player,  # type: ignore[arg-type]
+        )
+        controller.start()
+
+        # Start TTS (will block in synthesize)
+        event_bus.publish(_make_assistant_event("Hello"))
+
+        # Wait for synthesize to be called
+        for _ in range(50):
+            if provider.synthesize_called:
+                break
+            time.sleep(0.01)
+
+        # Stop while synthesize is blocked
+        stop_event = BaseEvent(
+            event_type=TTS_STOP_REQUESTED,
+            request_id="stop_err",
+            source="test",
+            payload={},
+        )
+        event_bus.publish(stop_event)
+        time.sleep(0.05)
+
+        # Now unblock synthesize - it will throw
+        provider.unblock()
+        time.sleep(0.1)
+
+        # No SYSTEM_ERROR should be dispatched (error is silently discarded)
+        error_events = [
+            e for e in dispatch_events if e.event_type == "system.error"
+        ]
+        assert len(error_events) == 0
+
+        # No ERROR state should be dispatched
+        error_state_events = [
+            e for e in dispatch_events if e.payload.get("target_state") == "error"
+        ]
+        assert len(error_state_events) == 0
+
+        # State should be IDLE (from stop), not ERROR
+        idle_events = [
+            e for e in dispatch_events
+            if e.payload.get("target_state") == "idle"
+            and e.payload.get("reason") == "tts_stopped"
+        ]
+        assert len(idle_events) >= 1
+
+    def test_old_finished_callback_does_not_release_new_request(self) -> None:
+        """Test that old on_finished callback does not affect new request's state."""
+        from app.contracts.events import TTS_AUDIO_READY, TTS_STOP_REQUESTED
+
+        # A mock that captures callbacks for later invocation
+        class CapturingMockPlayer(MockAudioPlayer):
+            def __init__(self) -> None:
+                super().__init__()
+                self._last_finished_callback: Callable[[], None] | None = None
+                self._last_error_callback: Callable[[str], None] | None = None
+
+            def play(
+                self,
+                path: str,
+                on_finished: Callable[[], None],
+                on_error: Callable[[str], None],
+            ) -> None:
+                super().play(path, on_finished, on_error)
+                self._last_finished_callback = on_finished
+                self._last_error_callback = on_error
+
+            def stop(self) -> bool:
+                """Stop playback without clearing callbacks."""
+                if not self._is_playing:
+                    return False
+                self._is_playing = False
+                # Do NOT clear callbacks - they are still valid for the current request
+                return True
+
+            def simulate_finished(self) -> None:
+                """Simulate playback finished, invoking the stored callback."""
+                if self._finished_callback is not None:
+                    cb = self._finished_callback
+                    self._finished_callback = None
+                    self._error_callback = None
+                    self._is_playing = False
+                    cb()
+                else:
+                    self._is_playing = False
+
+        event_bus = EventBus()
+        provider = SynthesizeOnlyProvider(audio_path="/tmp/test.mp3")
+        mock_player = CapturingMockPlayer()
+        dispatch_events, dispatch_event = _make_dispatch_collector(event_bus)
+
+        controller = TTSController(
+            event_bus,
+            provider,
+            dispatch_event,
+            audio_player=mock_player,  # type: ignore[arg-type]
+        )
+        controller.start()
+
+        # Request A starts with unique request_id
+        event_a = BaseEvent(
+            event_type=ASSISTANT_TEXT_RECEIVED,
+            request_id="req_a",
+            source="test",
+            payload={"text": "First"},
+        )
+        event_bus.publish(event_a)
+        time.sleep(0.05)
+
+        # Stop request A
+        stop_event = BaseEvent(
+            event_type=TTS_STOP_REQUESTED,
+            request_id="stop_old",
+            source="test",
+            payload={},
+        )
+        event_bus.publish(stop_event)
+        time.sleep(0.05)
+
+        # Request B starts with DIFFERENT request_id
+        event_b = BaseEvent(
+            event_type=ASSISTANT_TEXT_RECEIVED,
+            request_id="req_b",
+            source="test",
+            payload={"text": "Second"},
+        )
+        event_bus.publish(event_b)
+        time.sleep(0.05)
+
+        # Request B should have called play (at least once for B)
+        assert len(mock_player.play_calls) >= 1
+
+        # Simulate request B's playback finishing normally
+        mock_player.simulate_finished()
+        time.sleep(0.05)
+
+        # State should be IDLE (from B's normal completion)
+        idle_events = [
+            e for e in dispatch_events
+            if e.payload.get("target_state") == "idle"
+            and e.payload.get("reason") == "tts_complete"
+        ]
+        assert len(idle_events) >= 1

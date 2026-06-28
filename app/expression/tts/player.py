@@ -62,13 +62,19 @@ class QtAudioPlayer:
             Does NOT trigger on_finished or on_error callbacks.
         """
         if not self._is_playing:
-            self._player.stop()
+            try:
+                self._player.stop()
+            except Exception:
+                pass
             self._on_finished = None
             self._on_error = None
             return False
 
         self._is_playing = False
-        self._player.stop()
+        try:
+            self._player.stop()
+        except Exception:
+            pass
         self._on_finished = None
         self._on_error = None
         return True
