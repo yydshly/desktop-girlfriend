@@ -22,6 +22,8 @@ from app.core.event_bus import EventBus
 from app.core.logging import setup_logging
 from app.core.state_controller import StateController
 from app.core.state_machine import StateMachine
+from app.expression.tts.controller import TTSController
+from app.expression.tts.providers.fake import FakeTTSProvider
 from app.ui.qt_event_bridge import QtEventBridge
 from app.ui.view_model import DesktopViewModel
 from app.ui.window import DesktopWindow
@@ -106,9 +108,18 @@ def main() -> None:
         dispatch_event=event_bridge.event_ready.emit,
     )
 
+    # Initialize TTS components
+    tts_provider = FakeTTSProvider(delay_seconds=0.1)
+    tts_controller = TTSController(
+        event_bus=event_bus,
+        provider=tts_provider,
+        dispatch_event=event_bridge.event_ready.emit,
+    )
+
     # Start components
     state_controller.start()
     dialogue_controller.start()
+    tts_controller.start()
 
     window.show()
 
