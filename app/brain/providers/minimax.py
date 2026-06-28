@@ -23,6 +23,7 @@ class MiniMaxChatProvider(ChatProvider):
         base_url: str,
         model: str,
         timeout_seconds: float,
+        chat_path: str,
     ) -> None:
         """Initialize MiniMaxChatProvider.
 
@@ -32,10 +33,12 @@ class MiniMaxChatProvider(ChatProvider):
             base_url: Base URL for MiniMax API.
             model: Model name to use.
             timeout_seconds: Request timeout in seconds.
+            chat_path: API endpoint path for chat completions.
         """
         self._api_key = api_key
         self._group_id = group_id
         self._base_url = base_url.rstrip("/")
+        self._chat_path = chat_path if chat_path.startswith("/") else f"/{chat_path}"
         self._model = model
         self._timeout = timeout_seconds
 
@@ -93,7 +96,7 @@ class MiniMaxChatProvider(ChatProvider):
         self, payload: dict[str, Any], headers: dict[str, str]
     ) -> dict[str, Any]:
         """Send HTTP request to MiniMax API."""
-        url = f"{self._base_url}/text/chatcompletion_v2"
+        url = f"{self._base_url}{self._chat_path}"
         data = json.dumps(payload).encode("utf-8")
 
         req = urllib.request.Request(
@@ -107,10 +110,7 @@ class MiniMaxChatProvider(ChatProvider):
             with urllib.request.urlopen(req, timeout=self._timeout) as response:
                 body = response.read().decode("utf-8")
         except urllib.error.HTTPError as e:
-            body = e.read().decode("utf-8") if e.fp else ""
-            raise ChatProviderError(
-                f"MiniMax API HTTP {e.code}: {body[:200]}"
-            ) from e
+            raise ChatProviderError(f"MiniMax API HTTP {e.code}") from e
         except urllib.error.URLError as e:
             raise ChatProviderError(f"MiniMax network error: {e.reason}") from e
 

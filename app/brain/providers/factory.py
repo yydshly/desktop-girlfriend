@@ -36,6 +36,7 @@ def create_chat_provider(config: AppConfig) -> ChatProvider:
             base_url=config.minimax_base_url,
             model=config.minimax_model,
             timeout_seconds=config.minimax_timeout_seconds,
+            chat_path=config.minimax_chat_path,
         )
 
     raise ChatProviderError(f"Unsupported chat provider mode: {mode}")

@@ -54,6 +54,21 @@ def test_env_vars_override_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
     assert config.minimax_timeout_seconds == 15.0
 
 
+def test_default_minimax_chat_path() -> None:
+    """Test default minimax chat path is set."""
+    reset_config()
+    config = AppConfig()
+    assert config.minimax_chat_path == "/text/chatcompletion_v2"
+
+
+def test_env_vars_override_chat_path(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test environment variables override chat path."""
+    reset_config()
+    monkeypatch.setenv("MINIMAX_CHAT_PATH", "/custom/chat/path")
+    config = AppConfig()
+    assert config.minimax_chat_path == "/custom/chat/path"
+
+
 def test_get_config_returns_singleton() -> None:
     """Test get_config returns the same instance."""
     reset_config()

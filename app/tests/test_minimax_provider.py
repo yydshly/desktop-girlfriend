@@ -29,6 +29,7 @@ class TestMiniMaxProviderBuildPayload:
             base_url="https://api.minimax.chat/v1",
             model="MiniMax-Text-01",
             timeout_seconds=30.0,
+            chat_path="/text/chatcompletion_v2",
         )
         request = ChatRequest(
             messages=[
@@ -52,6 +53,7 @@ class TestMiniMaxProviderBuildPayload:
             base_url="https://api.minimax.chat/v1",
             model="MiniMax-Text-01",
             timeout_seconds=30.0,
+            chat_path="/text/chatcompletion_v2",
         )
         request = _make_request()
         payload = provider._build_request_payload(request)
@@ -66,6 +68,7 @@ class TestMiniMaxProviderBuildPayload:
             base_url="https://api.minimax.chat/v1",
             model="MiniMax-Text-01",
             timeout_seconds=30.0,
+            chat_path="/text/chatcompletion_v2",
         )
         request = _make_request()
         payload = provider._build_request_payload(request)
@@ -84,6 +87,7 @@ class TestMiniMaxProviderResponseParsing:
             base_url="https://api.minimax.chat/v1",
             model="MiniMax-Text-01",
             timeout_seconds=30.0,
+            chat_path="/text/chatcompletion_v2",
         )
         response_data = {
             "choices": [
@@ -101,6 +105,7 @@ class TestMiniMaxProviderResponseParsing:
             base_url="https://api.minimax.chat/v1",
             model="MiniMax-Text-01",
             timeout_seconds=30.0,
+            chat_path="/text/chatcompletion_v2",
         )
         response_data: dict[str, Any] = {}
         with pytest.raises(ChatProviderError):
@@ -114,6 +119,7 @@ class TestMiniMaxProviderResponseParsing:
             base_url="https://api.minimax.chat/v1",
             model="MiniMax-Text-01",
             timeout_seconds=30.0,
+            chat_path="/text/chatcompletion_v2",
         )
         response_data: dict[str, Any] = {"choices": []}
         with pytest.raises(ChatProviderError):
@@ -132,6 +138,7 @@ class TestMiniMaxProviderGenerate:
             base_url="https://api.minimax.chat/v1",
             model="MiniMax-Text-01",
             timeout_seconds=30.0,
+            chat_path="/text/chatcompletion_v2",
         )
         request = _make_request()
 
@@ -150,6 +157,7 @@ class TestMiniMaxProviderGenerate:
             base_url="https://api.minimax.chat/v1",
             model="MiniMax-Text-01",
             timeout_seconds=30.0,
+            chat_path="/text/chatcompletion_v2",
         )
         request = _make_request()
 
@@ -167,6 +175,7 @@ class TestMiniMaxProviderGenerate:
             base_url="https://api.minimax.chat/v1",
             model="MiniMax-Text-01",
             timeout_seconds=30.0,
+            chat_path="/text/chatcompletion_v2",
         )
         request = _make_request()
 
@@ -184,6 +193,7 @@ class TestMiniMaxProviderGenerate:
             base_url="https://api.minimax.chat/v1",
             model="MiniMax-Text-01",
             timeout_seconds=30.0,
+            chat_path="/text/chatcompletion_v2",
         )
         request = _make_request()
 
@@ -211,6 +221,7 @@ class TestMiniMaxProviderGenerate:
             base_url="https://api.minimax.chat/v1",
             model="MiniMax-Text-01",
             timeout_seconds=30.0,
+            chat_path="/text/chatcompletion_v2",
         )
         request = _make_request()
 
@@ -221,3 +232,48 @@ class TestMiniMaxProviderGenerate:
             response = provider.generate(request)
 
         assert response.text == "Hello!"
+
+
+class TestMiniMaxProviderURLConstruction:
+    """Tests for URL construction with configurable chat_path."""
+
+    def test_chat_path_without_leading_slash_gets_prepended(self) -> None:
+        """Test chat_path without leading slash gets a slash prepended."""
+        provider = MiniMaxChatProvider(
+            api_key="test-key",
+            group_id=None,
+            base_url="https://api.minimax.chat/v1",
+            model="MiniMax-Text-01",
+            timeout_seconds=30.0,
+            chat_path="text/chatcompletion_v2",
+        )
+        assert provider._chat_path == "/text/chatcompletion_v2"
+
+    def test_chat_path_with_leading_slash_unchanged(self) -> None:
+        """Test chat_path with leading slash stays unchanged."""
+        provider = MiniMaxChatProvider(
+            api_key="test-key",
+            group_id=None,
+            base_url="https://api.minimax.chat/v1",
+            model="MiniMax-Text-01",
+            timeout_seconds=30.0,
+            chat_path="/text/chatcompletion_v2",
+        )
+        assert provider._chat_path == "/text/chatcompletion_v2"
+
+    def test_base_url_without_trailing_slash_no_double_slash(self) -> None:
+        """Test URL construction produces no double slashes in the final URL."""
+        provider = MiniMaxChatProvider(
+            api_key="test-key",
+            group_id=None,
+            base_url="https://api.minimax.chat/v1",
+            model="MiniMax-Text-01",
+            timeout_seconds=30.0,
+            chat_path="/text/chatcompletion_v2",
+        )
+        # Verify the internal URL is correctly formed
+        assert provider._chat_path == "/text/chatcompletion_v2"
+        assert provider._base_url == "https://api.minimax.chat/v1"
+        # Combined they produce: https://api.minimax.chat/v1/text/chatcompletion_v2
+        assert "//text/" not in provider._chat_path
+

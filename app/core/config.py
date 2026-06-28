@@ -28,6 +28,9 @@ class AppConfig:
         self.minimax_timeout_seconds: float = float(
             os.getenv("MINIMAX_TIMEOUT_SECONDS", "30.0")
         )
+        self.minimax_chat_path: str = os.getenv(
+            "MINIMAX_CHAT_PATH", "/text/chatcompletion_v2"
+        )
 
 
 _config: AppConfig | None = None
