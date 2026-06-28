@@ -75,3 +75,75 @@ def test_get_config_returns_singleton() -> None:
     c1 = get_config()
     c2 = get_config()
     assert c1 is c2
+
+
+# TTS env fallback tests
+
+
+def test_minimax_tts_api_key_fallback_from_chat_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test MINIMAX_TTS_API_KEY falls back to MINIMAX_API_KEY when unset."""
+    reset_config()
+    monkeypatch.setenv("MINIMAX_API_KEY", "chat-key")
+    monkeypatch.delenv("MINIMAX_TTS_API_KEY", raising=False)
+    config = AppConfig()
+    assert config.minimax_tts_api_key == "chat-key"
+
+
+def test_minimax_tts_api_key_fallback_when_blank(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test MINIMAX_TTS_API_KEY='' falls back to MINIMAX_API_KEY."""
+    reset_config()
+    monkeypatch.setenv("MINIMAX_API_KEY", "chat-key")
+    monkeypatch.setenv("MINIMAX_TTS_API_KEY", "")
+    config = AppConfig()
+    assert config.minimax_tts_api_key == "chat-key"
+
+
+def test_minimax_tts_api_key_preferred_when_set(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test MINIMAX_TTS_API_KEY='tts-key' is used over MINIMAX_API_KEY."""
+    reset_config()
+    monkeypatch.setenv("MINIMAX_API_KEY", "chat-key")
+    monkeypatch.setenv("MINIMAX_TTS_API_KEY", "tts-key")
+    config = AppConfig()
+    assert config.minimax_tts_api_key == "tts-key"
+
+
+def test_minimax_tts_group_id_fallback_when_blank(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test MINIMAX_TTS_GROUP_ID='' falls back to MINIMAX_GROUP_ID."""
+    reset_config()
+    monkeypatch.setenv("MINIMAX_GROUP_ID", "chat-group")
+    monkeypatch.setenv("MINIMAX_TTS_GROUP_ID", "")
+    config = AppConfig()
+    assert config.minimax_tts_group_id == "chat-group"
+
+
+def test_tts_provider_mode_fallback_when_blank(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test TTS_PROVIDER_MODE='' falls back to 'fake'."""
+    reset_config()
+    monkeypatch.setenv("TTS_PROVIDER_MODE", "")
+    config = AppConfig()
+    assert config.tts_provider_mode == "fake"
+
+
+def test_tts_api_key_values_stored_correctly(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test TTS API key values are stored correctly in config."""
+    reset_config()
+    monkeypatch.setenv("MINIMAX_API_KEY", "secret-chat-key")
+    monkeypatch.setenv("MINIMAX_TTS_API_KEY", "secret-tts-key")
+    config = AppConfig()
+    # Verify both keys are present in config object
+    assert config.minimax_api_key == "secret-chat-key"
+    assert config.minimax_tts_api_key == "secret-tts-key"
+    # Note: actual logging/printing sanitization is handled by the caller,
+    # not by AppConfig itself — this test confirms the values are stored.
