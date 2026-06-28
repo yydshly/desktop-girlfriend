@@ -4,9 +4,11 @@ from app.contracts.events import (
     ASSISTANT_TEXT_RECEIVED,
     STATE_CHANGED,
     SYSTEM_ERROR,
+    USER_TEXT_SUBMITTED,
     BaseEvent,
 )
 from app.contracts.states import AppState
+from app.ui.chat_message import ChatMessage
 from app.ui.view_model import DesktopViewModel
 
 
@@ -16,6 +18,7 @@ def test_view_model_initial_state() -> None:
     assert vm.state == AppState.IDLE
     assert vm.display_text == "状态：待机"
     assert vm.assistant_text == ""
+    assert vm.chat_messages == []
 
 
 def test_handle_state_changed_to_listening() -> None:
@@ -191,7 +194,7 @@ def test_handle_state_changed_unknown_string_defaults_to_error() -> None:
 
 
 def test_handle_assistant_text_received_updates_assistant_text() -> None:
-    """Test handle_assistant_text_received updates assistant_text."""
+    """Test handle_assistant_text_received updates assistant_text and appends to chat_messages."""
     vm = DesktopViewModel()
 
     event = BaseEvent(
@@ -203,6 +206,9 @@ def test_handle_assistant_text_received_updates_assistant_text() -> None:
     vm.handle_assistant_text_received(event)
 
     assert vm.assistant_text == "Hello from assistant!"
+    assert len(vm.chat_messages) == 1
+    assert vm.chat_messages[0].role == "assistant"
+    assert vm.chat_messages[0].text == "Hello from assistant!"
 
 
 def test_handle_assistant_text_received_ignores_non_assistant_event() -> None:
@@ -221,8 +227,8 @@ def test_handle_assistant_text_received_ignores_non_assistant_event() -> None:
     assert vm.assistant_text == "existing"
 
 
-def test_handle_assistant_text_received_missing_text_keeps_previous() -> None:
-    """Test handle_assistant_text_received with missing text keeps previous."""
+def test_handle_assistant_text_received_missing_text_keeps_previous_and_does_not_append() -> None:
+    """Test handle_assistant_text_received with missing text keeps previous and does not append."""
     vm = DesktopViewModel()
     vm.assistant_text = "previous"
 
@@ -235,10 +241,11 @@ def test_handle_assistant_text_received_missing_text_keeps_previous() -> None:
     vm.handle_assistant_text_received(event)
 
     assert vm.assistant_text == "previous"
+    assert vm.chat_messages == []
 
 
-def test_handle_assistant_text_received_non_string_text_keeps_previous() -> None:
-    """Test handle_assistant_text_received with non-string text keeps previous."""
+def test_handle_assistant_text_received_non_string_text_keeps_previous_and_does_not_append() -> None:
+    """Test handle_assistant_text_received with non-string text keeps previous and does not append."""
     vm = DesktopViewModel()
     vm.assistant_text = "previous"
 
@@ -251,10 +258,11 @@ def test_handle_assistant_text_received_non_string_text_keeps_previous() -> None
     vm.handle_assistant_text_received(event)
 
     assert vm.assistant_text == "previous"
+    assert vm.chat_messages == []
 
 
-def test_handle_assistant_text_received_str_subclass_keeps_previous() -> None:
-    """Test handle_assistant_text_received with str subclass keeps previous."""
+def test_handle_assistant_text_received_str_subclass_keeps_previous_and_does_not_append() -> None:
+    """Test handle_assistant_text_received with str subclass keeps previous and does not append."""
 
     class TextSubclass(str):
         pass
@@ -271,6 +279,7 @@ def test_handle_assistant_text_received_str_subclass_keeps_previous() -> None:
     vm.handle_assistant_text_received(event)
 
     assert vm.assistant_text == "previous"
+    assert vm.chat_messages == []
 
 
 # System error tests
@@ -399,3 +408,165 @@ def test_handle_system_error_whitespace_only_message_sets_fallback() -> None:
     vm.handle_system_error(event)
 
     assert vm.error_text == "发生未知错误。"
+
+
+# Chat history tests
+
+
+def test_initial_chat_messages_is_empty() -> None:
+    """Test that initial chat_messages is empty."""
+    vm = DesktopViewModel()
+    assert vm.chat_messages == []
+
+
+def test_handle_user_text_submitted_appends_user_message() -> None:
+    """Test handle_user_text_submitted appends a user message to chat_messages."""
+    vm = DesktopViewModel()
+
+    event = BaseEvent(
+        event_type=USER_TEXT_SUBMITTED,
+        request_id="req22",
+        source="test",
+        payload={"text": "Hello"},
+    )
+    vm.handle_user_text_submitted(event)
+
+    assert len(vm.chat_messages) == 1
+    assert vm.chat_messages[0].role == "user"
+    assert vm.chat_messages[0].text == "Hello"
+
+
+def test_handle_user_text_submitted_ignores_wrong_event_type() -> None:
+    """Test handle_user_text_submitted ignores non-user.text_submitted events."""
+    vm = DesktopViewModel()
+
+    event = BaseEvent(
+        event_type="other.event",
+        request_id="req23",
+        source="test",
+        payload={"text": "Hello"},
+    )
+    vm.handle_user_text_submitted(event)
+
+    assert vm.chat_messages == []
+
+
+def test_handle_user_text_submitted_ignores_missing_text() -> None:
+    """Test handle_user_text_submitted ignores missing text."""
+    vm = DesktopViewModel()
+
+    event = BaseEvent(
+        event_type=USER_TEXT_SUBMITTED,
+        request_id="req24",
+        source="test",
+        payload={},
+    )
+    vm.handle_user_text_submitted(event)
+
+    assert vm.chat_messages == []
+
+
+def test_handle_user_text_submitted_ignores_non_str_text() -> None:
+    """Test handle_user_text_submitted ignores non-string text."""
+    vm = DesktopViewModel()
+
+    event = BaseEvent(
+        event_type=USER_TEXT_SUBMITTED,
+        request_id="req25",
+        source="test",
+        payload={"text": None},
+    )
+    vm.handle_user_text_submitted(event)
+
+    assert vm.chat_messages == []
+
+
+def test_handle_user_text_submitted_rejects_str_subclass() -> None:
+    """Test handle_user_text_submitted rejects str subclass."""
+
+    class TextSubclass(str):
+        pass
+
+    vm = DesktopViewModel()
+
+    event = BaseEvent(
+        event_type=USER_TEXT_SUBMITTED,
+        request_id="req26",
+        source="test",
+        payload={"text": TextSubclass("Hello")},
+    )
+    vm.handle_user_text_submitted(event)
+
+    assert vm.chat_messages == []
+
+
+def test_handle_user_text_submitted_strips_whitespace() -> None:
+    """Test handle_user_text_submitted strips surrounding whitespace."""
+    vm = DesktopViewModel()
+
+    event = BaseEvent(
+        event_type=USER_TEXT_SUBMITTED,
+        request_id="req27",
+        source="test",
+        payload={"text": "  Hello  "},
+    )
+    vm.handle_user_text_submitted(event)
+
+    assert len(vm.chat_messages) == 1
+    assert vm.chat_messages[0].text == "Hello"
+
+
+def test_handle_assistant_text_received_appends_assistant_message() -> None:
+    """Test handle_assistant_text_received appends assistant message to chat_messages."""
+    vm = DesktopViewModel()
+
+    event = BaseEvent(
+        event_type=ASSISTANT_TEXT_RECEIVED,
+        request_id="req28",
+        source="test",
+        payload={"text": "Hi there!"},
+    )
+    vm.handle_assistant_text_received(event)
+
+    assert len(vm.chat_messages) == 1
+    assert vm.chat_messages[0].role == "assistant"
+    assert vm.chat_messages[0].text == "Hi there!"
+    assert vm.assistant_text == "Hi there!"
+
+
+def test_system_error_does_not_append_chat_message() -> None:
+    """Test handle_system_error does not append a chat message."""
+    vm = DesktopViewModel()
+
+    event = BaseEvent(
+        event_type=SYSTEM_ERROR,
+        request_id="req29",
+        source="test",
+        payload={"message": "Some error"},
+    )
+    vm.handle_system_error(event)
+
+    assert vm.chat_messages == []
+    assert vm.error_text == "Some error"
+
+
+def test_thinking_clears_error_text_but_keeps_chat_messages() -> None:
+    """Test handle_state_changed to THINKING clears error_text but keeps chat_messages."""
+    vm = DesktopViewModel()
+    vm.error_text = "Previous error"
+    vm.chat_messages.append(ChatMessage(role="user", text="Hello"))
+
+    event = BaseEvent(
+        event_type=STATE_CHANGED,
+        request_id="req30",
+        source="test",
+        payload={
+            "previous_state": "idle",
+            "current_state": "thinking",
+        },
+    )
+    vm.handle_state_changed(event)
+
+    assert vm.error_text == ""
+    assert len(vm.chat_messages) == 1
+    assert vm.chat_messages[0].text == "Hello"

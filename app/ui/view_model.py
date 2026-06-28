@@ -4,9 +4,11 @@ from app.contracts.events import (
     ASSISTANT_TEXT_RECEIVED,
     STATE_CHANGED,
     SYSTEM_ERROR,
+    USER_TEXT_SUBMITTED,
     BaseEvent,
 )
 from app.contracts.states import AppState
+from app.ui.chat_message import ChatMessage
 
 # Mapping from AppState to display text
 _STATE_DISPLAY_TEXT: dict[AppState, str] = {
@@ -28,6 +30,7 @@ class DesktopViewModel:
         self.display_text: str = _STATE_DISPLAY_TEXT[AppState.IDLE]
         self.assistant_text: str = _DEFAULT_ASSISTANT_TEXT
         self.error_text: str = ""
+        self.chat_messages: list[ChatMessage] = []
 
     def handle_state_changed(self, event: BaseEvent) -> None:
         """Handle state.changed event and update display text.
@@ -65,6 +68,21 @@ class DesktopViewModel:
         text = event.payload.get("text")
         if type(text) is str:
             self.assistant_text = text
+            if text.strip():
+                self.chat_messages.append(ChatMessage(role="assistant", text=text))
+
+    def handle_user_text_submitted(self, event: BaseEvent) -> None:
+        """Handle user.text_submitted event and append user message.
+
+        Args:
+            event: The user.text_submitted event.
+        """
+        if event.event_type != USER_TEXT_SUBMITTED:
+            return
+
+        text = event.payload.get("text")
+        if type(text) is str and text.strip():
+            self.chat_messages.append(ChatMessage(role="user", text=text.strip()))
 
     def handle_system_error(self, event: BaseEvent) -> None:
         """Handle system.error event and update error text.

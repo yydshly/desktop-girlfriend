@@ -84,6 +84,13 @@ def main() -> None:
 
     event_bus.subscribe(SYSTEM_ERROR, on_system_error)
 
+    # Register ViewModel subscription to user.text_submitted events (before dialogue controller starts)
+    def on_user_text_submitted(event: BaseEvent) -> None:
+        view_model.handle_user_text_submitted(event)
+        window.update_from_view_model()
+
+    event_bus.subscribe(USER_TEXT_SUBMITTED, on_user_text_submitted)
+
     # Initialize Dialogue components
     prompt_registry = PromptRegistry()
     try:
