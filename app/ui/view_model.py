@@ -29,18 +29,14 @@ class DesktopViewModel:
         if event.event_type != STATE_CHANGED:
             return
 
-        payload_data = event.payload
-        current_state_value = payload_data.get("current_state")
-        if isinstance(current_state_value, dict):
-            current_state_value = current_state_value.get("value", current_state_value)
-        elif isinstance(current_state_value, AppState):
-            pass
-        else:
-            current_state_value = str(current_state_value)
+        current_state_value = event.payload.get("current_state")
 
-        try:
-            self.state = AppState(current_state_value)
-        except ValueError:
+        if not isinstance(current_state_value, str):
             self.state = AppState.ERROR
+        else:
+            try:
+                self.state = AppState(current_state_value)
+            except ValueError:
+                self.state = AppState.ERROR
 
         self.display_text = _STATE_DISPLAY_TEXT.get(self.state, "状态：未知")
