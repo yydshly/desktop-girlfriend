@@ -148,15 +148,15 @@ External Service --> Provider Interface --> Business Logic
 | `mypy` | 类型检查 |
 | `GitHub Actions` | CI/CD 自动化 |
 
-### 守护 Skill
+### 开发辅助与守护流程
 
-| Skill | 职责 |
-|-------|------|
-| `architecture-guard` | 守护分层架构边界 |
-| `prompt-registry` | 集中管理 Prompt |
-| `safety-privacy-guard` | 安全与隐私合规 |
+| 辅助方式 | 职责 |
+|----------|------|
+| Superpowers | 需求澄清、计划拆解、TDD、调试、代码审查和完成前验证 |
+| Review Guide Checklist | 守护分层架构、模块 Gate、风险检查和阶段审查 |
+| CI / 本地质量命令 | 运行 `ruff`、`mypy`、`pytest` 等基础质量检查 |
 
-> 当前这些是计划沉淀的项目自定义 Skill 名称；在真实创建和验证前，相关检查以 Review Guide 清单、内置/外部辅助 Skill 和人工审查为准。
+项目自定义 Skill 暂缓自研。后续只有在 Superpowers 与 Review Guide 的实际使用中发现稳定、高频、项目特有的流程，才考虑沉淀为 `architecture-guard`、`docs-consistency-check` 等专项 Skill。
 
 ---
 

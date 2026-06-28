@@ -46,7 +46,7 @@
 - [ ] PROJECT_BRIEF.md 是否与目标一致
 - [ ] ROADMAP.md 是否允许该模块
 - [ ] ARCHITECTURE.md 是否定义模块边界
-- [ ] SKILLS.md 是否定义所需质量支撑
+- [ ] SKILLS.md 是否定义所需开发辅助流程
 - [ ] REVIEW_GUIDE.md 是否覆盖审查规则
 - [ ] MINIMAX_EXECUTION.md 是否覆盖执行边界
 
