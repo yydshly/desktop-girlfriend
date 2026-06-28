@@ -132,7 +132,8 @@ Claude Code 自带以下 Bundled Skills（通过 `/skill-name` 调用）：
 
 | Skill 名称 | 需求来源 | 建议实现方式 | 推荐 |
 |-----------|----------|-------------|------|
-| `architecture-guard` | SKILLS.md P0 | **项目自定义** — 守护分层架构边界 | **采用** — 项目自定义 |
+| `desktop-girlfriend-guard` | SKILLS.md P0 | **已创建** — 项目级聚合 Guard，覆盖架构、质量、文档一致性、V3 Gate | **已采用** |
+| `architecture-guard` | SKILLS.md P0 | **项目自定义** — 守护分层架构边界 | **后续拆分** — 从聚合 Guard 中沉淀 |
 | `code-quality-superpower` | SKILLS.md P0 | **项目自定义** — ruff/mypy/pytest 规范 | **采用** — 项目自定义 |
 | `docs-consistency-check` | SKILLS.md P0 | **项目自定义** — 文档与代码一致性检查 | **采用** — 项目自定义 |
 | `minimax-execution-guard` | SKILLS.md P0 | **项目自定义** — MiniMax 执行边界守护 | **采用** — 项目自定义 |
@@ -158,7 +159,7 @@ Claude Code 自带以下 Bundled Skills（通过 `/skill-name` 调用）：
 | `/code-review` | Claude Code 内置 | 代码审查 | Bundled Skill，直接可用 |
 | `/verify` | Claude Code 内置 | 验证变更 | Bundled Skill，直接可用 |
 | `/run` | Claude Code 内置 | 运行 App | Bundled Skill，直接可用 |
-| 项目自定义 P0 Skill | 本项目 | 架构守护/质量基线 | V3 开始逐步实现 |
+| `desktop-girlfriend-guard` | 本项目 | 架构守护/质量基线/V3 Gate | 已在 `.codex/skills/desktop-girlfriend-guard/SKILL.md` 创建 |
 
 ---
 
@@ -208,8 +209,8 @@ Claude Code 自带以下 Bundled Skills（通过 `/skill-name` 调用）：
    - `skill-creator` — 指导本项目自定义 Skill 实现
 
 3. **以 Agent Skills 格式实现项目自定义 P0 Skill**：
-   - 目录结构：按当前工具可发现的 Skill 目录创建；若只是项目文档沉淀，先放入 `docs/skills/`，不要伪装成已自动触发的 Skill
-   - V3 阶段优先实现：`architecture-guard`、`code-quality-superpower`
+   - 当前基线：`.codex/skills/desktop-girlfriend-guard/SKILL.md`
+   - 后续拆分：`architecture-guard`、`code-quality-superpower`
 
 4. **不创建 `.skills` 目录**（遵循项目约束）
 
@@ -217,6 +218,7 @@ Claude Code 自带以下 Bundled Skills（通过 `/skill-name` 调用）：
 
 | 优先级 | Skill | 说明 |
 |--------|-------|------|
+| P0 | `desktop-girlfriend-guard` | 已创建，作为当前项目级聚合 Guard |
 | P0 | `code-quality-superpower` | ruff/mypy/pytest 规范，V3 开发基础 |
 | P0 | `architecture-guard` | 分层架构边界守护，V3 Brain/Expression 层引入时激活 |
 | P1 | `provider-contract-check` | Provider 接口契约，V3 MiniMax Provider 实现后 |
