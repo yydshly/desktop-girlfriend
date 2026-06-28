@@ -31,7 +31,7 @@ class DesktopViewModel:
 
         current_state_value = event.payload.get("current_state")
 
-        if not isinstance(current_state_value, str):
+        if type(current_state_value) is not str:
             self.state = AppState.ERROR
         else:
             try:
