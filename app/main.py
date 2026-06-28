@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QApplication
 
 from app.brain.dialogue_controller import DialogueController
 from app.brain.prompts.registry import PromptRegistry
-from app.brain.providers.fake import FakeChatProvider
+from app.brain.providers import ChatProviderError, create_chat_provider
 from app.contracts.events import (
     ASSISTANT_TEXT_RECEIVED,
     STATE_CHANGED,
@@ -75,7 +75,17 @@ def main() -> None:
 
     # Initialize Dialogue components
     prompt_registry = PromptRegistry()
-    provider = FakeChatProvider()
+    try:
+        provider = create_chat_provider(config)
+    except ChatProviderError:
+        logger.exception(
+            "Failed to create configured chat provider; falling back to FakeChatProvider"
+        )
+        from app.brain.providers.fake import FakeChatProvider
+
+        provider = FakeChatProvider(
+            reply_text="Provider configuration error. Falling back to fake response."
+        )
     dialogue_controller = DialogueController(event_bus, provider, prompt_registry)
 
     # Start components
