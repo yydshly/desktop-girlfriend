@@ -57,6 +57,17 @@ def test_env_vars_override_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
     assert config.minimax_timeout_seconds == 15.0
 
 
+def test_invalid_minimax_timeout_has_clear_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test invalid chat timeout fails with a clear config error."""
+    reset_config()
+    monkeypatch.setenv("MINIMAX_TIMEOUT_SECONDS", "not-a-number")
+
+    with pytest.raises(ValueError, match="MINIMAX_TIMEOUT_SECONDS must be a number"):
+        AppConfig()
+
+
 def test_default_minimax_chat_path(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -154,3 +165,14 @@ def test_tts_api_key_values_stored_correctly(
     assert config.minimax_tts_api_key == "secret-tts-key"
     # Note: actual logging/printing sanitization is handled by the caller,
     # not by AppConfig itself — this test confirms the values are stored.
+
+
+def test_invalid_minimax_tts_timeout_has_clear_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test invalid TTS timeout fails with a clear config error."""
+    reset_config()
+    monkeypatch.setenv("MINIMAX_TTS_TIMEOUT_SECONDS", "not-a-number")
+
+    with pytest.raises(ValueError, match="MINIMAX_TTS_TIMEOUT_SECONDS must be a number"):
+        AppConfig()

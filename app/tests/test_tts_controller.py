@@ -879,7 +879,7 @@ class TestTTSControllerStop:
 
     def test_stop_embedded_dispatches_idle_without_error(self) -> None:
         """Test stop during embedded playback dispatches IDLE without ERROR."""
-        from app.contracts.events import TTS_STOP_REQUESTED
+        from app.contracts.events import TTS_STOP_REQUESTED, TTS_STOPPED
 
         event_bus = EventBus()
         provider = SynthesizeOnlyProvider(audio_path="/tmp/test.mp3")
@@ -905,6 +905,11 @@ class TestTTSControllerStop:
         )
         event_bus.publish(stop_event)
         time.sleep(0.05)
+
+        stopped_events = [
+            e for e in dispatch_events if e.event_type == TTS_STOPPED
+        ]
+        assert len(stopped_events) >= 1
 
         idle_events = [
             e for e in dispatch_events

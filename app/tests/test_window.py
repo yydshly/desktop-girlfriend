@@ -3,7 +3,6 @@
 from unittest.mock import MagicMock
 
 import pytest
-from PySide6.QtWidgets import QApplication
 
 from app.contracts.states import AppState
 from app.ui.chat_message import ChatMessage
@@ -19,6 +18,8 @@ def _qt_available() -> bool:
     if _QT_AVAILABLE is None:
         _QT_AVAILABLE = True
         try:
+            from PySide6.QtWidgets import QApplication
+
             app = QApplication.instance()
             if app is None:
                 QApplication([])

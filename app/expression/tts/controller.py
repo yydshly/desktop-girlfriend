@@ -11,6 +11,7 @@ from app.contracts.events import (
     SYSTEM_ERROR,
     TTS_AUDIO_READY,
     TTS_STOP_REQUESTED,
+    TTS_STOPPED,
     BaseEvent,
 )
 from app.contracts.states import AppState
@@ -184,6 +185,13 @@ class TTSController:
         if self._audio_player is not None:
             self._audio_player.stop()
 
+        stopped_event = BaseEvent(
+            event_type=TTS_STOPPED,
+            request_id=request_id or str(uuid.uuid4()),
+            source="tts_controller",
+            payload={},
+        )
+        self._dispatch_event(stopped_event)
         self._dispatch_state_request(AppState.IDLE, "tts_stopped")
 
     def _on_audio_ready(self, event: BaseEvent) -> None:

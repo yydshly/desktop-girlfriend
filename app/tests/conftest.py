@@ -37,3 +37,14 @@ def clear_config_env(monkeypatch: pytest.MonkeyPatch) -> None:
     for name in CONFIG_ENV_NAMES:
         monkeypatch.delenv(name, raising=False)
     reset_config()
+
+
+@pytest.fixture(scope="session")
+def qapp():
+    """Return a single QApplication instance for all Qt tests."""
+    from PySide6.QtWidgets import QApplication
+
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication([])
+    return app

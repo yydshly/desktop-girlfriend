@@ -24,6 +24,15 @@ def _env_or_default(name: str, default: str) -> str:
     return value
 
 
+def _env_float_or_default(name: str, default: str) -> float:
+    """Return an environment float or raise a clear configuration error."""
+    value = _env_or_default(name, default)
+    try:
+        return float(value)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be a number") from exc
+
+
 class AppConfig:
     """Application configuration."""
 
@@ -41,8 +50,8 @@ class AppConfig:
             "MINIMAX_BASE_URL", "https://api.minimax.chat/v1"
         )
         self.minimax_model: str = os.getenv("MINIMAX_MODEL", "MiniMax-Text-01")
-        self.minimax_timeout_seconds: float = float(
-            os.getenv("MINIMAX_TIMEOUT_SECONDS", "30.0")
+        self.minimax_timeout_seconds: float = _env_float_or_default(
+            "MINIMAX_TIMEOUT_SECONDS", "30.0"
         )
         self.minimax_chat_path: str = os.getenv(
             "MINIMAX_CHAT_PATH", "/text/chatcompletion_v2"
@@ -63,8 +72,8 @@ class AppConfig:
         self.minimax_tts_voice_id: str = _env_or_default(
             "MINIMAX_TTS_VOICE_ID", "female-shaonv"
         )
-        self.minimax_tts_timeout_seconds: float = float(
-            _env_or_default("MINIMAX_TTS_TIMEOUT_SECONDS", "30.0")
+        self.minimax_tts_timeout_seconds: float = _env_float_or_default(
+            "MINIMAX_TTS_TIMEOUT_SECONDS", "30.0"
         )
         self.minimax_tts_path: str = _env_or_default("MINIMAX_TTS_PATH", "/t2a_v2")
         self.minimax_tts_output_dir: str = _env_or_default(
