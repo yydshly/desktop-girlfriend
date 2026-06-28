@@ -1,6 +1,5 @@
 """Tests for EventBus."""
 
-import pytest
 
 from app.contracts.events import BaseEvent
 from app.core.event_bus import EventBus

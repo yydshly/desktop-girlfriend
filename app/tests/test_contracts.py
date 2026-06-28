@@ -2,13 +2,11 @@
 
 from datetime import datetime
 
-import pytest
-
 from app.contracts.events import (
-    BaseEvent,
     STATE_CHANGED,
     SYSTEM_ERROR,
     USER_TEXT_SUBMITTED,
+    BaseEvent,
 )
 from app.contracts.states import AppState
 

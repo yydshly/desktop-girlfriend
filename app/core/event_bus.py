@@ -1,7 +1,7 @@
 """Event bus implementation."""
 
 from collections import defaultdict
-from typing import Callable
+from collections.abc import Callable
 
 from app.contracts.events import BaseEvent
 

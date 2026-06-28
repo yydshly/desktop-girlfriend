@@ -1,6 +1,7 @@
 """Application entry point."""
 
 import logging
+import sys
 
 from PySide6.QtWidgets import QApplication
 
@@ -18,7 +19,7 @@ def main() -> None:
 
     logger.info("Starting %s", config.app_name)
 
-    app = QApplication([])
+    app = QApplication(sys.argv)
     window = DesktopWindow()
     window.show()
 

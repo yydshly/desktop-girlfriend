@@ -1,4 +1,8 @@
 [project]
+name = "desktop-girlfriend"
+version = "0.1.0"
+description = "Desktop AI companion prototype"
+readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "PySide6",
@@ -27,3 +31,4 @@ testpaths = ["app/tests"]
 python_version = "3.11"
 warn_return_any = true
 warn_unused_ignores = true
+ignore_missing_imports = true

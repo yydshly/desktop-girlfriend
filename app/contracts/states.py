@@ -1,9 +1,9 @@
 """Application state definitions."""
 
-from enum import Enum
+from enum import StrEnum
 
 
-class AppState(str, Enum):
+class AppState(StrEnum):
     """Application state enumeration."""
 
     IDLE = "idle"

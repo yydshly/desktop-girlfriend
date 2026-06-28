@@ -4,7 +4,6 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
-
 # Event type constants
 USER_TEXT_SUBMITTED = "user.text_submitted"
 STATE_CHANGED = "state.changed"
