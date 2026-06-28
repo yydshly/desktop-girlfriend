@@ -9,25 +9,25 @@
 ```
 ┌─────────────────────────────────────────────────────┐
 │                    UI Layer                          │
-│  (PySide6 / Qt, 窗口、控件、渲染)                      │
+│  (PySide6 / Qt, 桌面窗口、角色展示、用户界面)           │
 ├─────────────────────────────────────────────────────┤
-│                    Core Layer                        │
-│  (应用状态、会话管理、生命周期)                         │
+│                    Core Layer                       │
+│  (EventBus、StateMachine、Config、应用生命周期)        │
 ├─────────────────────────────────────────────────────┤
-│                    Brain Layer                       │
-│  (LLM 调用、推理、决策、Prompt 管理)                    │
+│                    Brain Layer                      │
+│  (LLM、Prompt、MiniMax Provider、Agent 决策)         │
 ├─────────────────────────────────────────────────────┤
-│                 Expression Layer                     │
-│  (表情、动作、动画、语音输出)                            │
+│                  Expression Layer                   │
+│  (TTS、语音播放、Avatar 表现、动作状态)               │
 ├─────────────────────────────────────────────────────┤
-│                 Perception Layer                     │
-│  (语音输入、手势识别、视觉感知)                         │
+│                  Perception Layer                   │
+│  (ASR、麦克风、摄像头、手势识别)                       │
 ├─────────────────────────────────────────────────────┤
-│                   Memory Layer                       │
-│  (长期记忆、短期记忆、会话历史)                          │
+│                    Memory Layer                     │
+│  (短期上下文、长期记忆、会话历史)                       │
 ├─────────────────────────────────────────────────────┤
-│                    Tool Layer                        │
-│  (工具路由、Agent 工具、权限控制)                       │
+│                     Tool Layer                      │
+│  (Tool Router、工具调用、权限控制、审计日志)            │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -35,13 +35,104 @@
 
 | 层级 | 职责 |
 |------|------|
-| **UI Layer** | 用户界面展示和交互，窗口管理，渲染 |
-| **Core Layer** | 应用核心状态管理，会话生命周期，应用入口 |
-| **Brain Layer** | AI 推理，LLM 调用，Prompt 管理，决策逻辑 |
-| **Expression Layer** | 角色表情，动作动画，语音合成输出 |
-| **Perception Layer** | 感知输入处理，语音识别，手势识别 |
-| **Memory Layer** | 记忆存储，长期记忆，短期记忆 |
-| **Tool Layer** | 工具路由，Agent 工具注册，权限控制 |
+| **UI Layer** | 桌面窗口、角色展示、用户界面 |
+| **Core Layer** | EventBus、StateMachine、Config、应用生命周期 |
+| **Brain Layer** | LLM、Prompt、MiniMax Provider、Agent 决策 |
+| **Expression Layer** | TTS、语音播放、Avatar 表现、动作状态 |
+| **Perception Layer** | ASR、麦克风、摄像头、手势识别 |
+| **Memory Layer** | 短期上下文、长期记忆、会话历史 |
+| **Tool Layer** | Tool Router、工具调用、权限控制、审计日志 |
+
+---
+
+## EventBus 使用边界
+
+### 应该使用 EventBus 的场景
+
+- UI 交互触发业务事件
+- 语音识别完成事件
+- 手势识别完成事件
+- TTS 播放开始 / 完成事件
+- Avatar 状态切换通知
+- Agent 工具执行结果通知
+- 跨层异步事件通知
+
+### 不需要使用 EventBus 的场景
+
+- 同一模块内部函数调用
+- 同一层内部纯工具函数调用
+- Provider 内部实现细节
+- 无副作用的纯计算逻辑
+- 配置读取和数据结构转换
+
+### 禁止的调用方式
+
+| 禁止 | 说明 |
+|------|------|
+| UI 直接调用 MiniMax API | UI 层禁止直接调用 Brain 层以外的 API |
+| UI 直接调用 Tool Router | 禁止 UI 层直接执行本地命令 |
+| UI 直接修改角色状态 | 必须通过 StateMachine |
+| 任意模块绕过 StateMachine 修改状态 | 状态变更必须走 StateMachine |
+| Prompt 散落在业务代码中 | Prompt 必须集中管理 |
+
+### EventBus vs 直接函数调用
+
+```
+应该用 EventBus:
+  UI Layer --> EventBus --> Core Layer (业务事件)
+  Perception --> EventBus --> Brain Layer (感知输入)
+  Brain Layer --> EventBus --> Expression Layer (输出指令)
+
+可以用直接调用:
+  Core Layer 内部: StateMachine.set_state()
+  同一层内部工具函数: def validate_config()
+  Provider 内部实现: def _make_request()
+```
+
+---
+
+## StateMachine 驱动角色状态
+
+所有角色状态变更必须通过 StateMachine。
+
+```
+UI Event --> StateMachine --> State Change --> Expression Update
+```
+
+### StateMachine 管理的状态
+
+- 角色情绪状态
+- 角色动作状态
+- 对话状态
+- 交互模式（语音/文本/手势）
+
+---
+
+## Provider 化外部服务
+
+所有外部服务（API、SDK）必须封装为 Provider 接口。
+
+```
+External Service --> Provider Interface --> Business Logic
+```
+
+### Provider 规范
+
+- 每个外部服务对应一个 Provider
+- Provider 定义标准接口
+- 业务代码只依赖 Provider 接口，不依赖具体实现
+
+---
+
+## Prompt Registry 管理提示词
+
+所有 Prompt 必须集中在 Prompt Registry 管理，禁止散落在业务代码中。
+
+---
+
+## Tool Router 受权限控制
+
+所有 Agent 工具调用必须通过 Tool Router，并受权限控制。
 
 ---
 
@@ -67,49 +158,14 @@
 
 ---
 
-## 核心原则
-
-### EventBus 驱动模块通信
-
-所有跨模块通信必须通过 EventBus，禁止直接模块间调用。
-
-```
-Module A --(Event)--> EventBus --(Event)--> Module B
-```
-
-### StateMachine 驱动角色状态
-
-所有角色状态变更必须通过 StateMachine。
-
-```
-UI Event --> StateMachine --> State Change --> UI Update
-```
-
-### Provider 化外部服务
-
-所有外部服务（API、SDK）必须封装为 Provider 接口。
-
-```
-Service --> Provider Interface --> Business Logic
-```
-
-### Prompt Registry 管理提示词
-
-所有 Prompt 必须集中在 Prompt Registry 管理，禁止散落在业务代码中。
-
-### Tool Router 受权限控制
-
-所有 Agent 工具调用必须通过 Tool Router，并受权限控制。
-
----
-
 ## 架构检查清单
 
 - [ ] 是否遵守分层架构？
-- [ ] 是否通过 EventBus 通信？
+- [ ] 业务事件是否通过 EventBus？
 - [ ] 状态变更是否通过 StateMachine？
 - [ ] 外部服务是否 Provider 化？
 - [ ] Prompt 是否在 Registry 中？
+- [ ] 是否有禁止的调用方式？
 
 ---
 
