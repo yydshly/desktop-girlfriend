@@ -14,9 +14,14 @@
 
 详见：[Vision Reference](./docs/VISION_REFERENCE.md)
 
-## V1 工程初始化
+## 当前状态
 
-当前为 **V1 工程初始化** 阶段，建立模块边界、事件契约和基础日志体系。
+当前为 **V2 冻结 / V3 准备前** 阶段。
+
+- V1 已完成 PySide6 最小桌面壳。
+- V2 已完成 EventBus、StateMachine、StateController、ViewModel 和基础状态展示。
+- V3 才会引入 MiniMax 文本对话、TTS 和 Prompt Registry。
+- 在进入 V3 前，优先修复运行环境、事件契约、文档一致性和质量检查入口。
 
 ### 项目结构
 
@@ -39,13 +44,15 @@ app/
 
 ### 安装
 
-Windows 推荐使用 py launcher 创建虚拟环境：
+Windows 推荐使用 Python 3.11+ 创建虚拟环境。若本机有 `py` launcher：
 
 ```bash
 py -3.11 -m venv .venv
 .venv\Scripts\activate
-pip install -e ".[dev]"
+python -m pip install -e ".[dev]"
 ```
+
+若没有 `py` launcher，请使用已安装的 Python 3.11+ 解释器创建虚拟环境，并确认 `python --version` 满足 `>=3.11`。
 
 ### 运行
 
@@ -56,9 +63,9 @@ python -m app.main
 ### 测试
 
 ```bash
-ruff check .
-mypy app
-pytest -q
+python -m ruff check .
+python -m mypy app
+python -m pytest -q
 ```
 
 ## 技术架构
@@ -84,7 +91,7 @@ pytest -q
 
 ## 质量支撑体系
 
-项目采用 **Skill / Superpowers** 质量支撑体系，确保开发过程规范可靠。
+项目使用 **Skill / Superpowers** 作为开发辅助层，用于降低单人开发的审查成本。它们不能替代测试、CI 和人工架构判断；项目自定义 Skill 只有在真实创建并验证后，才视为正式质量机制。
 
 ### 开发流程
 
@@ -96,7 +103,7 @@ pytest -q
 
 - [MiniMax 执行规范](./docs/MINIMAX_EXECUTION.md) — Solo Developer Flow 和 Module Development Gate
 - [代码审查指南](./docs/REVIEW_GUIDE.md) — Checkpoint Review 和 Gate Checklist
-- [Skill 体系](./docs/SKILLS.md) — 质量支撑体系
+- [Skill 体系](./docs/SKILLS.md) — 开发辅助体系
 
 ## 文档导航
 
@@ -108,7 +115,7 @@ pytest -q
 - [架构规范](./docs/ARCHITECTURE.md) — 分层架构和核心原则
 - [代码审查指南](./docs/REVIEW_GUIDE.md) — Checkpoint Review 原则
 - [MiniMax 执行规范](./docs/MINIMAX_EXECUTION.md) — Agent 执行边界
-- [Skill 体系](./docs/SKILLS.md) — 质量支撑体系
+- [Skill 体系](./docs/SKILLS.md) — 开发辅助体系
 
 ### 项目管理
 - [路线图](./docs/ROADMAP.md) — V0-V8 版本规划和里程碑

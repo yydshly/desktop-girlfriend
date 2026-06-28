@@ -156,6 +156,8 @@ External Service --> Provider Interface --> Business Logic
 | `prompt-registry` | 集中管理 Prompt |
 | `safety-privacy-guard` | 安全与隐私合规 |
 
+> 当前这些是计划沉淀的项目自定义 Skill 名称；在真实创建和验证前，相关检查以 Review Guide 清单、内置/外部辅助 Skill 和人工审查为准。
+
 ---
 
 ## 架构检查清单

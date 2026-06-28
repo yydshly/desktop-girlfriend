@@ -58,7 +58,7 @@ class StateController:
             payload=StateChangedPayload(
                 previous_state=previous_state,
                 current_state=current_state,
-            ).__dict__,
+            ).to_event_payload(),
         )
         self._event_bus.publish(state_changed_event)
 

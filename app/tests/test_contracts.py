@@ -9,6 +9,7 @@ from app.contracts.events import (
     USER_TEXT_SUBMITTED,
     BaseEvent,
 )
+from app.contracts.payloads import StateChangedPayload
 from app.contracts.states import AppState
 
 
@@ -52,3 +53,16 @@ def test_event_type_constants() -> None:
     assert STATE_CHANGE_REQUESTED == "state.change_requested"
     assert STATE_CHANGED == "state.changed"
     assert SYSTEM_ERROR == "system.error"
+
+
+def test_state_changed_payload_to_event_payload() -> None:
+    """Test state changed payload serializes states as stable strings."""
+    payload = StateChangedPayload(
+        previous_state=AppState.IDLE,
+        current_state=AppState.THINKING,
+    )
+
+    assert payload.to_event_payload() == {
+        "previous_state": "idle",
+        "current_state": "thinking",
+    }

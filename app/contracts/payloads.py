@@ -23,3 +23,10 @@ class StateChangedPayload:
 
     previous_state: AppState
     current_state: AppState
+
+    def to_event_payload(self) -> Payload:
+        """Convert the payload to an event-safe dictionary."""
+        return {
+            "previous_state": self.previous_state.value,
+            "current_state": self.current_state.value,
+        }

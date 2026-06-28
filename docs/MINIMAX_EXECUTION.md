@@ -87,7 +87,7 @@ MiniMax 不得跳过 Gate 直接开发新模块。
 
 ### 执行前检查
 
-MiniMax 执行代码任务前必须确认本地 Python 版本满足 `pyproject.toml` 的 `requires-python`。当前项目要求 `>=3.11`，Windows 环境推荐使用 `py -3.11` 或 `py -3.12` 创建虚拟环境。
+MiniMax 执行代码任务前必须确认本地 Python 版本满足 `pyproject.toml` 的 `requires-python`。当前项目要求 `>=3.11`。Windows 环境可使用 `py -3.11` / `py -3.12` 创建虚拟环境；若没有 `py` launcher，必须使用明确的 Python 3.11+ 解释器，并在激活虚拟环境后用 `python --version` 复核。
 
 ---
 

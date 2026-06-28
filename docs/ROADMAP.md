@@ -6,7 +6,7 @@
 
 > **愿景图**：[Vision Reference](./VISION_REFERENCE.md)
 
-> **注意**：当前阶段（V0）不要实现 TTS、ASR、手势识别、LivePortrait、Agent 工具调用。
+> **注意**：当前阶段为 V2 冻结 / V3 准备前。不要实现 ASR、手势识别、LivePortrait、Agent 工具调用或记忆系统；MiniMax/TTS 只能在 V3 Gate 通过后进入实现。
 
 ---
 
@@ -41,12 +41,16 @@ Gate 通过后才允许进入功能实现。详见：
 
 **目标**：建立桌面应用框架
 
-- [ ] PySide6 窗口应用
-- [ ] 基础 UI 布局
-- [ ] 应用入口（main.py）
-- [ ] 最小可运行壳
+- [x] PySide6 窗口应用
+- [x] 基础 UI 布局
+- [x] 应用入口（main.py）
+- [x] 最小可运行壳
 
 **技术模块**：UI 层 + Core 层
+
+#### V1 Freeze
+
+> **V1 已完成** — 最小桌面壳已交付，后续仅允许 bugfix 和文档同步。
 
 ---
 

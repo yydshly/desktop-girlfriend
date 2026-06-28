@@ -72,8 +72,8 @@ def test_state_changed_payload_contains_previous_and_current() -> None:
     # Verify payload contains previous and current state
     assert len(received_events) == 1
     payload = received_events[0].payload
-    assert payload["previous_state"] == AppState.IDLE
-    assert payload["current_state"] == AppState.THINKING
+    assert payload["previous_state"] == AppState.IDLE.value
+    assert payload["current_state"] == AppState.THINKING.value
 
 
 def test_state_change_requested_with_string_target() -> None:
@@ -103,8 +103,8 @@ def test_state_change_requested_with_string_target() -> None:
 
     assert len(received_events) == 1
     payload = received_events[0].payload
-    assert payload["previous_state"] == AppState.IDLE
-    assert payload["current_state"] == AppState.SPEAKING
+    assert payload["previous_state"] == AppState.IDLE.value
+    assert payload["current_state"] == AppState.SPEAKING.value
 
 
 def test_multiple_state_changes() -> None:
@@ -140,9 +140,9 @@ def test_multiple_state_changes() -> None:
     controller.stop()
 
     assert len(received_events) == 2
-    assert received_events[0].payload["current_state"] == AppState.LISTENING
-    assert received_events[1].payload["previous_state"] == AppState.LISTENING
-    assert received_events[1].payload["current_state"] == AppState.THINKING
+    assert received_events[0].payload["current_state"] == AppState.LISTENING.value
+    assert received_events[1].payload["previous_state"] == AppState.LISTENING.value
+    assert received_events[1].payload["current_state"] == AppState.THINKING.value
 
 
 def test_state_machine_actual_state_after_transition() -> None:

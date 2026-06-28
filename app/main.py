@@ -5,7 +5,7 @@ import sys
 
 from PySide6.QtWidgets import QApplication
 
-from app.contracts.events import STATE_CHANGED
+from app.contracts.events import STATE_CHANGED, BaseEvent
 from app.core.config import get_config
 from app.core.event_bus import EventBus
 from app.core.logging import setup_logging
@@ -24,6 +24,8 @@ def main() -> None:
 
     logger.info("Starting %s", config.app_name)
 
+    app = QApplication(sys.argv)
+
     # Initialize Core components
     event_bus = EventBus()
     state_machine = StateMachine()
@@ -36,8 +38,8 @@ def main() -> None:
     state_controller = StateController(event_bus, state_machine)
 
     # Register ViewModel subscription to state.changed events
-    def on_state_changed(event: object) -> None:
-        view_model.handle_state_changed(event)  # type: ignore[arg-type]
+    def on_state_changed(event: BaseEvent) -> None:
+        view_model.handle_state_changed(event)
         window.update_from_view_model()
 
     event_bus.subscribe(STATE_CHANGED, on_state_changed)
@@ -45,7 +47,6 @@ def main() -> None:
     # Start StateController to begin listening for state change requests
     state_controller.start()
 
-    app = QApplication(sys.argv)
     window.show()
 
     logger.info("Application started successfully")

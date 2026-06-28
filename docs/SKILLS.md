@@ -1,6 +1,6 @@
 # Skills / Superpowers
 
-> Skill / Superpowers 是项目的质量支撑体系，不是业务功能。
+> Skill / Superpowers 是项目的开发辅助层，不是业务功能，也不是 CI / 测试 / 人工审查的替代品。
 
 ## 定位
 
@@ -13,8 +13,9 @@ Skills 是项目开发过程中的质量增强层，用于：
 - 保护 API Key 和隐私素材
 - 降低单人开发审查成本
 - 把架构纪律转化为可重复执行的流程
+- 复用优秀外部 Skill（如 Superpowers）中的成熟工作流
 
-它们不实现业务功能，而是确保业务功能的开发过程规范可靠。
+它们不实现业务功能。当前阶段允许直接使用可信的内置 Skill、Superpowers 等优秀 Skill 辅助开发，但项目自定义 Skill 只有在仓库中真实创建、验证并纳入流程后，才视为正式质量机制。
 
 ---
 
@@ -26,26 +27,37 @@ Skills 是项目开发过程中的质量增强层，用于：
 
 | 来源 | 说明 | 示例 |
 |------|------|------|
-| **Claude Code Bundled** | Claude Code 内置，直接可用（`/skill-name` 调用） | `/code-review`、`/verify`、`/run` |
-| **公开 Skill** | 社区/官方公开的 Agent Skills，可借鉴或直接采用 | `claude-api`（anthropics/skills）、`skill-creator` |
-| **项目自定义** | 根据本项目需求实现的 Skill，以 Agent Skills 格式组织 | `architecture-guard`、`code-quality-superpower` |
+| **内置 Skill** | 当前工具内置，直接作为开发辅助使用 | code review、verify、debug |
+| **优秀外部 Skill** | 来源明确、内容可审查的 Skill，可直接用于个人辅助 | Superpowers、公开纯文档 Skill |
+| **项目自定义 Skill** | 根据本项目架构和阶段规则沉淀的 Skill | `architecture-guard`、`code-quality-superpower` |
 
 ### 当前成熟度
 
 | 类别 | 状态 | 说明 |
 |------|------|------|
-| Claude Code Bundled Skills | ✅ 可用 | 直接使用 `/code-review`、`/verify`、`/run` 等 |
-| 公开 Skill 借鉴 | ⚠️ 待研究 | 详见 [SKILL_INVENTORY.md](./SKILL_INVENTORY.md) |
-| 项目自定义 P0 Skill | ❌ 尚未实现 | V3 阶段开始逐步实现 |
+| 内置 Skill | ✅ 可用 | 可立即用于代码审查、验证、调试和总结风险 |
+| Superpowers / 优秀外部 Skill | ✅ 可作为个人辅助使用 | 先阅读或使用可信入口，不让其自动读取密钥、联网、提交代码 |
+| 公开 Skill 借鉴 | ⚠️ 按需研究 | 详见 [SKILL_INVENTORY.md](./SKILL_INVENTORY.md) |
+| 项目自定义 P0 Skill | ❌ 尚未实现 | V3 前后开始沉淀，不能在文档中当作已生效门禁 |
 | 项目自定义 P1 Skill | ❌ 尚未实现 | V3 MiniMax 接入后实现 |
 | 项目自定义 P2/P3 Skill | ❌ 尚未实现 | V4+ 阶段逐步实现 |
 
+### 当前使用原则
+
+当前可以直接使用 Skill 辅助开发，但遵循以下边界：
+
+- **先用作顾问**：用 Skill 做需求澄清、架构检查、代码审查、测试建议和风险提示。
+- **再沉淀为制度**：只有高频、稳定、可复用的流程才抽成项目自定义 Skill。
+- **不替代基础质量工具**：`ruff`、`mypy`、`pytest`、CI 仍是质量底座。
+- **不放大权限**：第三方 Skill 不得自动读取 `.env`、访问外部网络、提交代码或修改全局配置。
+- **不跨阶段实现**：Skill 可以提醒 V3/V4/V5 的边界，但不能替项目越过 Roadmap。
+
 ### V3 Skill 策略
 
-- 直接使用 Claude Code Bundled Skills（无需安装）
-- 借鉴 anthropics/skills 中的纯文档 Skill（`claude-api`、`skill-creator`）
-- 以 Agent Skills 格式实现项目自定义 P0 Skill
-- 不创建 `.skills` 目录（遵循项目约束）
+- 继续使用内置 Skill 和 Superpowers 辅助代码审查、验证和风险分析。
+- 借鉴可信公开 Skill 中的纯文档工作流。
+- 优先沉淀项目自定义 P0 Skill：`architecture-guard`、`code-quality-superpower`、`docs-consistency-check`。
+- 在项目自定义 Skill 建好之前，相关检查以 Review Guide checklist 为准。
 
 详见：[SKILL_INVENTORY.md](./SKILL_INVENTORY.md)
 
@@ -106,7 +118,7 @@ Skills 是项目开发过程中的质量增强层，用于：
 
 ## 优先级
 
-### P0 — 当前必须
+### P0 — 当前优先沉淀
 
 - `code-quality-superpower` — 代码质量基线
 - `architecture-guard` — 架构边界守护

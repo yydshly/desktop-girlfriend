@@ -17,6 +17,7 @@
 - Docs consistency
 - Python 项目质量
 - GitHub PR review
+- Superpowers 等优秀工作流 Skill
 
 ---
 
@@ -112,7 +113,22 @@ Claude Code 自带以下 Bundled Skills（通过 `/skill-name` 调用）：
 
 ---
 
-### 4. 本项目自定义 Skill 需求（从 docs/SKILLS.md 映射）
+### 4. Superpowers / 优秀外部 Skill
+
+| 项目 | 值 |
+|------|-----|
+| 名称 | Superpowers / 优秀外部 Skill |
+| 所属生态 | 视具体来源而定 |
+| 适合本项目 | ✅ 是，适合作为个人开发辅助 |
+| 推荐结论 | **可直接辅助使用，进入项目制度前需审查** |
+
+**采用方式**：用于需求澄清、架构审查、代码审查、调试、测试策略和风险提示。若某个流程在项目中高频复用，再沉淀为项目自定义 Skill。
+
+**边界**：不得让第三方 Skill 自动读取 `.env`、访问外部网络、提交代码、修改全局配置或越过 Roadmap 实现未来能力。
+
+---
+
+### 5. 本项目自定义 Skill 需求（从 docs/SKILLS.md 映射）
 
 | Skill 名称 | 需求来源 | 建议实现方式 | 推荐 |
 |-----------|----------|-------------|------|
@@ -192,7 +208,7 @@ Claude Code 自带以下 Bundled Skills（通过 `/skill-name` 调用）：
    - `skill-creator` — 指导本项目自定义 Skill 实现
 
 3. **以 Agent Skills 格式实现项目自定义 P0 Skill**：
-   - 目录结构：`.claude/skills/<skill-name>/SKILL.md`
+   - 目录结构：按当前工具可发现的 Skill 目录创建；若只是项目文档沉淀，先放入 `docs/skills/`，不要伪装成已自动触发的 Skill
    - V3 阶段优先实现：`architecture-guard`、`code-quality-superpower`
 
 4. **不创建 `.skills` 目录**（遵循项目约束）
@@ -211,8 +227,8 @@ Claude Code 自带以下 Bundled Skills（通过 `/skill-name` 调用）：
 
 ## 关联文档
 
-- [Skill 体系](../SKILLS.md) — 项目 Skill 需求清单
-- [架构规范](../ARCHITECTURE.md) — 分层架构和核心原则
-- [代码审查指南](../REVIEW_GUIDE.md) — Checkpoint Review 原则
+- [Skill 体系](./SKILLS.md) — 项目 Skill 需求清单
+- [架构规范](./ARCHITECTURE.md) — 分层架构和核心原则
+- [代码审查指南](./REVIEW_GUIDE.md) — Checkpoint Review 原则
 - [Agent Skills 官网](https://agentskills.io) — 开放标准
 - [anthropics/skills](https://github.com/anthropics/skills) — Claude Code 官方 Skill 库
