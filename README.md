@@ -28,11 +28,44 @@
 | Brain 层 | AI 推理和语言处理 |
 | Expression 层 | 表情和动作表达 |
 | Perception 层 | 感知输入处理 |
+| Memory 层 | 记忆存储 |
+| Tool 层 | 工具路由和 Agent 能力 |
+
+## 质量支撑体系
+
+项目采用 **Skill / Superpowers** 质量支撑体系，确保开发过程规范可靠。
+
+详见：[SKILLS](./docs/SKILLS.md)
+
+### 核心规范
+
+| 文档 | 说明 |
+|------|------|
+| [架构规范](./docs/ARCHITECTURE.md) | 分层架构和核心原则 |
+| [代码审查指南](./docs/REVIEW_GUIDE.md) | PR 审查原则和安全检查 |
+| [MiniMax 执行规范](./docs/MINIMAX_EXECUTION.md) | Agent 执行边界和约束 |
+| [Skill 体系](./docs/SKILLS.md) | 质量 Skill 分类和优先级 |
+
+### 核心原则
+
+- **EventBus 驱动** — 模块间通信通过 EventBus
+- **StateMachine 驱动** — 状态变更通过 StateMachine
+- **Provider 化** — 外部服务封装为 Provider
+- **Prompt Registry** — Prompt 集中管理
 
 ## 文档导航
 
+### 愿景与定位
 - [愿景图参考](./docs/VISION_REFERENCE.md) — 北极星愿景图和核心目标
 - [项目简介](./docs/PROJECT_BRIEF.md) — 项目概述和定位
+
+### 开发规范
+- [架构规范](./docs/ARCHITECTURE.md) — 分层架构和核心原则
+- [代码审查指南](./docs/REVIEW_GUIDE.md) — PR 审查和安全检查
+- [MiniMax 执行规范](./docs/MINIMAX_EXECUTION.md) — Agent 执行边界
+- [Skill 体系](./docs/SKILLS.md) — 质量支撑体系
+
+### 项目管理
 - [路线图](./docs/ROADMAP.md) — 版本规划和里程碑
 
 ## 版本路线图
