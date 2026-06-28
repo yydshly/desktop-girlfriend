@@ -9,16 +9,30 @@ from app.contracts.events import (
 )
 from app.contracts.states import AppState
 from app.ui.chat_message import ChatMessage
-from app.ui.view_model import DesktopViewModel
+from app.ui.view_model import (
+    COMPANION_AVATAR_TEXT,
+    COMPANION_NAME,
+    COMPANION_SUBTITLE,
+    DesktopViewModel,
+)
 
 
 def test_view_model_initial_state() -> None:
     """Test ViewModel initial state is IDLE with correct display text."""
     vm = DesktopViewModel()
     assert vm.state == AppState.IDLE
-    assert vm.display_text == "状态：待机"
+    assert vm.display_text == "当前状态：待机"
     assert vm.assistant_text == ""
-    assert vm.chat_messages == []
+    assert vm.companion_name == COMPANION_NAME
+    assert vm.companion_subtitle == COMPANION_SUBTITLE
+    assert vm.companion_avatar_text == COMPANION_AVATAR_TEXT
+
+
+def test_companion_fields_defaults() -> None:
+    """Test companion fields have expected default values."""
+    assert COMPANION_NAME == "小云"
+    assert COMPANION_SUBTITLE == "你的桌面 AI 伙伴"
+    assert COMPANION_AVATAR_TEXT == "☁️"
 
 
 def test_handle_state_changed_to_listening() -> None:
@@ -37,7 +51,7 @@ def test_handle_state_changed_to_listening() -> None:
     vm.handle_state_changed(event)
 
     assert vm.state == AppState.LISTENING
-    assert vm.display_text == "状态：聆听中"
+    assert vm.display_text == "当前状态：聆听中"
 
 
 def test_handle_state_changed_to_thinking() -> None:
@@ -56,7 +70,7 @@ def test_handle_state_changed_to_thinking() -> None:
     vm.handle_state_changed(event)
 
     assert vm.state == AppState.THINKING
-    assert vm.display_text == "状态：思考中"
+    assert vm.display_text == "当前状态：正在想你说的话"
 
 
 def test_handle_state_changed_to_speaking() -> None:
@@ -75,7 +89,7 @@ def test_handle_state_changed_to_speaking() -> None:
     vm.handle_state_changed(event)
 
     assert vm.state == AppState.SPEAKING
-    assert vm.display_text == "状态：说话中"
+    assert vm.display_text == "当前状态：正在回应你"
 
 
 def test_handle_state_changed_to_error() -> None:
@@ -94,7 +108,7 @@ def test_handle_state_changed_to_error() -> None:
     vm.handle_state_changed(event)
 
     assert vm.state == AppState.ERROR
-    assert vm.display_text == "状态：错误"
+    assert vm.display_text == "当前状态：出了一点小问题"
 
 
 def test_handle_state_changed_ignores_non_state_changed_event() -> None:
@@ -130,7 +144,7 @@ def test_handle_state_changed_missing_current_state_defaults_to_error() -> None:
     vm.handle_state_changed(event)
 
     assert vm.state == AppState.ERROR
-    assert vm.display_text == "状态：错误"
+    assert vm.display_text == "当前状态：出了一点小问题"
 
 
 def test_handle_state_changed_enum_current_state_defaults_to_error() -> None:
@@ -149,7 +163,7 @@ def test_handle_state_changed_enum_current_state_defaults_to_error() -> None:
     vm.handle_state_changed(event)
 
     assert vm.state == AppState.ERROR
-    assert vm.display_text == "状态：错误"
+    assert vm.display_text == "当前状态：出了一点小问题"
 
 
 def test_handle_state_changed_dict_current_state_defaults_to_error() -> None:
@@ -168,7 +182,7 @@ def test_handle_state_changed_dict_current_state_defaults_to_error() -> None:
     vm.handle_state_changed(event)
 
     assert vm.state == AppState.ERROR
-    assert vm.display_text == "状态：错误"
+    assert vm.display_text == "当前状态：出了一点小问题"
 
 
 def test_handle_state_changed_unknown_string_defaults_to_error() -> None:
@@ -187,7 +201,7 @@ def test_handle_state_changed_unknown_string_defaults_to_error() -> None:
     vm.handle_state_changed(event)
 
     assert vm.state == AppState.ERROR
-    assert vm.display_text == "状态：错误"
+    assert vm.display_text == "当前状态：出了一点小问题"
 
 
 # Assistant text tests

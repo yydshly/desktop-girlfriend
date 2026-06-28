@@ -4,6 +4,7 @@ from collections.abc import Callable
 
 from PySide6.QtGui import QTextCursor
 from PySide6.QtWidgets import (
+    QHBoxLayout,
     QLabel,
     QLineEdit,
     QMainWindow,
@@ -73,10 +74,38 @@ class DesktopWindow(QMainWindow):
         self.setCentralWidget(central)
         layout = QVBoxLayout(central)
 
-        # State label
+        # Companion header
+        header_widget = QWidget()
+        header_layout = QHBoxLayout(header_widget)
+        header_layout.setContentsMargins(10, 10, 10, 10)
+
+        self._avatar_label = QLabel(self._view_model.companion_avatar_text)
+        self._avatar_label.setStyleSheet(
+            "font-size: 28px; min-width: 48px; max-width: 48px; "
+            "min-height: 48px; max-height: 48px; "
+            "background-color: #eef3ff; qproperty-alignment: AlignCenter;"
+        )
+        header_layout.addWidget(self._avatar_label)
+
+        info_widget = QWidget()
+        info_layout = QVBoxLayout(info_widget)
+        info_layout.setContentsMargins(0, 0, 0, 0)
+        info_layout.setSpacing(2)
+
+        self._name_label = QLabel(self._view_model.companion_name)
+        self._name_label.setStyleSheet("font-size: 18px; font-weight: 600;")
+        info_layout.addWidget(self._name_label)
+
+        self._subtitle_label = QLabel(self._view_model.companion_subtitle)
+        self._subtitle_label.setStyleSheet("font-size: 12px; color: #666;")
+        info_layout.addWidget(self._subtitle_label)
+
         self._state_label = QLabel(self._view_model.display_text)
-        self._state_label.setStyleSheet("font-size: 16px; padding: 10px;")
-        layout.addWidget(self._state_label)
+        self._state_label.setStyleSheet("font-size: 13px; color: #444;")
+        info_layout.addWidget(self._state_label)
+
+        header_layout.addWidget(info_widget, stretch=1)
+        layout.addWidget(header_widget)
 
         # Chat history display
         self._chat_history = QTextEdit()
@@ -112,6 +141,9 @@ class DesktopWindow(QMainWindow):
 
     def update_from_view_model(self) -> None:
         """Update UI from view model state."""
+        self._name_label.setText(self._view_model.companion_name)
+        self._subtitle_label.setText(self._view_model.companion_subtitle)
+        self._avatar_label.setText(self._view_model.companion_avatar_text)
         self._state_label.setText(self._view_model.display_text)
         self._chat_history.setPlainText(
             render_chat_messages(self._view_model.chat_messages)
