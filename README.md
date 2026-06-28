@@ -14,6 +14,45 @@
 
 详见：[Vision Reference](./docs/VISION_REFERENCE.md)
 
+## V1 工程初始化
+
+当前为 **V1 工程初始化** 阶段，建立模块边界、事件契约和基础日志体系。
+
+### 项目结构
+
+```
+app/
+├── contracts/      # 事件、状态、payload 定义
+├── core/           # EventBus、StateMachine、Config、Logging
+├── ui/             # PySide6 窗口和 ViewModel
+├── brain/          # LLM、Prompt、Provider（后续阶段）
+├── expression/     # TTS、Avatar（后续阶段）
+├── perception/     # ASR、手势（后续阶段）
+├── memory/         # 记忆（后续阶段）
+├── tools/          # Tool Router（后续阶段）
+└── tests/         # 单元测试
+```
+
+### 安装
+
+```bash
+pip install -e ".[dev]"
+```
+
+### 运行
+
+```bash
+python -m app.main
+```
+
+### 测试
+
+```bash
+ruff check .
+mypy app
+pytest -q
+```
+
 ## 技术架构
 
 详见：[架构规范](./docs/ARCHITECTURE.md)
