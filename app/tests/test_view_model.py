@@ -250,3 +250,23 @@ def test_handle_assistant_text_received_non_string_text_keeps_previous() -> None
     vm.handle_assistant_text_received(event)
 
     assert vm.assistant_text == "previous"
+
+
+def test_handle_assistant_text_received_str_subclass_keeps_previous() -> None:
+    """Test handle_assistant_text_received with str subclass keeps previous."""
+
+    class TextSubclass(str):
+        pass
+
+    vm = DesktopViewModel()
+    vm.assistant_text = "previous"
+
+    event = BaseEvent(
+        event_type=ASSISTANT_TEXT_RECEIVED,
+        request_id="req14",
+        source="test",
+        payload={"text": TextSubclass("bad")},
+    )
+    vm.handle_assistant_text_received(event)
+
+    assert vm.assistant_text == "previous"

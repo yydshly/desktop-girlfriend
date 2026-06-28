@@ -54,5 +54,5 @@ class DesktopViewModel:
             return
 
         text = event.payload.get("text")
-        if isinstance(text, str):
+        if type(text) is str:
             self.assistant_text = text
