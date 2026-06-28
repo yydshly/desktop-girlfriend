@@ -2,6 +2,7 @@
 
 from app.contracts.events import (
     ASSISTANT_TEXT_RECEIVED,
+    CONVERSATION_CLEARED,
     STATE_CHANGED,
     SYSTEM_ERROR,
     USER_TEXT_SUBMITTED,
@@ -106,3 +107,18 @@ class DesktopViewModel:
             self.error_text = message.strip()
         else:
             self.error_text = "发生未知错误。"
+
+    def handle_conversation_cleared(self, event: BaseEvent) -> None:
+        """Handle conversation.cleared event and reset UI state.
+
+        Args:
+            event: The conversation.cleared event.
+        """
+        if event.event_type != CONVERSATION_CLEARED:
+            return
+
+        self.chat_messages.clear()
+        self.assistant_text = ""
+        self.error_text = ""
+        self.state = AppState.IDLE
+        self.display_text = _STATE_DISPLAY_TEXT[AppState.IDLE]

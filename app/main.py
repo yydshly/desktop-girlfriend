@@ -12,6 +12,7 @@ from app.brain.prompts.registry import PromptRegistry
 from app.brain.providers import ChatProviderError, create_chat_provider
 from app.contracts.events import (
     ASSISTANT_TEXT_RECEIVED,
+    CONVERSATION_CLEARED,
     STATE_CHANGED,
     SYSTEM_ERROR,
     USER_TEXT_SUBMITTED,
@@ -48,6 +49,9 @@ def main() -> None:
     # Initialize UI components
     view_model = DesktopViewModel()
 
+    # Initialize session history before DesktopWindow so callback can reference it
+    session_history = CurrentSessionHistory(max_turns=6)
+
     # Callback to submit user text via EventBus
     def submit_user_text(text: str) -> None:
         event_bus.publish(
@@ -59,7 +63,22 @@ def main() -> None:
             )
         )
 
-    window = DesktopWindow(view_model, on_user_text_submitted=submit_user_text)
+    # Callback to clear conversation
+    def clear_conversation() -> None:
+        event_bus.publish(
+            BaseEvent(
+                event_type=CONVERSATION_CLEARED,
+                request_id=str(uuid.uuid4()),
+                source="desktop_window",
+                payload={},
+            )
+        )
+
+    window = DesktopWindow(
+        view_model,
+        on_user_text_submitted=submit_user_text,
+        on_conversation_cleared=clear_conversation,
+    )
 
     # Initialize StateController and wire EventBus + StateMachine
     state_controller = StateController(event_bus, state_machine)
@@ -92,6 +111,14 @@ def main() -> None:
 
     event_bus.subscribe(USER_TEXT_SUBMITTED, on_user_text_submitted)
 
+    # Register handler for conversation.cleared events
+    def on_conversation_cleared(event: BaseEvent) -> None:
+        session_history.clear()
+        view_model.handle_conversation_cleared(event)
+        window.update_from_view_model()
+
+    event_bus.subscribe(CONVERSATION_CLEARED, on_conversation_cleared)
+
     # Initialize Dialogue components
     prompt_registry = PromptRegistry()
     try:
@@ -108,9 +135,6 @@ def main() -> None:
 
     # Create Qt event bridge for thread-safe event dispatch
     event_bridge = QtEventBridge(event_bus.publish)
-
-    # Initialize session history for short-term dialogue context
-    session_history = CurrentSessionHistory(max_turns=6)
 
     dialogue_controller = AsyncDialogueController(
         event_bus=event_bus,

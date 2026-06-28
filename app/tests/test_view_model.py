@@ -2,6 +2,7 @@
 
 from app.contracts.events import (
     ASSISTANT_TEXT_RECEIVED,
+    CONVERSATION_CLEARED,
     STATE_CHANGED,
     SYSTEM_ERROR,
     USER_TEXT_SUBMITTED,
@@ -427,6 +428,11 @@ def test_handle_system_error_whitespace_only_message_sets_fallback() -> None:
 # Chat history tests
 
 
+def test_conversation_cleared_event_constant() -> None:
+    """Test CONVERSATION_CLEARED event constant has expected value."""
+    assert CONVERSATION_CLEARED == "conversation.cleared"
+
+
 def test_initial_chat_messages_is_empty() -> None:
     """Test that initial chat_messages is empty."""
     vm = DesktopViewModel()
@@ -584,3 +590,126 @@ def test_thinking_clears_error_text_but_keeps_chat_messages() -> None:
     assert vm.error_text == ""
     assert len(vm.chat_messages) == 1
     assert vm.chat_messages[0].text == "Hello"
+
+
+# Conversation cleared tests
+
+
+def test_handle_conversation_cleared_clears_chat_messages() -> None:
+    """Test handle_conversation_cleared clears chat_messages."""
+    vm = DesktopViewModel()
+    vm.chat_messages.append(ChatMessage(role="user", text="Hello"))
+    vm.chat_messages.append(ChatMessage(role="assistant", text="Hi"))
+
+    event = BaseEvent(
+        event_type=CONVERSATION_CLEARED,
+        request_id="req31",
+        source="test",
+        payload={},
+    )
+    vm.handle_conversation_cleared(event)
+
+    assert vm.chat_messages == []
+
+
+def test_handle_conversation_cleared_clears_assistant_text() -> None:
+    """Test handle_conversation_cleared clears assistant_text."""
+    vm = DesktopViewModel()
+    vm.assistant_text = "Some response"
+
+    event = BaseEvent(
+        event_type=CONVERSATION_CLEARED,
+        request_id="req32",
+        source="test",
+        payload={},
+    )
+    vm.handle_conversation_cleared(event)
+
+    assert vm.assistant_text == ""
+
+
+def test_handle_conversation_cleared_clears_error_text() -> None:
+    """Test handle_conversation_cleared clears error_text."""
+    vm = DesktopViewModel()
+    vm.error_text = "Some error"
+
+    event = BaseEvent(
+        event_type=CONVERSATION_CLEARED,
+        request_id="req33",
+        source="test",
+        payload={},
+    )
+    vm.handle_conversation_cleared(event)
+
+    assert vm.error_text == ""
+
+
+def test_handle_conversation_cleared_sets_state_to_idle() -> None:
+    """Test handle_conversation_cleared sets state to IDLE."""
+    vm = DesktopViewModel()
+    vm.state = AppState.THINKING
+
+    event = BaseEvent(
+        event_type=CONVERSATION_CLEARED,
+        request_id="req34",
+        source="test",
+        payload={},
+    )
+    vm.handle_conversation_cleared(event)
+
+    assert vm.state == AppState.IDLE
+
+
+def test_handle_conversation_cleared_sets_display_text_to_idle() -> None:
+    """Test handle_conversation_cleared sets display_text to idle."""
+    vm = DesktopViewModel()
+    vm.display_text = "当前状态：正在想你说的话"
+
+    event = BaseEvent(
+        event_type=CONVERSATION_CLEARED,
+        request_id="req35",
+        source="test",
+        payload={},
+    )
+    vm.handle_conversation_cleared(event)
+
+    assert vm.display_text == "当前状态：待机"
+
+
+def test_handle_conversation_cleared_ignores_unrelated_event() -> None:
+    """Test handle_conversation_cleared ignores non-conversation.cleared events."""
+    vm = DesktopViewModel()
+    vm.chat_messages.append(ChatMessage(role="user", text="Hello"))
+    vm.state = AppState.THINKING
+
+    event = BaseEvent(
+        event_type="other.event",
+        request_id="req36",
+        source="test",
+        payload={},
+    )
+    vm.handle_conversation_cleared(event)
+
+    # State and messages should be unchanged
+    assert len(vm.chat_messages) == 1
+    assert vm.state == AppState.THINKING
+
+
+def test_handle_conversation_cleared_keeps_companion_fields() -> None:
+    """Test handle_conversation_cleared does not change companion fields."""
+    vm = DesktopViewModel()
+    original_name = vm.companion_name
+    original_subtitle = vm.companion_subtitle
+    original_avatar = vm.companion_avatar_text
+
+    event = BaseEvent(
+        event_type=CONVERSATION_CLEARED,
+        request_id="req37",
+        source="test",
+        payload={},
+    )
+    vm.handle_conversation_cleared(event)
+
+    assert vm.companion_name == original_name
+    assert vm.companion_subtitle == original_subtitle
+    assert vm.companion_avatar_text == original_avatar

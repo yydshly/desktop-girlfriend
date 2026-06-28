@@ -10,6 +10,7 @@ ASSISTANT_TEXT_RECEIVED = "assistant.text_received"
 STATE_CHANGE_REQUESTED = "state.change_requested"
 STATE_CHANGED = "state.changed"
 SYSTEM_ERROR = "system.error"
+CONVERSATION_CLEARED = "conversation.cleared"
 
 
 @dataclass

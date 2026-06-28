@@ -60,10 +60,12 @@ class DesktopWindow(QMainWindow):
         self,
         view_model: DesktopViewModel,
         on_user_text_submitted: Callable[[str], None],
+        on_conversation_cleared: Callable[[], None],
     ) -> None:
         super().__init__()
         self._view_model = view_model
         self._on_user_text_submitted = on_user_text_submitted
+        self._on_conversation_cleared = on_conversation_cleared
 
         config = get_config()
         self.setWindowTitle(config.app_name)
@@ -126,10 +128,20 @@ class DesktopWindow(QMainWindow):
         self._input_field.setPlaceholderText("输入文字后点击发送...")
         layout.addWidget(self._input_field)
 
-        # Send button
+        # Button row
+        button_row = QWidget()
+        button_layout = QHBoxLayout(button_row)
+        button_layout.setContentsMargins(0, 0, 0, 0)
+
+        self._new_conversation_button = QPushButton("新对话")
+        self._new_conversation_button.clicked.connect(self._on_new_conversation_clicked)
+        button_layout.addWidget(self._new_conversation_button)
+
         self._send_button = QPushButton("发送")
         self._send_button.clicked.connect(self._on_send_clicked)
-        layout.addWidget(self._send_button)
+        button_layout.addWidget(self._send_button)
+
+        layout.addWidget(button_row)
 
     def _on_send_clicked(self) -> None:
         """Handle send button click."""
@@ -138,6 +150,10 @@ class DesktopWindow(QMainWindow):
             return
         self._on_user_text_submitted(text)
         self._input_field.clear()
+
+    def _on_new_conversation_clicked(self) -> None:
+        """Handle new conversation button click."""
+        self._on_conversation_cleared()
 
     def update_from_view_model(self) -> None:
         """Update UI from view model state."""
@@ -154,3 +170,4 @@ class DesktopWindow(QMainWindow):
         is_thinking = self._view_model.state == AppState.THINKING
         self._send_button.setEnabled(not is_thinking)
         self._input_field.setEnabled(not is_thinking)
+        self._new_conversation_button.setEnabled(not is_thinking)

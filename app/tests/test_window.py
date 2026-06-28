@@ -1,7 +1,30 @@
 """Tests for DesktopWindow empty input guard logic and chat rendering."""
 
+from unittest.mock import MagicMock
+
+import pytest
+from PySide6.QtWidgets import QApplication
+
+from app.contracts.states import AppState
 from app.ui.chat_message import ChatMessage
-from app.ui.window import render_chat_messages, should_submit_user_text
+from app.ui.view_model import DesktopViewModel
+from app.ui.window import DesktopWindow, render_chat_messages, should_submit_user_text
+
+# Qt GUI tests require a display; skip if not available
+_QT_AVAILABLE: bool | None = None
+
+
+def _qt_available() -> bool:
+    global _QT_AVAILABLE
+    if _QT_AVAILABLE is None:
+        _QT_AVAILABLE = True
+        try:
+            app = QApplication.instance()
+            if app is None:
+                QApplication([])
+        except Exception:
+            _QT_AVAILABLE = False
+    return _QT_AVAILABLE
 
 
 class TestShouldSubmitUserText:
@@ -79,4 +102,76 @@ class TestRenderChatMessages:
         result = render_chat_messages(messages)
         assert "Hello" in result
         assert "Hi there!" in result
+
+
+class TestDesktopWindowNewConversation:
+    """Tests for DesktopWindow new conversation button."""
+
+    @pytest.fixture(autouse=True)
+    def _check_qt(self) -> None:
+        """Skip all tests in this class if Qt display is not available."""
+        if not _qt_available():
+            pytest.skip("No Qt display available")
+
+    def _make_window(self) -> tuple[DesktopWindow, MagicMock, MagicMock]:
+        """Create a DesktopWindow with mock callbacks."""
+        vm = DesktopViewModel()
+        on_submit = MagicMock()
+        on_clear = MagicMock()
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=on_submit,
+            on_conversation_cleared=on_clear,
+        )
+        return window, on_submit, on_clear
+
+    def test_constructor_accepts_on_conversation_cleared_callback(self) -> None:
+        """Test DesktopWindow can be constructed with on_conversation_cleared callback."""
+        vm = DesktopViewModel()
+        on_clear = MagicMock()
+        # Should not raise
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=MagicMock(),
+            on_conversation_cleared=on_clear,
+        )
+        assert window is not None
+
+    def test_new_conversation_button_clicked_invokes_callback(self) -> None:
+        """Test clicking new conversation button invokes the callback."""
+        window, _, on_clear = self._make_window()
+        window._new_conversation_button.click()
+        on_clear.assert_called_once()
+
+    def test_new_conversation_button_disabled_while_thinking(self) -> None:
+        """Test new conversation button is disabled while THINKING."""
+        vm = DesktopViewModel()
+        on_clear = MagicMock()
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=MagicMock(),
+            on_conversation_cleared=on_clear,
+        )
+
+        # Simulate THINKING state
+        vm.state = AppState.THINKING
+        window.update_from_view_model()
+
+        assert not window._new_conversation_button.isEnabled()
+
+    def test_new_conversation_button_enabled_while_idle(self) -> None:
+        """Test new conversation button is enabled while IDLE."""
+        vm = DesktopViewModel()
+        on_clear = MagicMock()
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=MagicMock(),
+            on_conversation_cleared=on_clear,
+        )
+
+        # Already IDLE
+        window.update_from_view_model()
+
+        assert window._new_conversation_button.isEnabled()
+
 
