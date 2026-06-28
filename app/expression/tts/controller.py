@@ -120,15 +120,10 @@ class TTSController:
             if use_embedded:
                 # Embedded path: synthesize audio file, play via QtAudioPlayer
                 response = self._provider.synthesize(request)
-                # Check if stop was requested for this request.
-                # Do NOT discard here — let _should_ignore_request in _on_audio_ready
-                # consume it so stale audio_ready events are also ignored.
-                with self._lock:
-                    stopped = request_id in self._stop_requested_request_ids
-                if stopped:
+                # Check if stop was requested for this request and clean up the set.
+                if self._consume_stopped_request(request_id):
                     # Stop was requested during synthesize; do not play audio.
-                    # Do not call _release_speaking(request_id) — stop handler
-                    # already set _is_speaking=False and _active_request_id=None.
+                    # stop handler already set _is_speaking=False and _active_request_id=None.
                     return
 
                 if response.audio_path is None:
@@ -145,8 +140,14 @@ class TTSController:
             else:
                 # Legacy path: provider.speak() handles playback (e.g. os.startfile)
                 self._provider.speak(request)
-                self._dispatch_state_request(AppState.IDLE, "tts_complete")
-                self._release_speaking()
+
+                # Guard: if this request was stopped, do not dispatch tts_complete
+                # or release a different (newer) active request.
+                if self._should_ignore_request(request_id):
+                    return
+
+                if self._release_speaking(request_id):
+                    self._dispatch_state_request(AppState.IDLE, "tts_complete")
         except TTSProviderError:
             # Silently ignore if request was already stopped
             if self._should_ignore_request(request_id):
@@ -250,6 +251,23 @@ class TTSController:
                 self._stop_requested_request_ids.discard(request_id)
                 return True
             return self._active_request_id != request_id
+
+    def _consume_stopped_request(self, request_id: str) -> bool:
+        """Consume (remove) request_id from stopped set if present.
+
+        Used to clean up after confirming a stopped request has been handled.
+
+        Args:
+            request_id: The request ID to consume.
+
+        Returns:
+            True if request_id was in the stopped set, False otherwise.
+        """
+        with self._lock:
+            if request_id in self._stop_requested_request_ids:
+                self._stop_requested_request_ids.discard(request_id)
+                return True
+            return False
 
     def _release_speaking(self, request_id: str | None = None) -> bool:
         """Release the _is_speaking flag (thread-safe).
