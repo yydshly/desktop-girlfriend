@@ -2,7 +2,24 @@
 
 ## 项目概述
 
-desktop-girlfriend 是一个桌面 AI 伙伴项目，旨在为用户提供具有情感陪伴价值的智能桌面助手体验。
+Desktop Girlfriend 是一个桌面 AI 伙伴**原型项目**，目标是探索：
+
+- 桌面人格表现
+- 语音交互
+- 手势交互
+- 多模态感知
+- 情绪陪伴
+- MiniMax AI 能力集成
+
+### 它不是什么
+
+- **不是**单纯聊天机器人
+- **不是**单纯桌宠
+- **不是**第一阶段就要实现完整 3D AI 女友
+
+### 更准确的长期方向
+
+桌面人格壳 + Jarvis 式助手 + 情绪陪伴 + 多模态交互实验平台
 
 ## 产品定位
 
@@ -31,19 +48,62 @@ desktop-girlfriend 是一个桌面 AI 伙伴项目，旨在为用户提供具有
 
 ![Vision Board](./assets/vision-board.png)
 
+### 愿景图定位说明
+
+愿景图是：
+- 产品愿景参考
+- 目标体验参考
+- 路线图方向参考
+- 产品气质参考
+
+愿景图不是：
+- 技术规格书
+- 第一阶段验收标准
+- 必须完全复刻的 UI 图
+- 立即要实现的功能清单
+
 ## 技术栈
 
 - **UI**: PySide6 / Qt
 - **AI**: 大语言模型 API（MiniMax 等）
-- **语音**: TTS / STT
-- **视觉**: 图像处理、手势识别
+- **语音**: TTS / STT（后续阶段）
+- **视觉**: 图像处理、手势识别（后续阶段）
+
+## 技术架构
+
+详见：[架构规范](./ARCHITECTURE.md)
+
+| 层级 | 职责 |
+|------|------|
+| UI Layer | 桌面窗口、角色展示、用户界面 |
+| Core Layer | EventBus、StateMachine、Config、应用生命周期 |
+| Brain Layer | LLM、Prompt、MiniMax Provider、Agent 决策 |
+| Expression Layer | TTS、语音播放、Avatar 表现、动作状态 |
+| Perception Layer | ASR、麦克风、摄像头、手势识别 |
+| Memory Layer | 短期上下文、长期记忆、会话历史 |
+| Tool Layer | Tool Router、工具调用、权限控制、审计日志 |
+
+## 开发规范
+
+详见：
+
+- [架构规范](./ARCHITECTURE.md)
+- [代码审查指南](./REVIEW_GUIDE.md)
+- [MiniMax 执行规范](./MINIMAX_EXECUTION.md)
+- [Skill 体系](./SKILLS.md)
 
 ## 里程碑
 
 | 版本 | 目标 |
 |------|------|
-| V0 | 项目初始化 |
-| V1 | 桌面应用框架 |
-| V2-V3 | 语音交互能力 |
-| V4-V5 | 多模态和表现增强 |
-| V6-V7 | 数字人和 Agent 能力 |
+| V0 | 文档治理与项目规则 |
+| V1 | 工程初始化与 PySide6 最小桌面壳 |
+| V2 | 状态机、事件总线与桌面角色状态 |
+| V3 | MiniMax 文本对话与 TTS |
+| V4 | 语音输入 ASR |
+| V5 | MediaPipe 手势事件 |
+| V6 | Avatar / 数字人表现增强 |
+| V7 | Agent 工具能力 |
+| V8 | 记忆与人格系统 |
+
+详见：[路线图](./ROADMAP.md)

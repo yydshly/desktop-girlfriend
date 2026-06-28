@@ -1,6 +1,10 @@
 # desktop-girlfriend
 
-桌面 AI 伙伴 — 一个具有情感陪伴价值的智能桌面助手。
+桌面 AI 伙伴原型项目 — 探索桌面人格表现、语音交互、手势交互、多模态感知、情绪陪伴和 MiniMax AI 能力集成。
+
+> **它不是**：单纯聊天机器人、单纯桌宠、或第一阶段就要实现完整 3D AI 女友。
+>
+> **更准确的长期方向**：桌面人格壳 + Jarvis 式助手 + 情绪陪伴 + 多模态交互实验平台。
 
 ## Vision
 
@@ -10,40 +14,58 @@
 
 详见：[Vision Reference](./docs/VISION_REFERENCE.md)
 
-## 项目愿景
-
-本项目旨在打造一个 **Jarvis 式** 的桌面 AI 伙伴，具备：
-
-- 多模态交互能力（语音、视觉、手势等）
-- 情绪陪伴和情感支持
-- 个性化可替换形象
-- 智能助手体验
-
 ## 技术架构
+
+详见：[架构规范](./docs/ARCHITECTURE.md)
 
 | 模块 | 描述 |
 |------|------|
-| UI 层 | 界面展示和用户交互 |
-| Core 层 | 核心业务逻辑 |
-| Brain 层 | AI 推理和语言处理 |
-| Expression 层 | 表情和动作表达 |
-| Perception 层 | 感知输入处理 |
+| UI 层 | 桌面窗口、角色展示、用户界面 |
+| Core 层 | EventBus、StateMachine、Config、应用生命周期 |
+| Brain 层 | LLM、Prompt、MiniMax Provider、Agent 决策 |
+| Expression 层 | TTS、语音播放、Avatar 表现、动作状态 |
+| Perception 层 | ASR、麦克风、摄像头、手势识别 |
+| Memory 层 | 短期上下文、长期记忆、会话历史 |
+| Tool 层 | Tool Router、工具调用、权限控制、审计日志 |
+
+## 核心原则
+
+- **EventBus 驱动** — 跨层业务事件通过 EventBus
+- **StateMachine 驱动** — 状态变更通过 StateMachine
+- **Provider 化** — 外部服务封装为 Provider
+- **Prompt Registry** — Prompt 集中管理
+
+## 质量支撑体系
+
+项目采用 **Skill / Superpowers** 质量支撑体系，确保开发过程规范可靠。
+
+详见：[SKILLS](./docs/SKILLS.md)
 
 ## 文档导航
 
-- [愿景图参考](./docs/VISION_REFERENCE.md) — 北极星愿景图和核心目标
+### 愿景与定位
+- [愿景图参考](./docs/VISION_REFERENCE.md) — 北极星愿景图
 - [项目简介](./docs/PROJECT_BRIEF.md) — 项目概述和定位
-- [路线图](./docs/ROADMAP.md) — 版本规划和里程碑
+
+### 开发规范
+- [架构规范](./docs/ARCHITECTURE.md) — 分层架构和核心原则
+- [代码审查指南](./docs/REVIEW_GUIDE.md) — Checkpoint Review 原则
+- [MiniMax 执行规范](./docs/MINIMAX_EXECUTION.md) — Agent 执行边界
+- [Skill 体系](./docs/SKILLS.md) — 质量支撑体系
+
+### 项目管理
+- [路线图](./docs/ROADMAP.md) — V0-V8 版本规划和里程碑
 
 ## 版本路线图
 
 | 版本 | 阶段 |
 |------|------|
-| V0 | 文档和工程初始化 |
-| V1 | 桌面壳 |
-| V2 | 文本 + 语音 |
-| V3 | 语音输入 |
-| V4 | 手势事件 |
-| V5 | 角色表现增强 |
-| V6 | 数字人 / 可替换形象 |
-| V7 | Agent 能力 |
+| V0 | 文档治理与项目规则 |
+| V1 | 工程初始化与 PySide6 最小桌面壳 |
+| V2 | 状态机、事件总线与桌面角色状态 |
+| V3 | MiniMax 文本对话与 TTS |
+| V4 | 语音输入 ASR |
+| V5 | MediaPipe 手势事件 |
+| V6 | Avatar / 数字人表现增强 |
+| V7 | Agent 工具能力 |
+| V8 | 记忆与人格系统 |
