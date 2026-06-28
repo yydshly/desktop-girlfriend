@@ -10,6 +10,17 @@
 
 ---
 
+## Module Development Gate
+
+**每个版本进入开发前，必须先通过 Module Development Gate。**
+
+Gate 通过后才允许进入功能实现。详见：
+
+- [MINIMAX_EXECUTION.md - Module Development Gate](./MINIMAX_EXECUTION.md#module-development-gate)
+- [Review Guide - Module Development Gate Checklist](./REVIEW_GUIDE.md#module-development-gate-checklist)
+
+---
+
 ## 版本规划
 
 ### V0 — 文档治理与项目规则

@@ -24,6 +24,80 @@
 
 ---
 
+## Module Development Gate Checklist
+
+每次进入新模块或新能力开发前，必须执行 Module Development Gate。
+
+**未通过 Gate，不允许进入功能实现。**
+
+详见：[MINIMAX_EXECUTION.md - Module Development Gate](./MINIMAX_EXECUTION.md#module-development-gate)
+
+### 当前阶段确认
+
+- [ ] 当前分支
+- [ ] 当前里程碑
+- [ ] 即将开发的模块
+- [ ] Roadmap 对应版本
+- [ ] 是否允许当前阶段开发
+
+### 文档一致性检查
+
+- [ ] README.md 是否包含当前阶段说明
+- [ ] PROJECT_BRIEF.md 是否与目标一致
+- [ ] ROADMAP.md 是否允许该模块
+- [ ] ARCHITECTURE.md 是否定义模块边界
+- [ ] SKILLS.md 是否定义所需质量支撑
+- [ ] REVIEW_GUIDE.md 是否覆盖审查规则
+- [ ] MINIMAX_EXECUTION.md 是否覆盖执行边界
+
+### 架构边界检查
+
+- [ ] 模块归属层级
+- [ ] 输入事件
+- [ ] 输出事件
+- [ ] 是否需要 EventBus
+- [ ] 是否需要 StateMachine
+- [ ] 是否需要 Provider
+- [ ] 是否需要 Prompt Registry
+- [ ] 是否需要权限控制
+- [ ] 禁止直接调用的模块
+
+### 当前代码健康检查
+
+必须运行：
+
+```bash
+pip install -e ".[dev]"
+ruff check .
+mypy app
+pytest -q
+```
+
+如涉及 UI，额外运行：
+
+```bash
+python -m app.main
+```
+
+### 风险检查
+
+- [ ] 是否涉及外部 API
+- [ ] 是否涉及 API Key
+- [ ] 是否涉及摄像头
+- [ ] 是否涉及麦克风
+- [ ] 是否涉及真实人物素材
+- [ ] 是否涉及本地命令执行
+- [ ] 是否涉及长期记忆或用户隐私
+
+### Gate 结论
+
+- [ ] 是否允许进入开发
+- [ ] 需要先补的文档
+- [ ] 需要先修的代码
+- [ ] 本模块开发边界
+
+---
+
 ## 审查原则
 
 1. **Architecture First** — 先检查架构边界，再看代码细节
