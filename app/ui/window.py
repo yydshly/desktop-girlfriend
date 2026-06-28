@@ -82,6 +82,7 @@ class DesktopWindow(QMainWindow):
         self._chat_history = QTextEdit()
         self._chat_history.setReadOnly(True)
         self._chat_history.setStyleSheet("padding: 10px; background-color: #f0f0f0;")
+        self._chat_history.setPlainText(render_chat_messages(self._view_model.chat_messages))
         layout.addWidget(self._chat_history, stretch=1)
 
         # Error display
