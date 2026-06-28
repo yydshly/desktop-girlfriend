@@ -67,10 +67,10 @@
 必须运行：
 
 ```bash
-pip install -e ".[dev]"
-ruff check .
-mypy app
-pytest -q
+python -m pip install -e ".[dev]"
+python -m ruff check .
+python -m mypy app
+python -m pytest -q
 ```
 
 如涉及 UI，额外运行：
@@ -104,6 +104,17 @@ python -m app.main
 2. **分层清晰** — 每一层只做本层职责内的事
 3. **安全优先** — 隐私、密钥、权限必须严格审查
 4. **文档同步** — 代码变更必须同步更新文档
+
+### Superpowers 辅助审查
+
+当前项目优先使用 Superpowers 做流程辅助：
+
+- 新能力进入前，先用 `brainstorming` 澄清范围。
+- 实现前，用 `writing-plans` 拆分小任务。
+- 涉及功能代码时，优先按 `test-driven-development` 执行。
+- 阶段完成前，用 `requesting-code-review` 和 `verification-before-completion` 做收尾。
+
+Superpowers 的结论不能替代本文件的 Gate Checklist；二者不一致时，以项目文档和用户明确指令为准。
 
 ---
 

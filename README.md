@@ -89,9 +89,9 @@ python -m pytest -q
 - **Provider 化** — 外部服务封装为 Provider
 - **Prompt Registry** — Prompt 集中管理
 
-## 质量支撑体系
+## 开发辅助体系
 
-项目使用 **Skill / Superpowers** 作为开发辅助层，用于降低单人开发的审查成本。它们不能替代测试、CI 和人工架构判断；项目自定义 Skill 只有在真实创建并验证后，才视为正式质量机制。
+项目使用 **Superpowers** 作为主要开发辅助流程，用于需求澄清、计划拆解、TDD、调试和代码审查。它不能替代测试、CI 和人工架构判断；项目自定义 Skill 暂缓，等真实流程稳定后再沉淀。
 
 ### 开发流程
 

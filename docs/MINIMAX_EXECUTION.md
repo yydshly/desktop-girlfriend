@@ -8,11 +8,27 @@ MiniMax 是代码执行 Agent，不是产品决策者。
 
 本项目由一个人主导开发，MiniMax 负责具体执行，ChatGPT 负责架构设计和阶段性审查。
 
+### Superpowers 对齐
+
+当前开发流程以 Superpowers 作为主要方法论辅助，但项目规则优先级更高。
+
+| 阶段 | 推荐 Superpowers 流程 | 项目要求 |
+|------|------------------------|----------|
+| 新能力进入前 | `brainstorming` | 澄清目标、非目标、Roadmap 阶段和风险边界 |
+| 进入实现前 | `writing-plans` | 输出可执行的小任务计划，并通过 Module Development Gate |
+| 功能实现 | `test-driven-development` | 先写或补测试，再实现最小代码 |
+| 调试问题 | `systematic-debugging` | 先定位根因，避免凭感觉改动 |
+| 阶段收尾 | `requesting-code-review` / `verification-before-completion` | 跑质量命令，输出风险和下一步 |
+
+Superpowers 可以指导“怎么做”，但不能越过本项目的 Architecture、Review Guide、Roadmap 和权限边界。
+
 ### 分支策略
 
 - 每个阶段使用一个 milestone 分支（如 `milestone/v1-scaffold`）
 - 每个任务提交一个清晰 commit
 - 小文档变更、小修复不需要单独 PR
+- 不把 Gate 文档、Provider 契约、具体 API 实现混在一个提交中
+- 不把实验性 Skill/插件接入和业务功能实现混在一个提交中
 
 ### Checkpoint Review
 
@@ -84,6 +100,8 @@ MiniMax 是代码执行 Agent，不是产品决策者。
 ### 禁止跳过
 
 MiniMax 不得跳过 Gate 直接开发新模块。
+
+Superpowers 的计划或建议不能替代 Gate。即使 Superpowers 已经生成计划，仍必须确认 Review Guide 中的 Gate Checklist。
 
 ### 执行前检查
 

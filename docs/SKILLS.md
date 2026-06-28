@@ -15,7 +15,7 @@ Skills 是项目开发过程中的质量增强层，用于：
 - 把架构纪律转化为可重复执行的流程
 - 复用优秀外部 Skill（如 Superpowers）中的成熟工作流
 
-它们不实现业务功能。当前阶段允许直接使用可信的内置 Skill、Superpowers 等优秀 Skill 辅助开发，但项目自定义 Skill 只有在仓库中真实创建、验证并纳入流程后，才视为正式质量机制。
+它们不实现业务功能。当前阶段以 **Superpowers** 作为主要开发方法论辅助，用于需求澄清、计划拆解、TDD、调试、代码审查和分支收尾。项目自定义 Skill 暂不作为主线；只有在真实使用中发现稳定、高频、项目特有的流程后，再考虑沉淀。
 
 ---
 
@@ -27,43 +27,58 @@ Skills 是项目开发过程中的质量增强层，用于：
 
 | 来源 | 说明 | 示例 |
 |------|------|------|
-| **内置 Skill** | 当前工具内置，直接作为开发辅助使用 | code review、verify、debug |
-| **优秀外部 Skill** | 来源明确、内容可审查的 Skill，可直接用于个人辅助 | Superpowers、公开纯文档 Skill |
-| **项目自定义 Skill** | 根据本项目架构和阶段规则沉淀的 Skill | `architecture-guard`、`code-quality-superpower` |
+| **Superpowers** | 当前主开发工作流插件，优先使用 | `brainstorming`、`writing-plans`、`test-driven-development`、`requesting-code-review` |
+| **内置 Skill** | 当前工具内置，作为补充辅助使用 | code review、verify、debug |
+| **优秀外部 Skill** | 来源明确、内容可审查的 Skill，可按需引入 | 公开纯文档 Skill |
+| **项目自定义 Skill** | 暂缓，等项目流程稳定后再沉淀 | `architecture-guard`、`code-quality-superpower` |
 
 ### 当前成熟度
 
 | 类别 | 状态 | 说明 |
 |------|------|------|
-| 内置 Skill | ✅ 可用 | 可立即用于代码审查、验证、调试和总结风险 |
-| Superpowers / 优秀外部 Skill | ✅ 可作为个人辅助使用 | 先阅读或使用可信入口，不让其自动读取密钥、联网、提交代码 |
+| Superpowers | ✅ 已作为主辅助方案 | 通过 Codex App 插件安装；新会话/重启后生效，用于项目把控和开发流程 |
+| 内置 Skill | ✅ 可用 | 可用于补充代码审查、验证、调试和总结风险 |
+| 其他优秀外部 Skill | ⚠️ 按需引入 | 先阅读或使用可信入口，不让其自动读取密钥、联网、提交代码 |
 | 公开 Skill 借鉴 | ⚠️ 按需研究 | 详见 [SKILL_INVENTORY.md](./SKILL_INVENTORY.md) |
-| 项目自定义 P0 Skill | ❌ 尚未实现 | V3 前后开始沉淀，不能在文档中当作已生效门禁 |
-| 项目自定义 P1 Skill | ❌ 尚未实现 | V3 MiniMax 接入后实现 |
-| 项目自定义 P2/P3 Skill | ❌ 尚未实现 | V4+ 阶段逐步实现 |
+| 项目自定义 Skill | ⏸️ 暂缓 | 不再优先自研，避免和 Superpowers 工作流重复；后续只沉淀项目特有规则 |
 
 ### 当前使用原则
 
-当前可以直接使用 Skill 辅助开发，但遵循以下边界：
+当前使用 Superpowers / Skill 辅助开发，但遵循以下边界：
 
-- **先用作顾问**：用 Skill 做需求澄清、架构检查、代码审查、测试建议和风险提示。
-- **再沉淀为制度**：只有高频、稳定、可复用的流程才抽成项目自定义 Skill。
+- **Superpowers 优先**：需求不清时先用 brainstorming；进入实现前用 writing-plans；写功能时优先按 TDD；阶段结束前做 code review / verification。
+- **项目规则优先级更高**：Roadmap、Architecture、Review Guide、MiniMax Execution 的阶段边界仍然必须遵守。
+- **再沉淀为制度**：只有高频、稳定、项目特有的流程才抽成项目自定义 Skill。
 - **不替代基础质量工具**：`ruff`、`mypy`、`pytest`、CI 仍是质量底座。
 - **不放大权限**：第三方 Skill 不得自动读取 `.env`、访问外部网络、提交代码或修改全局配置。
 - **不跨阶段实现**：Skill 可以提醒 V3/V4/V5 的边界，但不能替项目越过 Roadmap。
 
 ### V3 Skill 策略
 
-- 继续使用内置 Skill 和 Superpowers 辅助代码审查、验证和风险分析。
-- 借鉴可信公开 Skill 中的纯文档工作流。
-- 优先沉淀项目自定义 P0 Skill：`architecture-guard`、`code-quality-superpower`、`docs-consistency-check`。
-- 在项目自定义 Skill 建好之前，相关检查以 Review Guide checklist 为准。
+- 以 Superpowers 作为主工作流辅助。
+- V3 MiniMax Provider 进入实现前，先完成 brainstorming / writing-plans / Module Development Gate。
+- 实现阶段优先遵循 test-driven-development。
+- 阶段收尾使用 requesting-code-review / verification-before-completion。
+- 项目自定义 Skill 暂不继续扩展；相关检查以 Superpowers + Review Guide checklist 为准。
 
 详见：[SKILL_INVENTORY.md](./SKILL_INVENTORY.md)
 
 ---
 
-## Skill 分类
+## Superpowers 对应项目场景
+
+| Superpowers 能力 | 本项目使用场景 |
+|------------------|----------------|
+| `brainstorming` | V3/V4 等新能力进入前，澄清目标、边界和非目标 |
+| `writing-plans` | 将 V3 MiniMax Provider、Prompt Registry、TTS 等拆成小任务 |
+| `test-driven-development` | Provider、Prompt Registry、State/Event 契约变更 |
+| `systematic-debugging` | 启动失败、环境问题、事件链路异常 |
+| `requesting-code-review` | Gate 通过前、阶段完成前、接入外部 API 前 |
+| `verification-before-completion` | 宣称完成前复核测试、运行和文档一致性 |
+
+---
+
+## 后续可能沉淀的项目 Skill
 
 ### 1. 架构守护类 Skill
 
@@ -116,16 +131,18 @@ Skills 是项目开发过程中的质量增强层，用于：
 
 ---
 
-## 优先级
+## 项目自定义 Skill 优先级
 
-### P0 — 当前优先沉淀
+### 暂缓自研
 
-- `code-quality-superpower` — 代码质量基线
+当前不再优先开发项目自定义 Skill。先使用 Superpowers 跑过 V3 的真实开发流程，再根据重复出现的问题决定是否沉淀：
+
 - `architecture-guard` — 架构边界守护
 - `docs-consistency-check` — 文档一致性
-- `minimax-execution-guard` — MiniMax 执行边界
+- `provider-contract-check` — Provider 接口契约
+- `prompt-registry` — Prompt 集中管理
 
-### P1 — 接 MiniMax 前
+### 接 MiniMax 前需要重点关注
 
 - `prompt-registry` — Prompt 集中管理
 - `provider-contract-check` — Provider 接口契约

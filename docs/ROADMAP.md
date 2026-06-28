@@ -29,7 +29,7 @@ Gate 通过后才允许进入功能实现。详见：
 
 - [x] 愿景图纳入文档
 - [x] 项目文档体系
-- [x] Skill / Superpowers 质量支撑体系
+- [x] Superpowers 开发辅助流程
 - [x] Solo Developer Flow 规范
 - [ ] 工程脚手架（留待 V1）
 

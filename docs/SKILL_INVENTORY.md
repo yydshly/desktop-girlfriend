@@ -1,6 +1,6 @@
 # Skill Inventory — V3 Research
 
-> 本文档调研 GitHub / 社区中存在的可复用公开 Skill，为 V3 及后续阶段的质量支撑体系建设提供参考。
+> 本文档调研 GitHub / 社区中存在的可复用公开 Skill，为 V3 及后续阶段的开发辅助流程提供参考。
 >
 > **背景**：项目 `docs/SKILLS.md` 已列出 Skill 需求清单，但这些是项目治理概念，不代表已安装或已实现。本文档对公开 Skill 进行调研分类，供后续决策参考。
 
@@ -132,10 +132,10 @@ Claude Code 自带以下 Bundled Skills（通过 `/skill-name` 调用）：
 
 | Skill 名称 | 需求来源 | 建议实现方式 | 推荐 |
 |-----------|----------|-------------|------|
-| `architecture-guard` | SKILLS.md P0 | **项目自定义** — 守护分层架构边界 | **采用** — 项目自定义 |
-| `code-quality-superpower` | SKILLS.md P0 | **项目自定义** — ruff/mypy/pytest 规范 | **采用** — 项目自定义 |
-| `docs-consistency-check` | SKILLS.md P0 | **项目自定义** — 文档与代码一致性检查 | **采用** — 项目自定义 |
-| `minimax-execution-guard` | SKILLS.md P0 | **项目自定义** — MiniMax 执行边界守护 | **采用** — 项目自定义 |
+| `architecture-guard` | SKILLS.md P0 | **项目自定义候选** — 守护分层架构边界 | **暂缓** — 先用 Superpowers + Review Guide |
+| `code-quality-superpower` | SKILLS.md P0 | **项目自定义候选** — ruff/mypy/pytest 规范 | **暂缓** — 先用 Superpowers + CI/本地命令 |
+| `docs-consistency-check` | SKILLS.md P0 | **项目自定义候选** — 文档与代码一致性检查 | **暂缓** — 先用 Superpowers + Review Guide |
+| `minimax-execution-guard` | SKILLS.md P0 | **项目自定义候选** — MiniMax 执行边界守护 | **暂缓** — 先用 Superpowers + Gate |
 | `provider-contract-check` | SKILLS.md P1 | **项目自定义** — Provider 接口契约检查 | **采用** — V3 Provider 实现后补充 |
 | `prompt-registry` | SKILLS.md P1 | **项目自定义** — Prompt 集中管理 | **采用** — V3 Prompt Registry 实现后补充 |
 | `usage-guard` | SKILLS.md P1 | **项目自定义** — API 使用量控制 | **采用** — V3 MiniMax 接入后补充 |
@@ -158,7 +158,8 @@ Claude Code 自带以下 Bundled Skills（通过 `/skill-name` 调用）：
 | `/code-review` | Claude Code 内置 | 代码审查 | Bundled Skill，直接可用 |
 | `/verify` | Claude Code 内置 | 验证变更 | Bundled Skill，直接可用 |
 | `/run` | Claude Code 内置 | 运行 App | Bundled Skill，直接可用 |
-| 项目自定义 P0 Skill | 本项目 | 架构守护/质量基线 | V3 开始逐步实现 |
+| Superpowers | obra/superpowers | 需求澄清、计划、TDD、调试、审查、收尾 | 当前主辅助方案 |
+| 项目自定义 P0 Skill | 本项目 | 架构守护/质量基线 | 暂缓；等 Superpowers 跑过真实流程后再决定是否沉淀 |
 
 ---
 
@@ -207,9 +208,10 @@ Claude Code 自带以下 Bundled Skills（通过 `/skill-name` 调用）：
    - `claude-api` — 以项目文件形式放在 `docs/skills/` 或直接参考
    - `skill-creator` — 指导本项目自定义 Skill 实现
 
-3. **以 Agent Skills 格式实现项目自定义 P0 Skill**：
-   - 目录结构：按当前工具可发现的 Skill 目录创建；若只是项目文档沉淀，先放入 `docs/skills/`，不要伪装成已自动触发的 Skill
-   - V3 阶段优先实现：`architecture-guard`、`code-quality-superpower`
+3. **暂缓项目自定义 Skill**：
+   - 不再优先自研 P0 Skill。
+   - 先用 Superpowers 跑完 V3 的真实开发流程。
+   - 如果某些检查反复出现，再沉淀为项目自定义 Skill。
 
 4. **不创建 `.skills` 目录**（遵循项目约束）
 
@@ -217,8 +219,9 @@ Claude Code 自带以下 Bundled Skills（通过 `/skill-name` 调用）：
 
 | 优先级 | Skill | 说明 |
 |--------|-------|------|
-| P0 | `code-quality-superpower` | ruff/mypy/pytest 规范，V3 开发基础 |
-| P0 | `architecture-guard` | 分层架构边界守护，V3 Brain/Expression 层引入时激活 |
+| P0 | Superpowers | 当前主辅助方案，用于 V3 Gate 和开发流程把控 |
+| P0 | `code-quality-superpower` | 暂缓；如 V3 实践证明需要，再沉淀 |
+| P0 | `architecture-guard` | 暂缓；如 V3 实践证明需要，再沉淀 |
 | P1 | `provider-contract-check` | Provider 接口契约，V3 MiniMax Provider 实现后 |
 | P1 | `prompt-registry` | Prompt 集中管理，V3 Prompt Registry 实现后 |
 | P1 | `minimax-execution-guard` | MiniMax 执行边界，V3 接入 API 后激活 |
