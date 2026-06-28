@@ -40,14 +40,20 @@ class _Stoppable(Protocol):
         """Stop the component."""
 
 
-def _wire_shutdown(app: QApplication, *components: _Stoppable) -> None:
+def _wire_shutdown(
+    app: object, *components: _Stoppable
+) -> None:
     """Stop components when the Qt application is about to quit."""
 
     def stop_components() -> None:
         for component in components:
             component.stop()
 
-    app.aboutToQuit.connect(stop_components)
+    # Narrow to the minimal interface we actually use at runtime
+    if hasattr(app, "aboutToQuit"):
+        signal: object = getattr(app, "aboutToQuit")
+        if hasattr(signal, "connect"):
+            signal.connect(stop_components)
 
 
 def main() -> None:
