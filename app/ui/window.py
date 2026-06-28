@@ -60,6 +60,8 @@ class DesktopWindow(QMainWindow):
     def _on_send_clicked(self) -> None:
         """Handle send button click."""
         text = self._input_field.text()
+        if not text.strip():
+            return
         self._on_user_text_submitted(text)
         self._input_field.clear()
 
