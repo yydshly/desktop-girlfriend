@@ -85,6 +85,10 @@ MiniMax 是代码执行 Agent，不是产品决策者。
 
 MiniMax 不得跳过 Gate 直接开发新模块。
 
+### 执行前检查
+
+MiniMax 执行代码任务前必须确认本地 Python 版本满足 `pyproject.toml` 的 `requires-python`。当前项目要求 `>=3.11`，Windows 环境推荐使用 `py -3.11` 或 `py -3.12` 创建虚拟环境。
+
 ---
 
 ## 执行边界

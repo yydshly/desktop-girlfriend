@@ -33,11 +33,17 @@ app/
 └── tests/         # 单元测试
 ```
 
-### 安装
+### 环境要求
 
-```bash
-pip install -e ".[dev]"
-```
+- **Python 3.11+**（项目 `pyproject.toml` 固定 `requires-python = ">=3.11"`）
+- Windows 推荐使用 py launcher 创建虚拟环境：
+  ```bash
+  py -3.11 -m venv .venv
+  .venv\Scripts\activate
+  pip install -e ".[dev]"
+  ```
+
+### 安装
 
 ### 运行
 
