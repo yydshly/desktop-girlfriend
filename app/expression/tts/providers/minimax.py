@@ -67,17 +67,17 @@ class MiniMaxTTSProvider(TTSProvider):
             output_dir=output_dir,
         )
 
-    def speak(self, request: TTSRequest) -> TTSResponse:
-        """Synthesize and play back the given text.
+    def synthesize(self, request: TTSRequest) -> TTSResponse:
+        """Synthesize text to an audio file without playing it.
 
         Args:
-            request: The TTS request containing text to speak.
+            request: The TTS request containing text to synthesize.
 
         Returns:
-            TTSResponse with the playback duration.
+            TTSResponse with audio_path set.
 
         Raises:
-            TTSProviderError: If synthesis, HTTP, or playback fails.
+            TTSProviderError: If synthesis or HTTP fails.
         """
         text = request.text
 
@@ -91,12 +91,29 @@ class MiniMaxTTSProvider(TTSProvider):
             result = self._send_request(payload, headers)
             audio_bytes = self._parse_audio_bytes(result)
             audio_path = self._write_audio_file(audio_bytes)
-            self._play_audio_file(audio_path)
-            return TTSResponse(duration_seconds=0.0)
+            return TTSResponse(duration_seconds=0.0, audio_path=str(audio_path))
         except TTSProviderError:
             raise
         except Exception as e:
             raise TTSProviderError("MiniMax TTS network error") from e
+
+    def speak(self, request: TTSRequest) -> TTSResponse:
+        """Synthesize and play back the given text.
+
+        Args:
+            request: The TTS request containing text to speak.
+
+        Returns:
+            TTSResponse with the playback duration.
+
+        Raises:
+            TTSProviderError: If synthesis, HTTP, or playback fails.
+        """
+        response = self.synthesize(request)
+        if response.audio_path is None:
+            raise TTSProviderError("MiniMax TTS returned empty audio")
+        self._play_audio_file(Path(response.audio_path))
+        return response
 
     def _build_request_payload(self, text: str) -> dict[str, Any]:
         """Build the TTS API request payload."""

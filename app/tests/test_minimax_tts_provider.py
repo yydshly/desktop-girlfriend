@@ -245,3 +245,74 @@ class TestMiniMaxTTSProviderSpeak:
                 # Error message must not contain the raw key
                 assert "super-secret-key" not in str(e)
                 assert "Bearer super-secret-key" not in str(e)
+
+    def test_speak_returns_response_with_audio_path(self) -> None:
+        """Test speak() returns TTSResponse with audio_path set."""
+        provider = _make_provider()
+        audio_path = Path("/tmp/test.mp3")
+        mock_result = {"data": {"audio": base64.b64encode(b"hello").decode("utf-8")}}
+        with patch.object(provider, "_send_request", return_value=mock_result):
+            with patch.object(provider, "_write_audio_file", return_value=audio_path):
+                with patch.object(provider, "_play_audio_file"):
+                    response = provider.speak(TTSRequest(text="Hello"))
+                    assert response.audio_path == str(audio_path)
+
+
+class TestMiniMaxTTSProviderSynthesize:
+    """Tests for the synthesize() method."""
+
+    def test_synthesize_validates_empty_text(self) -> None:
+        """Test synthesize() raises TTSProviderError for empty text."""
+        provider = _make_provider()
+        with pytest.raises(TTSProviderError, match="Empty TTS text"):
+            provider.synthesize(TTSRequest(text=""))
+
+    def test_synthesize_returns_tts_response_with_audio_path(self) -> None:
+        """Test synthesize() returns TTSResponse with audio_path set."""
+        provider = _make_provider()
+        audio_path = Path("/tmp/test.mp3")
+        mock_result = {"data": {"audio": base64.b64encode(b"hello").decode("utf-8")}}
+        with patch.object(provider, "_send_request", return_value=mock_result):
+            with patch.object(provider, "_write_audio_file", return_value=audio_path):
+                response = provider.synthesize(TTSRequest(text="Hello"))
+                assert response.audio_path == str(audio_path)
+                assert response.duration_seconds == 0.0
+
+    def test_synthesize_does_not_call_play_audio_file(self) -> None:
+        """Test synthesize() does NOT call _play_audio_file."""
+        provider = _make_provider()
+        audio_path = Path("/tmp/test.mp3")
+        mock_result = {"data": {"audio": base64.b64encode(b"hello").decode("utf-8")}}
+        with patch.object(provider, "_send_request", return_value=mock_result):
+            with patch.object(provider, "_write_audio_file", return_value=audio_path):
+                with patch.object(provider, "_play_audio_file") as mock_play:
+                    provider.synthesize(TTSRequest(text="Hello"))
+                    mock_play.assert_not_called()
+
+    def test_synthesize_calls_write_audio_file(self) -> None:
+        """Test synthesize() calls _write_audio_file."""
+        provider = _make_provider()
+        audio_path = Path("/tmp/test.mp3")
+        audio_bytes = b"parsed audio"
+        mock_result = {"data": {"audio": base64.b64encode(audio_bytes).decode("utf-8")}}
+        with patch.object(provider, "_send_request", return_value=mock_result):
+            with patch.object(provider, "_write_audio_file", return_value=audio_path) as mock_write:
+                provider.synthesize(TTSRequest(text="Hello"))
+                mock_write.assert_called_once_with(audio_bytes)
+
+    def test_synthesize_network_error_raises_safe_error(self) -> None:
+        """Test that network errors raise TTSProviderError with safe message."""
+        provider = _make_provider()
+        with patch.object(provider, "_send_request", side_effect=Exception("network failure")):
+            with pytest.raises(TTSProviderError, match="network error"):
+                provider.synthesize(TTSRequest(text="Hello"))
+
+    def test_synthesize_error_message_does_not_leak_key(self) -> None:
+        """Test that error messages do not contain raw API key."""
+        provider = _make_provider(api_key="super-secret-key")
+        with patch.object(provider, "_send_request", side_effect=Exception("network failure")):
+            try:
+                provider.synthesize(TTSRequest(text="Hello"))
+            except TTSProviderError as e:
+                assert "super-secret-key" not in str(e)
+                assert "Bearer super-secret-key" not in str(e)

@@ -9,6 +9,7 @@ from app.contracts.events import (
     ASSISTANT_TEXT_RECEIVED,
     STATE_CHANGE_REQUESTED,
     SYSTEM_ERROR,
+    TTS_AUDIO_READY,
     BaseEvent,
 )
 from app.contracts.states import AppState
@@ -16,6 +17,7 @@ from app.expression.tts.providers.base import TTSProvider, TTSProviderError, TTS
 
 if TYPE_CHECKING:
     from app.core.event_bus import EventBus
+    from app.expression.tts.player import QtAudioPlayer
 
 _SAFE_TTS_ERROR_MESSAGE = "语音播放失败，请稍后重试。"
 
@@ -28,6 +30,7 @@ class TTSController:
         event_bus: "EventBus",
         provider: TTSProvider,
         dispatch_event: Callable[[BaseEvent], None],
+        audio_player: "QtAudioPlayer | None" = None,
     ) -> None:
         """Initialize TTSController.
 
@@ -35,20 +38,28 @@ class TTSController:
             event_bus: Event bus for subscribing to events.
             provider: TTS provider for speech synthesis and playback.
             dispatch_event: Callback to dispatch events back to UI thread safely.
+            audio_player: Optional QtAudioPlayer for embedded playback.
+                When provided, synthesize() is used instead of speak() and
+                audio is played internally via QtMediaPlayer.
         """
         self._event_bus = event_bus
         self._provider = provider
         self._dispatch_event = dispatch_event
+        self._audio_player = audio_player
         self._is_speaking = False
         self._lock = threading.Lock()
 
     def start(self) -> None:
         """Start listening for assistant text received events."""
         self._event_bus.subscribe(ASSISTANT_TEXT_RECEIVED, self._on_assistant_text_received)
+        if self._audio_player is not None:
+            self._event_bus.subscribe(TTS_AUDIO_READY, self._on_audio_ready)
 
     def stop(self) -> None:
         """Stop listening for assistant text received events."""
         self._event_bus.unsubscribe(ASSISTANT_TEXT_RECEIVED, self._on_assistant_text_received)
+        if self._audio_player is not None:
+            self._event_bus.unsubscribe(TTS_AUDIO_READY, self._on_audio_ready)
 
     def _on_assistant_text_received(self, event: BaseEvent) -> None:
         """Handle assistant.text_received event.
@@ -84,7 +95,7 @@ class TTSController:
         thread.start()
 
     def _speak_text(self, request_id: str, text: str) -> None:
-        """Worker thread: call provider.speak() and dispatch result events.
+        """Worker thread: synthesize audio and dispatch to UI thread for playback.
 
         Args:
             request_id: Request ID for tracking.
@@ -92,8 +103,24 @@ class TTSController:
         """
         try:
             request = TTSRequest(text=text)
-            self._provider.speak(request)
-            self._dispatch_state_request(AppState.IDLE, "tts_complete")
+
+            if self._audio_player is not None:
+                # Use synthesize() path: generate audio file, play via QtAudioPlayer
+                response = self._provider.synthesize(request)
+                if response.audio_path is None:
+                    raise TTSProviderError("TTS returned empty audio path")
+                # Dispatch audio_ready event to UI thread to trigger playback
+                audio_event = BaseEvent(
+                    event_type=TTS_AUDIO_READY,
+                    request_id=request_id,
+                    source="tts_controller",
+                    payload={"audio_path": response.audio_path},
+                )
+                self._dispatch_event(audio_event)
+            else:
+                # Legacy path: provider.speak() handles playback (e.g. os.startfile)
+                self._provider.speak(request)
+                self._dispatch_state_request(AppState.IDLE, "tts_complete")
         except TTSProviderError:
             self._dispatch_error(request_id, _SAFE_TTS_ERROR_MESSAGE)
             self._dispatch_state_request(AppState.ERROR, "tts_error")
@@ -103,6 +130,32 @@ class TTSController:
         finally:
             with self._lock:
                 self._is_speaking = False
+
+    def _on_audio_ready(self, event: BaseEvent) -> None:
+        """Handle tts.audio_ready event on the UI thread.
+
+        Args:
+            event: The tts.audio_ready event containing audio_path.
+        """
+        if event.event_type != TTS_AUDIO_READY:
+            return
+
+        audio_path = event.payload.get("audio_path")
+        if not audio_path:
+            self._dispatch_error(event.request_id, _SAFE_TTS_ERROR_MESSAGE)
+            self._dispatch_state_request(AppState.ERROR, "tts_error")
+            return
+
+        # Callbacks dispatch events back to the event bus
+        def on_finished() -> None:
+            self._dispatch_state_request(AppState.IDLE, "tts_complete")
+
+        def on_error(message: str) -> None:
+            self._dispatch_error(event.request_id, _SAFE_TTS_ERROR_MESSAGE)
+            self._dispatch_state_request(AppState.ERROR, "tts_error")
+
+        assert self._audio_player is not None
+        self._audio_player.play(audio_path, on_finished, on_error)
 
     def _request_state(self, target_state: AppState, reason: str) -> None:
         """Request a state change via event bus (UI thread only).
@@ -148,3 +201,4 @@ class TTSController:
             payload={"message": message},
         )
         self._dispatch_event(event)
+

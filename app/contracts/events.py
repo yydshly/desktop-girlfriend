@@ -11,6 +11,7 @@ STATE_CHANGE_REQUESTED = "state.change_requested"
 STATE_CHANGED = "state.changed"
 SYSTEM_ERROR = "system.error"
 CONVERSATION_CLEARED = "conversation.cleared"
+TTS_AUDIO_READY = "tts.audio_ready"
 
 
 @dataclass

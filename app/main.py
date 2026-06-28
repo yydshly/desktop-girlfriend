@@ -152,10 +152,17 @@ def main() -> None:
         from app.expression.tts.providers.fake import FakeTTSProvider
 
         tts_provider = FakeTTSProvider(delay_seconds=0.1)
+
+    # Create QtAudioPlayer for embedded audio playback (after QApplication is created)
+    from app.expression.tts.player import QtAudioPlayer
+
+    audio_player = QtAudioPlayer()
+
     tts_controller = TTSController(
         event_bus=event_bus,
         provider=tts_provider,
         dispatch_event=event_bridge.event_ready.emit,
+        audio_player=audio_player,
     )
 
     # Start components

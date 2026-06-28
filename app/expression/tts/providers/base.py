@@ -20,10 +20,27 @@ class TTSResponse:
     """Response from text-to-speech synthesis and playback."""
 
     duration_seconds: float = 0.0
+    audio_path: str | None = None
 
 
 class TTSProvider(ABC):
     """Abstract base class for TTS providers."""
+
+    def synthesize(self, request: TTSRequest) -> TTSResponse:
+        """Synthesize text to an audio file and return the response.
+
+        Default implementation delegates to speak() for backward compatibility.
+
+        Args:
+            request: The TTS request containing text to synthesize.
+
+        Returns:
+            TTSResponse with audio_path set if synthesis succeeded.
+
+        Raises:
+            TTSProviderError: If synthesis fails.
+        """
+        return self.speak(request)
 
     @abstractmethod
     def speak(self, request: TTSRequest) -> TTSResponse:
