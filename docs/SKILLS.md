@@ -18,6 +18,39 @@ Skills 是项目开发过程中的质量增强层，用于：
 
 ---
 
+## 当前状态
+
+> 本节说明本项目 Skill 体系的当前成熟度。
+
+### Skill 来源分类
+
+| 来源 | 说明 | 示例 |
+|------|------|------|
+| **Claude Code Bundled** | Claude Code 内置，直接可用（`/skill-name` 调用） | `/code-review`、`/verify`、`/run` |
+| **公开 Skill** | 社区/官方公开的 Agent Skills，可借鉴或直接采用 | `claude-api`（anthropics/skills）、`skill-creator` |
+| **项目自定义** | 根据本项目需求实现的 Skill，以 Agent Skills 格式组织 | `architecture-guard`、`code-quality-superpower` |
+
+### 当前成熟度
+
+| 类别 | 状态 | 说明 |
+|------|------|------|
+| Claude Code Bundled Skills | ✅ 可用 | 直接使用 `/code-review`、`/verify`、`/run` 等 |
+| 公开 Skill 借鉴 | ⚠️ 待研究 | 详见 [SKILL_INVENTORY.md](./SKILL_INVENTORY.md) |
+| 项目自定义 P0 Skill | ❌ 尚未实现 | V3 阶段开始逐步实现 |
+| 项目自定义 P1 Skill | ❌ 尚未实现 | V3 MiniMax 接入后实现 |
+| 项目自定义 P2/P3 Skill | ❌ 尚未实现 | V4+ 阶段逐步实现 |
+
+### V3 Skill 策略
+
+- 直接使用 Claude Code Bundled Skills（无需安装）
+- 借鉴 anthropics/skills 中的纯文档 Skill（`claude-api`、`skill-creator`）
+- 以 Agent Skills 格式实现项目自定义 P0 Skill
+- 不创建 `.skills` 目录（遵循项目约束）
+
+详见：[SKILL_INVENTORY.md](./SKILL_INVENTORY.md)
+
+---
+
 ## Skill 分类
 
 ### 1. 架构守护类 Skill
