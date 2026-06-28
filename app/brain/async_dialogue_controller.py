@@ -120,7 +120,9 @@ class AsyncDialogueController:
             self._session_history.append_user_text(text)
             self._session_history.append_assistant_text(response_text)
 
-            # Dispatch success events back to UI thread
+            # Mark dialogue generation complete before publishing assistant text.
+            # TTS subscribers may turn assistant text into SPEAKING state.
+            self._dispatch_state_request(AppState.IDLE, "dialogue_complete")
             self._dispatch_event(
                 BaseEvent(
                     event_type=ASSISTANT_TEXT_RECEIVED,
@@ -129,7 +131,6 @@ class AsyncDialogueController:
                     payload={"text": response_text},
                 )
             )
-            self._dispatch_state_request(AppState.IDLE, "dialogue_complete")
 
         except ChatProviderError:
             self._dispatch_error(request_id, "Provider failed to generate response")

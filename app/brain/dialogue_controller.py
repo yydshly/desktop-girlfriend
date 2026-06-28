@@ -72,6 +72,10 @@ class DialogueController:
             request = ChatRequest(messages=cast(list[PromptMessageLike], prompt_messages))
             response = self._provider.generate(request)
 
+            # Mark dialogue generation complete before publishing assistant text.
+            # TTS subscribers may turn assistant text into SPEAKING state.
+            self._request_state(AppState.IDLE, "dialogue_complete")
+
             # Publish assistant response
             assistant_event = BaseEvent(
                 event_type=ASSISTANT_TEXT_RECEIVED,
@@ -80,9 +84,6 @@ class DialogueController:
                 payload={"text": response.text},
             )
             self._event_bus.publish(assistant_event)
-
-            # Request IDLE state
-            self._request_state(AppState.IDLE, "dialogue_complete")
 
         except ChatProviderError:
             self._publish_error(request_id, "Provider failed to generate response")

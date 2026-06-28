@@ -65,14 +65,14 @@ class TestDialogueControllerSuccess:
         assert published_events[0].payload["target_state"] == "thinking"
         assert published_events[0].payload["reason"] == "dialogue_request"
 
-        # Event 2: ASSISTANT_TEXT_RECEIVED
-        assert published_events[1].event_type == ASSISTANT_TEXT_RECEIVED
-        assert published_events[1].payload["text"] == "Hello!"
+        # Event 2: IDLE state request
+        assert published_events[1].event_type == STATE_CHANGE_REQUESTED
+        assert published_events[1].payload["target_state"] == "idle"
+        assert published_events[1].payload["reason"] == "dialogue_complete"
 
-        # Event 3: IDLE state request
-        assert published_events[2].event_type == STATE_CHANGE_REQUESTED
-        assert published_events[2].payload["target_state"] == "idle"
-        assert published_events[2].payload["reason"] == "dialogue_complete"
+        # Event 3: ASSISTANT_TEXT_RECEIVED
+        assert published_events[2].event_type == ASSISTANT_TEXT_RECEIVED
+        assert published_events[2].payload["text"] == "Hello!"
 
         # No SYSTEM_ERROR
         for evt in published_events:

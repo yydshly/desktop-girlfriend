@@ -86,8 +86,8 @@ class TestAsyncDialogueController:
             payload={"text": text},
         )
 
-    def test_success_path_publishes_thinking_then_response_and_idle(self) -> None:
-        """Test success path publishes THINKING, ASSISTANT_TEXT_RECEIVED, then IDLE."""
+    def test_success_path_publishes_thinking_then_idle_and_response(self) -> None:
+        """Test success path publishes THINKING, IDLE, then ASSISTANT_TEXT_RECEIVED."""
         event_bus = MagicMock()
         provider = ImmediateFakeProvider(reply_text="Test reply")
         registry = PromptRegistry()
@@ -113,7 +113,7 @@ class TestAsyncDialogueController:
         ]
         assert len(thinking_calls) >= 1
 
-        # Check worker dispatched ASSISTANT_TEXT_RECEIVED and IDLE
+        # Check worker dispatched IDLE and ASSISTANT_TEXT_RECEIVED
         assert len(dispatch_events) >= 2
         event_types = [e.event_type for e in dispatch_events]
         assert "assistant.text_received" in event_types
@@ -124,6 +124,9 @@ class TestAsyncDialogueController:
             e for e in dispatch_events if e.payload.get("target_state") == "idle"
         ]
         assert len(idle_events) >= 1
+        assert dispatch_events.index(idle_events[0]) < event_types.index(
+            "assistant.text_received"
+        )
 
     def test_provider_failure_dispatches_safe_error_message(self) -> None:
         """Test provider failure dispatches SYSTEM_ERROR with safe message, not raw exception."""
