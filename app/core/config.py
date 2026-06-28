@@ -80,13 +80,24 @@ class AppConfig:
             "MINIMAX_TTS_OUTPUT_DIR", ".tmp/tts"
         )
 
-        # ASR provider configuration (V6-A: fake only)
+        # ASR provider configuration (V6-A: fake; V6-B0: adds MiMo file probe)
         self.asr_provider_mode: str = _env_or_default("ASR_PROVIDER_MODE", "fake")
         self.fake_asr_transcript: str = _env_or_default(
             "FAKE_ASR_TRANSCRIPT", "这是一次语音输入测试。"
         )
         self.fake_asr_delay_seconds: float = _env_float_or_default(
             "FAKE_ASR_DELAY_SECONDS", "0.1"
+        )
+
+        # MiMo ASR configuration (V6-B0)
+        self.mimo_api_key: str | None = _env_or_fallback("MIMO_API_KEY", None)
+        self.mimo_base_url: str = _env_or_default(
+            "MIMO_BASE_URL", "https://api.xiaomimimo.com/v1"
+        )
+        self.mimo_asr_model: str = _env_or_default("MIMO_ASR_MODEL", "mimo-v2.5-asr")
+        self.mimo_asr_language: str = _env_or_default("MIMO_ASR_LANGUAGE", "auto")
+        self.mimo_asr_timeout_seconds: float = _env_float_or_default(
+            "MIMO_ASR_TIMEOUT_SECONDS", "30.0"
         )
 
 

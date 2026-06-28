@@ -237,3 +237,93 @@ def test_invalid_fake_asr_delay_raises_value_error(
 
     with pytest.raises(ValueError, match="FAKE_ASR_DELAY_SECONDS must be a number"):
         AppConfig()
+
+
+# MiMo ASR config tests
+
+
+def test_default_mimo_base_url(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test default MiMo base URL is set."""
+    clear_config_env(monkeypatch)
+    config = AppConfig()
+    assert config.mimo_base_url == "https://api.xiaomimimo.com/v1"
+
+
+def test_default_mimo_asr_model(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test default MiMo ASR model is mimo-v2.5-asr."""
+    clear_config_env(monkeypatch)
+    config = AppConfig()
+    assert config.mimo_asr_model == "mimo-v2.5-asr"
+
+
+def test_default_mimo_asr_language(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test default MiMo ASR language is auto."""
+    clear_config_env(monkeypatch)
+    config = AppConfig()
+    assert config.mimo_asr_language == "auto"
+
+
+def test_default_mimo_asr_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test default MiMo ASR timeout is 30.0."""
+    clear_config_env(monkeypatch)
+    config = AppConfig()
+    assert config.mimo_asr_timeout_seconds == 30.0
+
+
+def test_env_vars_override_mimo_base_url(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test MIMO_BASE_URL env var is used."""
+    reset_config()
+    monkeypatch.setenv("MIMO_BASE_URL", "https://custom.mimo.com/v1")
+    config = AppConfig()
+    assert config.mimo_base_url == "https://custom.mimo.com/v1"
+
+
+def test_env_vars_override_mimo_asr_model(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test MIMO_ASR_MODEL env var is used."""
+    reset_config()
+    monkeypatch.setenv("MIMO_ASR_MODEL", "custom-asr-model")
+    config = AppConfig()
+    assert config.mimo_asr_model == "custom-asr-model"
+
+
+def test_env_vars_override_mimo_asr_language(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test MIMO_ASR_LANGUAGE env var is used."""
+    reset_config()
+    monkeypatch.setenv("MIMO_ASR_LANGUAGE", "zh")
+    config = AppConfig()
+    assert config.mimo_asr_language == "zh"
+
+
+def test_env_vars_override_mimo_asr_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test MIMO_ASR_TIMEOUT_SECONDS env var is used."""
+    reset_config()
+    monkeypatch.setenv("MIMO_ASR_TIMEOUT_SECONDS", "60.0")
+    config = AppConfig()
+    assert config.mimo_asr_timeout_seconds == 60.0
+
+
+def test_invalid_mimo_asr_timeout_raises_value_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test invalid MIMO_ASR_TIMEOUT_SECONDS raises ValueError."""
+    reset_config()
+    monkeypatch.setenv("MIMO_ASR_TIMEOUT_SECONDS", "not-a-number")
+
+    with pytest.raises(ValueError, match="MIMO_ASR_TIMEOUT_SECONDS must be a number"):
+        AppConfig()

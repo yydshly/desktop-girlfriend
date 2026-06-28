@@ -12,8 +12,13 @@ class ASRProviderError(Exception):
 class ASRRequest:
     """Request for speech recognition.
 
-    V6-A fake mode does not carry audio; this is a placeholder for the contract.
+    Attributes:
+        audio_path: Path to the audio file to recognize. None for fake/placeholder.
+        mime_type: MIME type of the audio file. Defaults to "audio/wav".
     """
+
+    audio_path: str | None = None
+    mime_type: str = "audio/wav"
 
 
 @dataclass(frozen=True)
