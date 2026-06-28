@@ -15,6 +15,11 @@ from app.core.config import get_config
 from app.ui.view_model import DesktopViewModel
 
 
+def should_submit_user_text(text: str) -> bool:
+    """Return True if the text input is non-blank and should be submitted."""
+    return bool(text.strip())
+
+
 class DesktopWindow(QMainWindow):
     """Main application window."""
 
@@ -60,7 +65,7 @@ class DesktopWindow(QMainWindow):
     def _on_send_clicked(self) -> None:
         """Handle send button click."""
         text = self._input_field.text()
-        if not text.strip():
+        if not should_submit_user_text(text):
             return
         self._on_user_text_submitted(text)
         self._input_field.clear()
