@@ -6,7 +6,7 @@ import uuid
 
 from PySide6.QtWidgets import QApplication
 
-from app.brain.dialogue_controller import DialogueController
+from app.brain.async_dialogue_controller import AsyncDialogueController
 from app.brain.prompts.registry import PromptRegistry
 from app.brain.providers import ChatProviderError, create_chat_provider
 from app.contracts.events import (
@@ -21,6 +21,7 @@ from app.core.event_bus import EventBus
 from app.core.logging import setup_logging
 from app.core.state_controller import StateController
 from app.core.state_machine import StateMachine
+from app.ui.qt_event_bridge import QtEventBridge
 from app.ui.view_model import DesktopViewModel
 from app.ui.window import DesktopWindow
 
@@ -86,7 +87,16 @@ def main() -> None:
         provider = FakeChatProvider(
             reply_text="Provider configuration error. Falling back to fake response."
         )
-    dialogue_controller = DialogueController(event_bus, provider, prompt_registry)
+
+    # Create Qt event bridge for thread-safe event dispatch
+    event_bridge = QtEventBridge(event_bus.publish)
+
+    dialogue_controller = AsyncDialogueController(
+        event_bus=event_bus,
+        provider=provider,
+        prompt_registry=prompt_registry,
+        dispatch_event=event_bridge.event_ready.emit,
+    )
 
     # Start components
     state_controller.start()

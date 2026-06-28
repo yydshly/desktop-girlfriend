@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.contracts.states import AppState
 from app.core.config import get_config
 from app.ui.view_model import DesktopViewModel
 
@@ -74,3 +75,6 @@ class DesktopWindow(QMainWindow):
         """Update UI from view model state."""
         self._state_label.setText(self._view_model.display_text)
         self._assistant_label.setText(self._view_model.assistant_text)
+        is_thinking = self._view_model.state == AppState.THINKING
+        self._send_button.setEnabled(not is_thinking)
+        self._input_field.setEnabled(not is_thinking)
