@@ -10,7 +10,7 @@ MiniMax 是代码执行 Agent，不是产品决策者。
 
 ### 分支策略
 
-- 每个阶段使用一个 milestone 分支（如 `v1/pySide6-shell`）
+- 每个阶段使用一个 milestone 分支（如 `milestone/v1-scaffold`）
 - 每个任务提交一个清晰 commit
 - 小文档变更、小修复不需要单独 PR
 
@@ -60,6 +60,30 @@ MiniMax 是代码执行 Agent，不是产品决策者。
 
 - `main` 分支应保持可运行、可解释、可回退
 - MiniMax 不得自行合并 `main`
+
+---
+
+## Module Development Gate
+
+每次进入新模块或新能力开发前，必须执行 **Module Development Gate**。
+
+**未通过 Gate，不允许进入功能实现。**
+
+### Gate 用于确认
+
+1. 当前 Roadmap 是否允许开发该模块
+2. 文档是否已经定义该模块目标与边界
+3. Architecture 是否明确该模块归属层级
+4. 当前代码是否可安装、可测试、可运行
+5. 是否涉及外部 API、摄像头、麦克风、真实人物素材、Tool Router 等高风险能力
+
+### Gate 审查清单
+
+详见：[Review Guide - Module Development Gate Checklist](./REVIEW_GUIDE.md#module-development-gate-checklist)
+
+### 禁止跳过
+
+MiniMax 不得跳过 Gate 直接开发新模块。
 
 ---
 

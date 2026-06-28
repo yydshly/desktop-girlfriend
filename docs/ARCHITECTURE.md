@@ -169,6 +169,20 @@ External Service --> Provider Interface --> Business Logic
 
 ---
 
+## 新模块开发原则
+
+每个新模块开发前，必须先确认：
+
+- 模块归属层级
+- 输入事件
+- 输出事件
+- 依赖边界
+- 禁止调用方式
+
+详见：[Review Guide - Module Development Gate Checklist](./REVIEW_GUIDE.md#module-development-gate-checklist)
+
+---
+
 ## 关联文档
 
 - [Skill 体系](./SKILLS.md)

@@ -78,7 +78,17 @@ pytest -q
 
 项目采用 **Skill / Superpowers** 质量支撑体系，确保开发过程规范可靠。
 
-详见：[SKILLS](./docs/SKILLS.md)
+### 开发流程
+
+- **Solo Developer Flow** — 单人开发流程，MiniMax 执行，ChatGPT 审查
+- **Module Development Gate** — 新模块开发前必须通过的准入审查
+- **Checkpoint Review** — 阶段完成后的轻量审查
+
+详见：
+
+- [MiniMax 执行规范](./docs/MINIMAX_EXECUTION.md) — Solo Developer Flow 和 Module Development Gate
+- [代码审查指南](./docs/REVIEW_GUIDE.md) — Checkpoint Review 和 Gate Checklist
+- [Skill 体系](./docs/SKILLS.md) — 质量支撑体系
 
 ## 文档导航
 
