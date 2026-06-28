@@ -12,6 +12,7 @@ from app.brain.providers import ChatProviderError, create_chat_provider
 from app.contracts.events import (
     ASSISTANT_TEXT_RECEIVED,
     STATE_CHANGED,
+    SYSTEM_ERROR,
     USER_TEXT_SUBMITTED,
     BaseEvent,
 )
@@ -73,6 +74,13 @@ def main() -> None:
         window.update_from_view_model()
 
     event_bus.subscribe(ASSISTANT_TEXT_RECEIVED, on_assistant_text_received)
+
+    # Register ViewModel subscription to system.error events
+    def on_system_error(event: BaseEvent) -> None:
+        view_model.handle_system_error(event)
+        window.update_from_view_model()
+
+    event_bus.subscribe(SYSTEM_ERROR, on_system_error)
 
     # Initialize Dialogue components
     prompt_registry = PromptRegistry()

@@ -3,6 +3,7 @@
 from app.contracts.events import (
     ASSISTANT_TEXT_RECEIVED,
     STATE_CHANGED,
+    SYSTEM_ERROR,
     BaseEvent,
 )
 from app.contracts.states import AppState
@@ -270,3 +271,131 @@ def test_handle_assistant_text_received_str_subclass_keeps_previous() -> None:
     vm.handle_assistant_text_received(event)
 
     assert vm.assistant_text == "previous"
+
+
+# System error tests
+
+
+def test_initial_error_text_is_empty() -> None:
+    """Test that initial error_text is empty."""
+    vm = DesktopViewModel()
+    assert vm.error_text == ""
+
+
+def test_handle_system_error_with_valid_string_sets_error_text() -> None:
+    """Test handle_system_error with valid string message sets error_text."""
+    vm = DesktopViewModel()
+
+    event = BaseEvent(
+        event_type=SYSTEM_ERROR,
+        request_id="req15",
+        source="test",
+        payload={"message": "对话生成失败，请检查网络或稍后重试。"},
+    )
+    vm.handle_system_error(event)
+
+    assert vm.error_text == "对话生成失败，请检查网络或稍后重试。"
+
+
+def test_handle_system_error_ignores_non_system_error_event() -> None:
+    """Test handle_system_error ignores non-system.error events."""
+    vm = DesktopViewModel()
+    vm.error_text = "existing"
+
+    event = BaseEvent(
+        event_type="other.event",
+        request_id="req16",
+        source="test",
+        payload={"message": "should not update"},
+    )
+    vm.handle_system_error(event)
+
+    assert vm.error_text == "existing"
+
+
+def test_handle_system_error_with_non_str_message_sets_fallback() -> None:
+    """Test handle_system_error with non-str message sets fallback unknown error."""
+    vm = DesktopViewModel()
+
+    event = BaseEvent(
+        event_type=SYSTEM_ERROR,
+        request_id="req17",
+        source="test",
+        payload={"message": None},
+    )
+    vm.handle_system_error(event)
+
+    assert vm.error_text == "发生未知错误。"
+
+
+def test_handle_system_error_with_str_subclass_rejected() -> None:
+    """Test handle_system_error with str subclass does not accept as exact str."""
+
+    class MessageSubclass(str):
+        pass
+
+    vm = DesktopViewModel()
+
+    event = BaseEvent(
+        event_type=SYSTEM_ERROR,
+        request_id="req18",
+        source="test",
+        payload={"message": MessageSubclass("leaked secret")},
+    )
+    vm.handle_system_error(event)
+
+    # Should use fallback because type(message) is not exactly str
+    assert vm.error_text == "发生未知错误。"
+
+
+def test_handle_state_changed_to_thinking_clears_error_text() -> None:
+    """Test handle_state_changed to THINKING clears previous error_text."""
+    vm = DesktopViewModel()
+    vm.error_text = "Previous error"
+
+    event = BaseEvent(
+        event_type=STATE_CHANGED,
+        request_id="req19",
+        source="test",
+        payload={
+            "previous_state": "idle",
+            "current_state": "thinking",
+        },
+    )
+    vm.handle_state_changed(event)
+
+    assert vm.error_text == ""
+
+
+def test_handle_state_changed_to_error_does_not_clear_error_text() -> None:
+    """Test handle_state_changed to ERROR does not clear error_text."""
+    vm = DesktopViewModel()
+    vm.error_text = "Some error"
+
+    event = BaseEvent(
+        event_type=STATE_CHANGED,
+        request_id="req20",
+        source="test",
+        payload={
+            "previous_state": "thinking",
+            "current_state": "error",
+        },
+    )
+    vm.handle_state_changed(event)
+
+    assert vm.error_text == "Some error"
+
+
+def test_handle_system_error_whitespace_only_message_sets_fallback() -> None:
+    """Test handle_system_error with whitespace-only message sets fallback."""
+    vm = DesktopViewModel()
+
+    event = BaseEvent(
+        event_type=SYSTEM_ERROR,
+        request_id="req21",
+        source="test",
+        payload={"message": "   "},
+    )
+    vm.handle_system_error(event)
+
+    assert vm.error_text == "发生未知错误。"

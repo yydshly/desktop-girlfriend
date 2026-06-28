@@ -102,6 +102,35 @@ class TestAsyncDialogueController:
         ]
         assert len(idle_events) >= 1
 
+    def test_provider_failure_dispatches_safe_error_message(self) -> None:
+        """Test provider failure dispatches SYSTEM_ERROR with safe message, not raw exception."""
+        event_bus = MagicMock()
+        provider = FailingFakeProvider(message="Bearer secret-key-should-not-leak")
+        registry = PromptRegistry()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+
+        controller = AsyncDialogueController(
+            event_bus=event_bus,
+            provider=provider,
+            prompt_registry=registry,
+            dispatch_event=dispatch_event,
+        )
+
+        controller._on_user_text_submitted(self._make_event("Hello"))
+
+        # Wait for worker thread to complete
+        time.sleep(0.05)
+
+        # Find the SYSTEM_ERROR event
+        error_events = [e for e in dispatch_events if e.event_type == "system.error"]
+        assert len(error_events) >= 1
+
+        error_msg = error_events[0].payload.get("message", "")
+        # Message must be the safe constant, not the raw exception
+        assert error_msg == "Provider failed to generate response"
+        # Must not leak the secret-like exception message
+        assert "secret-key" not in error_msg
+
     def test_provider_failure_dispatches_error_and_error_state(self) -> None:
         """Test provider failure dispatches SYSTEM_ERROR and ERROR state."""
         event_bus = MagicMock()

@@ -53,6 +53,13 @@ class DesktopWindow(QMainWindow):
         self._assistant_label.setStyleSheet("padding: 10px; background-color: #f0f0f0;")
         layout.addWidget(self._assistant_label)
 
+        # Error display
+        self._error_label = QLabel(self._view_model.error_text)
+        self._error_label.setWordWrap(True)
+        self._error_label.setStyleSheet("color: #b00020; padding: 8px;")
+        self._error_label.setVisible(bool(self._view_model.error_text))
+        layout.addWidget(self._error_label)
+
         # Input field
         self._input_field = QLineEdit()
         self._input_field.setPlaceholderText("输入文字后点击发送...")
@@ -75,6 +82,8 @@ class DesktopWindow(QMainWindow):
         """Update UI from view model state."""
         self._state_label.setText(self._view_model.display_text)
         self._assistant_label.setText(self._view_model.assistant_text)
+        self._error_label.setText(self._view_model.error_text)
+        self._error_label.setVisible(bool(self._view_model.error_text))
         is_thinking = self._view_model.state == AppState.THINKING
         self._send_button.setEnabled(not is_thinking)
         self._input_field.setEnabled(not is_thinking)

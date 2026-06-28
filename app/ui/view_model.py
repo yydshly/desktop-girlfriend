@@ -1,6 +1,11 @@
 """UI view model."""
 
-from app.contracts.events import ASSISTANT_TEXT_RECEIVED, STATE_CHANGED, BaseEvent
+from app.contracts.events import (
+    ASSISTANT_TEXT_RECEIVED,
+    STATE_CHANGED,
+    SYSTEM_ERROR,
+    BaseEvent,
+)
 from app.contracts.states import AppState
 
 # Mapping from AppState to display text
@@ -22,6 +27,7 @@ class DesktopViewModel:
         self.state: AppState = AppState.IDLE
         self.display_text: str = _STATE_DISPLAY_TEXT[AppState.IDLE]
         self.assistant_text: str = _DEFAULT_ASSISTANT_TEXT
+        self.error_text: str = ""
 
     def handle_state_changed(self, event: BaseEvent) -> None:
         """Handle state.changed event and update display text.
@@ -44,6 +50,9 @@ class DesktopViewModel:
 
         self.display_text = _STATE_DISPLAY_TEXT.get(self.state, "状态：未知")
 
+        if self.state == AppState.THINKING:
+            self.error_text = ""
+
     def handle_assistant_text_received(self, event: BaseEvent) -> None:
         """Handle assistant.text_received event and update assistant text.
 
@@ -56,3 +65,18 @@ class DesktopViewModel:
         text = event.payload.get("text")
         if type(text) is str:
             self.assistant_text = text
+
+    def handle_system_error(self, event: BaseEvent) -> None:
+        """Handle system.error event and update error text.
+
+        Args:
+            event: The system.error event.
+        """
+        if event.event_type != SYSTEM_ERROR:
+            return
+
+        message = event.payload.get("message")
+        if type(message) is str and message.strip():
+            self.error_text = message.strip()
+        else:
+            self.error_text = "发生未知错误。"
