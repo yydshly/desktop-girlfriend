@@ -1,5 +1,6 @@
 """Asynchronous dialogue controller for non-blocking chat provider calls."""
 
+import logging
 import threading
 import uuid
 from collections.abc import Callable
@@ -17,6 +18,8 @@ from app.contracts.events import (
 )
 from app.contracts.states import AppState
 from app.core.event_bus import EventBus
+
+logger = logging.getLogger(__name__)
 
 
 class AsyncDialogueController:
@@ -60,8 +63,12 @@ class AsyncDialogueController:
         with self._lock:
             self._is_stopped = True
             self._is_generating = False
-        self._provider.stop()
-        self._event_bus.unsubscribe(USER_TEXT_SUBMITTED, self._on_user_text_submitted)
+        try:
+            self._provider.stop()
+        except Exception:
+            logger.exception("Chat provider stop failed")
+        finally:
+            self._event_bus.unsubscribe(USER_TEXT_SUBMITTED, self._on_user_text_submitted)
 
     def _on_user_text_submitted(self, event: BaseEvent) -> None:
         """Handle user text submitted event.

@@ -101,6 +101,16 @@ class StoppableBlockingChatProvider(ChatProvider):
         self._stop_requested.set()
 
 
+class StopFailingChatProvider(ChatProvider):
+    """Fake provider whose stop() raises."""
+
+    def generate(self, request: ChatRequest) -> ChatResponse:
+        return ChatResponse(text="ok")
+
+    def stop(self) -> None:
+        raise RuntimeError("stop failed")
+
+
 def make_dispatch_collector() -> tuple[list[BaseEvent], Callable[[BaseEvent], None]]:
     """Create a list and a callback that appends to it."""
     events: list[BaseEvent] = []
@@ -359,6 +369,29 @@ class TestAsyncDialogueController:
 
         assert provider.stop_called is True
         assert provider.generate_finished.wait(timeout=0.5)
+        assert dispatch_events == []
+
+    def test_stop_ignores_provider_stop_error_and_unsubscribes(self) -> None:
+        """Test provider stop errors do not break controller shutdown."""
+        event_bus = MagicMock()
+        provider = StopFailingChatProvider()
+        registry = PromptRegistry()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+
+        controller = AsyncDialogueController(
+            event_bus=event_bus,
+            provider=provider,
+            prompt_registry=registry,
+            dispatch_event=dispatch_event,
+        )
+        controller.start()
+
+        controller.stop()
+
+        event_bus.unsubscribe.assert_called_with(
+            "user.text_submitted",
+            controller._on_user_text_submitted,
+        )
         assert dispatch_events == []
 
 

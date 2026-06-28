@@ -1,5 +1,6 @@
 """TTS controller for managing text-to-speech playback."""
 
+import logging
 import threading
 import uuid
 from collections.abc import Callable
@@ -20,6 +21,8 @@ from app.expression.tts.providers.base import TTSProvider, TTSProviderError, TTS
 if TYPE_CHECKING:
     from app.core.event_bus import EventBus
     from app.expression.tts.player import QtAudioPlayer
+
+logger = logging.getLogger(__name__)
 
 _SAFE_TTS_ERROR_MESSAGE = "语音播放失败，请稍后重试。"
 
@@ -74,7 +77,7 @@ class TTSController:
             self._is_speaking = False
         self._event_bus.unsubscribe(ASSISTANT_TEXT_RECEIVED, self._on_assistant_text_received)
         self._event_bus.unsubscribe(TTS_STOP_REQUESTED, self._on_tts_stop_requested)
-        self._provider.stop()
+        self._stop_provider()
         if self._audio_player is not None:
             self._event_bus.unsubscribe(TTS_AUDIO_READY, self._on_audio_ready)
             self._audio_player.stop()
@@ -198,7 +201,7 @@ class TTSController:
 
         if self._audio_player is not None:
             self._audio_player.stop()
-        self._provider.stop()
+        self._stop_provider()
 
         stopped_event = BaseEvent(
             event_type=TTS_STOPPED,
@@ -320,6 +323,13 @@ class TTSController:
         """Return True when this controller has been stopped."""
         with self._lock:
             return self._is_stopped
+
+    def _stop_provider(self) -> None:
+        """Request provider stop without breaking controller shutdown."""
+        try:
+            self._provider.stop()
+        except Exception:
+            logger.exception("TTS provider stop failed")
 
     def _request_state(self, target_state: AppState, reason: str) -> None:
         """Request a state change via event bus (UI thread only).

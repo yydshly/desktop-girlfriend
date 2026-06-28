@@ -890,6 +890,73 @@ class TestTTSControllerStop:
         ]
         assert len(error_events) == 0
 
+    def test_stop_requested_ignores_provider_stop_error_and_idles(self) -> None:
+        """Test provider stop errors do not break user stop handling."""
+        from app.contracts.events import TTS_STOP_REQUESTED, TTS_STOPPED
+
+        class StopFailingProvider(TTSProvider):
+            def speak(self, request: TTSRequest) -> TTSResponse:
+                time.sleep(0.5)
+                return TTSResponse(duration_seconds=0.0)
+
+            def stop(self) -> None:
+                raise RuntimeError("stop failed")
+
+        event_bus = EventBus()
+        provider = StopFailingProvider()
+        dispatch_events, dispatch_event = _make_dispatch_collector(event_bus)
+
+        controller = TTSController(event_bus, provider, dispatch_event)
+        controller.start()
+
+        event_bus.publish(_make_assistant_event("Hello"))
+        time.sleep(0.05)
+
+        stop_event = BaseEvent(
+            event_type=TTS_STOP_REQUESTED,
+            request_id="stop_provider_error",
+            source="test",
+            payload={},
+        )
+        event_bus.publish(stop_event)
+        time.sleep(0.05)
+
+        stopped_events = [
+            e for e in dispatch_events if e.event_type == TTS_STOPPED
+        ]
+        assert len(stopped_events) >= 1
+
+        idle_events = [
+            e for e in dispatch_events
+            if e.payload.get("target_state") == "idle"
+            and e.payload.get("reason") == "tts_stopped"
+        ]
+        assert len(idle_events) >= 1
+
+    def test_controller_stop_ignores_provider_stop_error(self) -> None:
+        """Test lifecycle stop is not broken by provider stop errors."""
+
+        class StopFailingProvider(TTSProvider):
+            def speak(self, request: TTSRequest) -> TTSResponse:
+                return TTSResponse(duration_seconds=0.0)
+
+            def stop(self) -> None:
+                raise RuntimeError("stop failed")
+
+        event_bus = EventBus()
+        provider = StopFailingProvider()
+        dispatch_events, dispatch_event = _make_dispatch_collector(event_bus)
+
+        controller = TTSController(event_bus, provider, dispatch_event)
+        controller.start()
+
+        controller.stop()
+
+        event_bus.publish(_make_assistant_event("After stop"))
+        time.sleep(0.05)
+
+        assert dispatch_events == []
+
     def test_stop_embedded_playback_calls_player_stop(self) -> None:
         """Test stop during embedded playback calls audio_player.stop()."""
         from app.contracts.events import TTS_STOP_REQUESTED
