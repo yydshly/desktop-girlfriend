@@ -81,6 +81,7 @@ def test_dialogue_complete_does_not_override_tts_speaking_state() -> None:
         provider=ImmediateChatProvider(),
         prompt_registry=PromptRegistry(),
         dispatch_event=dispatch_event,
+        complete_state_after_assistant_response=False,
     )
     tts = TTSController(
         event_bus=event_bus,
@@ -94,8 +95,8 @@ def test_dialogue_complete_does_not_override_tts_speaking_state() -> None:
     event_bus.subscribe(STATE_CHANGED, state_events.append)
     event_bus.subscribe(ASSISTANT_TEXT_RECEIVED, assistant_events.append)
     state_controller.start()
-    dialogue.start()
     tts.start()
+    dialogue.start()
 
     event_bus.publish(
         BaseEvent(

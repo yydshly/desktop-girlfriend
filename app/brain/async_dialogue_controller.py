@@ -32,6 +32,7 @@ class AsyncDialogueController:
         prompt_registry: PromptRegistry,
         dispatch_event: Callable[[BaseEvent], None],
         session_history: CurrentSessionHistory | None = None,
+        complete_state_after_assistant_response: bool = True,
     ) -> None:
         """Initialize AsyncDialogueController.
 
@@ -42,12 +43,17 @@ class AsyncDialogueController:
             dispatch_event: Callback to dispatch events back to UI thread safely.
             session_history: Optional in-memory session history for context.
                              If None, a default CurrentSessionHistory is created.
+            complete_state_after_assistant_response: When True (default), dispatches
+                IDLE state after successful assistant response. Set to False when
+                TTSController接管 state lifecycle so DialogueController does not
+                override SPEAKING with IDLE.
         """
         self._event_bus = event_bus
         self._provider = provider
         self._prompt_registry = prompt_registry
         self._dispatch_event = dispatch_event
         self._session_history = session_history if session_history is not None else CurrentSessionHistory()
+        self._complete_state_after_assistant_response = complete_state_after_assistant_response
         self._is_generating = False
         self._is_stopped = False
         self._lock = threading.Lock()
@@ -141,9 +147,8 @@ class AsyncDialogueController:
             self._session_history.append_user_text(text)
             self._session_history.append_assistant_text(response_text)
 
-            # Mark dialogue generation complete before publishing assistant text.
-            # TTS subscribers may turn assistant text into SPEAKING state.
-            self._dispatch_state_request(AppState.IDLE, "dialogue_complete")
+            # Publish assistant text first so TTS subscribers can transition to SPEAKING
+            # before DialogueController sends IDLE (when it does at all).
             self._dispatch_event(
                 BaseEvent(
                     event_type=ASSISTANT_TEXT_RECEIVED,
@@ -152,6 +157,9 @@ class AsyncDialogueController:
                     payload={"text": response_text},
                 )
             )
+
+            if self._complete_state_after_assistant_response:
+                self._dispatch_state_request(AppState.IDLE, "dialogue_complete")
 
         except ChatProviderError:
             if self._should_discard_worker_result():

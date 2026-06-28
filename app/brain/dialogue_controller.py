@@ -24,6 +24,7 @@ class DialogueController:
         event_bus: EventBus,
         provider: ChatProvider,
         prompt_registry: PromptRegistry,
+        complete_state_after_assistant_response: bool = True,
     ) -> None:
         """Initialize DialogueController.
 
@@ -31,10 +32,14 @@ class DialogueController:
             event_bus: Event bus for publishing and subscribing.
             provider: Chat provider for generating responses.
             prompt_registry: Prompt registry for building messages.
+            complete_state_after_assistant_response: When True (default), requests
+                IDLE state after successful assistant response. Set to False when
+                TTSController will own the state lifecycle.
         """
         self._event_bus = event_bus
         self._provider = provider
         self._prompt_registry = prompt_registry
+        self._complete_state_after_assistant_response = complete_state_after_assistant_response
 
     def start(self) -> None:
         """Start listening for user text events."""
@@ -78,11 +83,8 @@ class DialogueController:
                 self._request_state(AppState.ERROR, "dialogue_error")
                 return
 
-            # Mark dialogue generation complete before publishing assistant text.
-            # TTS subscribers may turn assistant text into SPEAKING state.
-            self._request_state(AppState.IDLE, "dialogue_complete")
-
-            # Publish assistant response
+            # Publish assistant response first so TTS subscribers can transition to SPEAKING
+            # before DialogueController sends IDLE (when it does at all).
             assistant_event = BaseEvent(
                 event_type=ASSISTANT_TEXT_RECEIVED,
                 request_id=request_id,
@@ -90,6 +92,9 @@ class DialogueController:
                 payload={"text": response_text},
             )
             self._event_bus.publish(assistant_event)
+
+            if self._complete_state_after_assistant_response:
+                self._request_state(AppState.IDLE, "dialogue_complete")
 
         except ChatProviderError:
             self._publish_error(request_id, "Provider failed to generate response")

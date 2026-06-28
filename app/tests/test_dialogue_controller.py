@@ -73,18 +73,42 @@ class TestDialogueControllerSuccess:
         assert published_events[0].payload["target_state"] == "thinking"
         assert published_events[0].payload["reason"] == "dialogue_request"
 
-        # Event 2: IDLE state request
-        assert published_events[1].event_type == STATE_CHANGE_REQUESTED
-        assert published_events[1].payload["target_state"] == "idle"
-        assert published_events[1].payload["reason"] == "dialogue_complete"
+        # Event 2: ASSISTANT_TEXT_RECEIVED
+        assert published_events[1].event_type == ASSISTANT_TEXT_RECEIVED
+        assert published_events[1].payload["text"] == "Hello!"
 
-        # Event 3: ASSISTANT_TEXT_RECEIVED
-        assert published_events[2].event_type == ASSISTANT_TEXT_RECEIVED
-        assert published_events[2].payload["text"] == "Hello!"
+        # Event 3: IDLE state request
+        assert published_events[2].event_type == STATE_CHANGE_REQUESTED
+        assert published_events[2].payload["target_state"] == "idle"
+        assert published_events[2].payload["reason"] == "dialogue_complete"
 
         # No SYSTEM_ERROR
         for evt in published_events:
             assert evt.event_type != SYSTEM_ERROR
+
+    def test_handoff_mode_does_not_publish_idle(self) -> None:
+        """Test complete_state_after_assistant_response=False skips IDLE state request."""
+        event_bus = MagicMock()
+        provider = FakeChatProviderForTest(reply_text="Hello!")
+        registry = PromptRegistry()
+        controller = DialogueController(
+            event_bus,
+            provider,
+            registry,
+            complete_state_after_assistant_response=False,
+        )
+
+        controller._on_user_text_submitted(self._make_event("Hi there"))
+
+        published_events = [call[0][0] for call in event_bus.publish.call_args_list]
+        # THINKING + ASSISTANT_TEXT_RECEIVED, no IDLE
+        assert len(published_events) == 2
+
+        assert published_events[0].event_type == STATE_CHANGE_REQUESTED
+        assert published_events[0].payload["target_state"] == "thinking"
+
+        assert published_events[1].event_type == ASSISTANT_TEXT_RECEIVED
+        assert published_events[1].payload["text"] == "Hello!"
 
 
 class TestDialogueControllerEmptyInput:

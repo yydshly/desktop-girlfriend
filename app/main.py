@@ -177,6 +177,7 @@ def main() -> None:
         prompt_registry=prompt_registry,
         dispatch_event=event_bridge.event_ready.emit,
         session_history=session_history,
+        complete_state_after_assistant_response=False,
     )
 
     # Initialize TTS components
@@ -201,9 +202,12 @@ def main() -> None:
     )
 
     # Start components
+    # TTSController (consumer of ASSISTANT_TEXT_RECEIVED) starts before
+    # DialogueController (producer) so it is ready to transition to SPEAKING
+    # before DialogueController would send IDLE.
     state_controller.start()
-    dialogue_controller.start()
     tts_controller.start()
+    dialogue_controller.start()
     _wire_shutdown(app, tts_controller, dialogue_controller, state_controller)
 
     window.show()

@@ -132,8 +132,8 @@ class TestAsyncDialogueController:
             payload={"text": text},
         )
 
-    def test_success_path_publishes_thinking_then_idle_and_response(self) -> None:
-        """Test success path publishes THINKING, IDLE, then ASSISTANT_TEXT_RECEIVED."""
+    def test_success_path_publishes_assistant_then_idle(self) -> None:
+        """Test success path publishes ASSISTANT_TEXT_RECEIVED first, then IDLE."""
         event_bus = MagicMock()
         provider = ImmediateFakeProvider(reply_text="Test reply")
         registry = PromptRegistry()
@@ -159,20 +159,47 @@ class TestAsyncDialogueController:
         ]
         assert len(thinking_calls) >= 1
 
-        # Check worker dispatched IDLE and ASSISTANT_TEXT_RECEIVED
+        # Check worker dispatched ASSISTANT_TEXT_RECEIVED and IDLE
         assert len(dispatch_events) >= 2
         event_types = [e.event_type for e in dispatch_events]
         assert "assistant.text_received" in event_types
         assert "state.change_requested" in event_types
 
-        # Verify IDLE state request
+        # Verify ASSISTANT_TEXT_RECEIVED comes before IDLE
+        assistant_idx = event_types.index("assistant.text_received")
         idle_events = [
             e for e in dispatch_events if e.payload.get("target_state") == "idle"
         ]
         assert len(idle_events) >= 1
-        assert dispatch_events.index(idle_events[0]) < event_types.index(
-            "assistant.text_received"
+        assert assistant_idx < dispatch_events.index(idle_events[0])
+
+    def test_handoff_mode_does_not_dispatch_idle(self) -> None:
+        """Test complete_state_after_assistant_response=False skips IDLE dispatch."""
+        event_bus = MagicMock()
+        provider = ImmediateFakeProvider(reply_text="Test reply")
+        registry = PromptRegistry()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+
+        controller = AsyncDialogueController(
+            event_bus=event_bus,
+            provider=provider,
+            prompt_registry=registry,
+            dispatch_event=dispatch_event,
+            complete_state_after_assistant_response=False,
         )
+
+        controller._on_user_text_submitted(self._make_event("Hello"))
+        time.sleep(0.05)
+
+        # Should have ASSISTANT_TEXT_RECEIVED
+        event_types = [e.event_type for e in dispatch_events]
+        assert "assistant.text_received" in event_types
+
+        # Should NOT have IDLE state request
+        idle_events = [
+            e for e in dispatch_events if e.payload.get("target_state") == "idle"
+        ]
+        assert len(idle_events) == 0
 
     def test_provider_failure_dispatches_safe_error_message(self) -> None:
         """Test provider failure dispatches SYSTEM_ERROR with safe message, not raw exception."""
