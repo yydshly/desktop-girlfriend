@@ -282,3 +282,131 @@ class TestDesktopWindowStopSpeaking:
         window._stop_speaking_button.click()
 
 
+class TestDesktopWindowVoiceInput:
+    """Tests for DesktopWindow voice input button."""
+
+    @pytest.fixture(autouse=True)
+    def _check_qt(self) -> None:
+        """Skip all tests in this class if Qt display is not available."""
+        if not _qt_available():
+            pytest.skip("No Qt display available")
+
+    def test_voice_input_button_exists(self) -> None:
+        """Test DesktopWindow has a voice input button."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=MagicMock(),
+            on_conversation_cleared=MagicMock(),
+        )
+        assert hasattr(window, "_voice_input_button")
+
+    def test_voice_input_button_enabled_when_idle(self) -> None:
+        """Test voice input button is enabled when IDLE."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=MagicMock(),
+            on_conversation_cleared=MagicMock(),
+        )
+        window.update_from_view_model()
+        assert window._voice_input_button.isEnabled()
+
+    def test_voice_input_button_disabled_when_listening(self) -> None:
+        """Test voice input button is disabled when LISTENING."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=MagicMock(),
+            on_conversation_cleared=MagicMock(),
+        )
+        vm.state = AppState.LISTENING
+        window.update_from_view_model()
+        assert not window._voice_input_button.isEnabled()
+
+    def test_voice_input_button_disabled_when_thinking(self) -> None:
+        """Test voice input button is disabled when THINKING."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=MagicMock(),
+            on_conversation_cleared=MagicMock(),
+        )
+        vm.state = AppState.THINKING
+        window.update_from_view_model()
+        assert not window._voice_input_button.isEnabled()
+
+    def test_voice_input_button_disabled_when_speaking(self) -> None:
+        """Test voice input button is disabled when SPEAKING."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=MagicMock(),
+            on_conversation_cleared=MagicMock(),
+        )
+        vm.state = AppState.SPEAKING
+        window.update_from_view_model()
+        assert not window._voice_input_button.isEnabled()
+
+    def test_voice_input_button_clicked_invokes_callback(self) -> None:
+        """Test clicking voice input button invokes on_voice_input_requested."""
+        vm = DesktopViewModel()
+        on_voice = MagicMock()
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=MagicMock(),
+            on_conversation_cleared=MagicMock(),
+            on_voice_input_requested=on_voice,
+        )
+        window._voice_input_button.click()
+        on_voice.assert_called_once()
+
+    def test_voice_input_callback_none_does_not_crash(self) -> None:
+        """Test voice input button with no callback does not raise on click."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=MagicMock(),
+            on_conversation_cleared=MagicMock(),
+            on_voice_input_requested=None,
+        )
+        # Should not raise
+        window._voice_input_button.click()
+
+    def test_listening_state_disables_input_send_new_conversation(self) -> None:
+        """Test LISTENING disables input field, send, and new conversation."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=MagicMock(),
+            on_conversation_cleared=MagicMock(),
+        )
+        vm.state = AppState.LISTENING
+        window.update_from_view_model()
+        assert not window._input_field.isEnabled()
+        assert not window._send_button.isEnabled()
+        assert not window._new_conversation_button.isEnabled()
+
+
+class TestDesktopWindowStopSpeakingDisabledInListening:
+    """Tests that stop button remains disabled during LISTENING."""
+
+    @pytest.fixture(autouse=True)
+    def _check_qt(self) -> None:
+        if not _qt_available():
+            pytest.skip("No Qt display available")
+
+    def test_stop_button_disabled_when_listening(self) -> None:
+        """Test stop button is disabled when LISTENING."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=MagicMock(),
+            on_conversation_cleared=MagicMock(),
+            on_tts_stop_requested=MagicMock(),
+        )
+        vm.state = AppState.LISTENING
+        window.update_from_view_model()
+        assert not window._stop_speaking_button.isEnabled()
+
+

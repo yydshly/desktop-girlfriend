@@ -18,6 +18,7 @@ from app.contracts.events import (
     SYSTEM_ERROR,
     TTS_STOP_REQUESTED,
     USER_TEXT_SUBMITTED,
+    VOICE_INPUT_REQUESTED,
     BaseEvent,
 )
 from app.contracts.payloads import UserTextSubmittedPayload
@@ -28,6 +29,8 @@ from app.core.state_controller import StateController
 from app.core.state_machine import StateMachine
 from app.expression.tts.controller import TTSController
 from app.expression.tts.providers import TTSProviderError, create_tts_provider
+from app.input.asr.controller import VoiceInputController
+from app.input.asr.providers import ASRProviderError, create_asr_provider
 from app.ui.qt_event_bridge import QtEventBridge
 from app.ui.view_model import DesktopViewModel
 from app.ui.window import DesktopWindow
@@ -108,11 +111,23 @@ def main() -> None:
             )
         )
 
+    # Callback to request voice input
+    def request_voice_input() -> None:
+        event_bus.publish(
+            BaseEvent(
+                event_type=VOICE_INPUT_REQUESTED,
+                request_id=str(uuid.uuid4()),
+                source="desktop_window",
+                payload={},
+            )
+        )
+
     window = DesktopWindow(
         view_model,
         on_user_text_submitted=submit_user_text,
         on_conversation_cleared=clear_conversation,
         on_tts_stop_requested=request_tts_stop,
+        on_voice_input_requested=request_voice_input,
     )
 
     # Initialize StateController and wire EventBus + StateMachine
@@ -201,6 +216,21 @@ def main() -> None:
         audio_player=audio_player,
     )
 
+    # Initialize ASR components
+    try:
+        asr_provider = create_asr_provider(config)
+    except ASRProviderError:
+        logger.exception("Failed to create configured ASR provider; falling back to FakeASRProvider")
+        from app.input.asr.providers.fake import FakeASRProvider
+
+        asr_provider = FakeASRProvider()
+
+    voice_input_controller = VoiceInputController(
+        event_bus=event_bus,
+        provider=asr_provider,
+        dispatch_event=event_bridge.event_ready.emit,
+    )
+
     # Start components
     # TTSController (consumer of ASSISTANT_TEXT_RECEIVED) starts before
     # DialogueController (producer) so it is ready to transition to SPEAKING
@@ -208,7 +238,14 @@ def main() -> None:
     state_controller.start()
     tts_controller.start()
     dialogue_controller.start()
-    _wire_shutdown(app, tts_controller, dialogue_controller, state_controller)
+    voice_input_controller.start()
+    _wire_shutdown(
+        app,
+        voice_input_controller,
+        tts_controller,
+        dialogue_controller,
+        state_controller,
+    )
 
     window.show()
 

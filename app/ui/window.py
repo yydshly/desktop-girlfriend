@@ -62,12 +62,14 @@ class DesktopWindow(QMainWindow):
         on_user_text_submitted: Callable[[str], None],
         on_conversation_cleared: Callable[[], None],
         on_tts_stop_requested: Callable[[], None] | None = None,
+        on_voice_input_requested: Callable[[], None] | None = None,
     ) -> None:
         super().__init__()
         self._view_model = view_model
         self._on_user_text_submitted = on_user_text_submitted
         self._on_conversation_cleared = on_conversation_cleared
         self._on_tts_stop_requested = on_tts_stop_requested
+        self._on_voice_input_requested = on_voice_input_requested
 
         config = get_config()
         self.setWindowTitle(config.app_name)
@@ -139,6 +141,10 @@ class DesktopWindow(QMainWindow):
         self._new_conversation_button.clicked.connect(self._on_new_conversation_clicked)
         button_layout.addWidget(self._new_conversation_button)
 
+        self._voice_input_button = QPushButton("语音输入")
+        self._voice_input_button.clicked.connect(self._on_voice_input_clicked)
+        button_layout.addWidget(self._voice_input_button)
+
         self._stop_speaking_button = QPushButton("停止说话")
         self._stop_speaking_button.clicked.connect(self._on_tts_stop_clicked)
         self._stop_speaking_button.setEnabled(False)
@@ -167,6 +173,11 @@ class DesktopWindow(QMainWindow):
         if self._on_tts_stop_requested:
             self._on_tts_stop_requested()
 
+    def _on_voice_input_clicked(self) -> None:
+        """Handle voice input button click."""
+        if self._on_voice_input_requested:
+            self._on_voice_input_requested()
+
     def update_from_view_model(self) -> None:
         """Update UI from view model state."""
         self._name_label.setText(self._view_model.companion_name)
@@ -179,10 +190,12 @@ class DesktopWindow(QMainWindow):
         self._chat_history.moveCursor(QTextCursor.MoveOperation.End)
         self._error_label.setText(self._view_model.error_text)
         self._error_label.setVisible(bool(self._view_model.error_text))
+        is_listening = self._view_model.state == AppState.LISTENING
         is_thinking = self._view_model.state == AppState.THINKING
         is_speaking = self._view_model.state == AppState.SPEAKING
-        busy = is_thinking or is_speaking
+        busy = is_listening or is_thinking or is_speaking
         self._send_button.setEnabled(not busy)
         self._input_field.setEnabled(not busy)
         self._new_conversation_button.setEnabled(not busy)
+        self._voice_input_button.setEnabled(not busy)
         self._stop_speaking_button.setEnabled(is_speaking)

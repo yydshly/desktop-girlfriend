@@ -80,6 +80,15 @@ class AppConfig:
             "MINIMAX_TTS_OUTPUT_DIR", ".tmp/tts"
         )
 
+        # ASR provider configuration (V6-A: fake only)
+        self.asr_provider_mode: str = _env_or_default("ASR_PROVIDER_MODE", "fake")
+        self.fake_asr_transcript: str = _env_or_default(
+            "FAKE_ASR_TRANSCRIPT", "这是一次语音输入测试。"
+        )
+        self.fake_asr_delay_seconds: float = _env_float_or_default(
+            "FAKE_ASR_DELAY_SECONDS", "0.1"
+        )
+
 
 _config: AppConfig | None = None
 

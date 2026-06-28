@@ -45,3 +45,15 @@ def test_wire_shutdown_stops_components_on_app_quit() -> None:
 
     assert first.stop_called is True
     assert second.stop_called is True
+
+
+def test_wire_shutdown_stops_many_components() -> None:
+    """Test shutdown wiring stops many components including VoiceInputController."""
+    app = FakeApp()
+    components = [FakeComponent() for _ in range(4)]
+
+    _wire_shutdown(app, *components)
+    app.aboutToQuit.emit()
+
+    for comp in components:
+        assert comp.stop_called is True

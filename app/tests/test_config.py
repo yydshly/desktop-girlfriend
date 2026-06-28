@@ -176,3 +176,64 @@ def test_invalid_minimax_tts_timeout_has_clear_error(
 
     with pytest.raises(ValueError, match="MINIMAX_TTS_TIMEOUT_SECONDS must be a number"):
         AppConfig()
+
+
+# ASR config tests
+
+
+def test_default_asr_provider_mode_is_fake(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test default ASR provider mode is fake."""
+    clear_config_env(monkeypatch)
+    config = AppConfig()
+    assert config.asr_provider_mode == "fake"
+
+
+def test_default_fake_asr_transcript(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test default fake ASR transcript is set."""
+    clear_config_env(monkeypatch)
+    config = AppConfig()
+    assert config.fake_asr_transcript == "这是一次语音输入测试。"
+
+
+def test_default_fake_asr_delay_seconds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test default fake ASR delay is 0.1."""
+    clear_config_env(monkeypatch)
+    config = AppConfig()
+    assert config.fake_asr_delay_seconds == 0.1
+
+
+def test_env_vars_override_fake_asr_transcript(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test FAKE_ASR_TRANSCRIPT env var is used."""
+    reset_config()
+    monkeypatch.setenv("FAKE_ASR_TRANSCRIPT", "自定义语音识别文本")
+    config = AppConfig()
+    assert config.fake_asr_transcript == "自定义语音识别文本"
+
+
+def test_env_vars_override_fake_asr_delay(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test FAKE_ASR_DELAY_SECONDS env var is used."""
+    reset_config()
+    monkeypatch.setenv("FAKE_ASR_DELAY_SECONDS", "0.5")
+    config = AppConfig()
+    assert config.fake_asr_delay_seconds == 0.5
+
+
+def test_invalid_fake_asr_delay_raises_value_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test invalid FAKE_ASR_DELAY_SECONDS raises ValueError."""
+    reset_config()
+    monkeypatch.setenv("FAKE_ASR_DELAY_SECONDS", "not-a-number")
+
+    with pytest.raises(ValueError, match="FAKE_ASR_DELAY_SECONDS must be a number"):
+        AppConfig()
