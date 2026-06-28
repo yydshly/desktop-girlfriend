@@ -1,6 +1,10 @@
 """Tests for DesktopViewModel."""
 
-from app.contracts.events import STATE_CHANGED, BaseEvent
+from app.contracts.events import (
+    ASSISTANT_TEXT_RECEIVED,
+    STATE_CHANGED,
+    BaseEvent,
+)
 from app.contracts.states import AppState
 from app.ui.view_model import DesktopViewModel
 
@@ -10,6 +14,7 @@ def test_view_model_initial_state() -> None:
     vm = DesktopViewModel()
     assert vm.state == AppState.IDLE
     assert vm.display_text == "状态：待机"
+    assert vm.assistant_text == ""
 
 
 def test_handle_state_changed_to_listening() -> None:
@@ -179,3 +184,69 @@ def test_handle_state_changed_unknown_string_defaults_to_error() -> None:
 
     assert vm.state == AppState.ERROR
     assert vm.display_text == "状态：错误"
+
+
+# Assistant text tests
+
+
+def test_handle_assistant_text_received_updates_assistant_text() -> None:
+    """Test handle_assistant_text_received updates assistant_text."""
+    vm = DesktopViewModel()
+
+    event = BaseEvent(
+        event_type=ASSISTANT_TEXT_RECEIVED,
+        request_id="req10",
+        source="test",
+        payload={"text": "Hello from assistant!"},
+    )
+    vm.handle_assistant_text_received(event)
+
+    assert vm.assistant_text == "Hello from assistant!"
+
+
+def test_handle_assistant_text_received_ignores_non_assistant_event() -> None:
+    """Test handle_assistant_text_received ignores non-assistant events."""
+    vm = DesktopViewModel()
+    vm.assistant_text = "existing"
+
+    event = BaseEvent(
+        event_type="other.event",
+        request_id="req11",
+        source="test",
+        payload={"text": "should not update"},
+    )
+    vm.handle_assistant_text_received(event)
+
+    assert vm.assistant_text == "existing"
+
+
+def test_handle_assistant_text_received_missing_text_keeps_previous() -> None:
+    """Test handle_assistant_text_received with missing text keeps previous."""
+    vm = DesktopViewModel()
+    vm.assistant_text = "previous"
+
+    event = BaseEvent(
+        event_type=ASSISTANT_TEXT_RECEIVED,
+        request_id="req12",
+        source="test",
+        payload={},
+    )
+    vm.handle_assistant_text_received(event)
+
+    assert vm.assistant_text == "previous"
+
+
+def test_handle_assistant_text_received_non_string_text_keeps_previous() -> None:
+    """Test handle_assistant_text_received with non-string text keeps previous."""
+    vm = DesktopViewModel()
+    vm.assistant_text = "previous"
+
+    event = BaseEvent(
+        event_type=ASSISTANT_TEXT_RECEIVED,
+        request_id="req13",
+        source="test",
+        payload={"text": None},
+    )
+    vm.handle_assistant_text_received(event)
+
+    assert vm.assistant_text == "previous"
