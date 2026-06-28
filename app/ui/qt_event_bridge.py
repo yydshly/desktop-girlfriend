@@ -21,6 +21,7 @@ class QtEventBridge(QObject):
         """
         super().__init__()
         self._publish_event = publish_event
+        self.event_ready.connect(self._on_event_ready)
 
     @Slot(object)
     def _on_event_ready(self, event: Any) -> None:
