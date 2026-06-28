@@ -46,14 +46,20 @@ class AsyncDialogueController:
         self._dispatch_event = dispatch_event
         self._session_history = session_history if session_history is not None else CurrentSessionHistory()
         self._is_generating = False
+        self._is_stopped = False
         self._lock = threading.Lock()
 
     def start(self) -> None:
         """Start listening for user text events."""
+        with self._lock:
+            self._is_stopped = False
         self._event_bus.subscribe(USER_TEXT_SUBMITTED, self._on_user_text_submitted)
 
     def stop(self) -> None:
         """Stop listening for user text events."""
+        with self._lock:
+            self._is_stopped = True
+            self._is_generating = False
         self._event_bus.unsubscribe(USER_TEXT_SUBMITTED, self._on_user_text_submitted)
 
     def _on_user_text_submitted(self, event: BaseEvent) -> None:
@@ -72,6 +78,8 @@ class AsyncDialogueController:
 
         # Guard against concurrent generation
         with self._lock:
+            if self._is_stopped:
+                return
             if self._is_generating:
                 # Silently ignore new input while generation is in progress
                 return
@@ -110,8 +118,13 @@ class AsyncDialogueController:
             response = self._provider.generate(request)
             response_text = response.text
 
+            if self._should_discard_worker_result():
+                return
+
             # Validate response before committing to history
             if type(response_text) is not str or not response_text.strip():
+                if self._should_discard_worker_result():
+                    return
                 self._dispatch_error(request_id, "Unexpected error during generation")
                 self._dispatch_state_request(AppState.ERROR, "dialogue_error")
                 return
@@ -133,16 +146,25 @@ class AsyncDialogueController:
             )
 
         except ChatProviderError:
+            if self._should_discard_worker_result():
+                return
             self._dispatch_error(request_id, "Provider failed to generate response")
             self._dispatch_state_request(AppState.ERROR, "dialogue_error")
 
         except Exception:
+            if self._should_discard_worker_result():
+                return
             self._dispatch_error(request_id, "Unexpected error during generation")
             self._dispatch_state_request(AppState.ERROR, "dialogue_error")
 
         finally:
             with self._lock:
                 self._is_generating = False
+
+    def _should_discard_worker_result(self) -> bool:
+        """Return True when this controller has been stopped."""
+        with self._lock:
+            return self._is_stopped
 
     def _request_state(self, target_state: AppState, reason: str) -> None:
         """Request a state change via event bus (UI thread only).

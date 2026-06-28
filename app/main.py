@@ -3,6 +3,7 @@
 import logging
 import sys
 import uuid
+from typing import Protocol
 
 from PySide6.QtWidgets import QApplication
 
@@ -32,6 +33,21 @@ from app.ui.view_model import DesktopViewModel
 from app.ui.window import DesktopWindow
 
 logger = logging.getLogger(__name__)
+
+
+class _Stoppable(Protocol):
+    def stop(self) -> None:
+        """Stop the component."""
+
+
+def _wire_shutdown(app: QApplication, *components: _Stoppable) -> None:
+    """Stop components when the Qt application is about to quit."""
+
+    def stop_components() -> None:
+        for component in components:
+            component.stop()
+
+    app.aboutToQuit.connect(stop_components)
 
 
 def main() -> None:
@@ -182,6 +198,7 @@ def main() -> None:
     state_controller.start()
     dialogue_controller.start()
     tts_controller.start()
+    _wire_shutdown(app, tts_controller, dialogue_controller, state_controller)
 
     window.show()
 

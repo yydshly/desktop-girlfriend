@@ -1,5 +1,6 @@
 """Tests for AsyncDialogueController."""
 
+import threading
 import time
 from collections.abc import Callable
 from unittest.mock import MagicMock
@@ -63,6 +64,20 @@ class EmptyResponseFakeProvider(ChatProvider):
 
     def generate(self, request: ChatRequest) -> ChatResponse:
         return ChatResponse(text=self._reply_text)
+
+
+class BlockingChatProvider(ChatProvider):
+    """Fake provider that blocks until explicitly released."""
+
+    def __init__(self, reply_text: str = "Late reply") -> None:
+        self.reply_text = reply_text
+        self.generate_started = threading.Event()
+        self.release = threading.Event()
+
+    def generate(self, request: ChatRequest) -> ChatResponse:
+        self.generate_started.set()
+        self.release.wait()
+        return ChatResponse(text=self.reply_text)
 
 
 def make_dispatch_collector() -> tuple[list[BaseEvent], Callable[[BaseEvent], None]]:
@@ -276,6 +291,30 @@ class TestAsyncDialogueController:
             if call[0][0].payload.get("target_state") == "thinking"
         ]
         assert len(thinking_calls) == 2
+
+    def test_stop_discards_late_provider_response(self) -> None:
+        """Test stop() prevents a late worker response from dispatching UI events."""
+        event_bus = MagicMock()
+        provider = BlockingChatProvider(reply_text="Too late")
+        registry = PromptRegistry()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+
+        controller = AsyncDialogueController(
+            event_bus=event_bus,
+            provider=provider,
+            prompt_registry=registry,
+            dispatch_event=dispatch_event,
+        )
+        controller.start()
+
+        controller._on_user_text_submitted(self._make_event("Hello"))
+        assert provider.generate_started.wait(timeout=1.0)
+
+        controller.stop()
+        provider.release.set()
+        time.sleep(0.05)
+
+        assert dispatch_events == []
 
 
 class TestAsyncDialogueControllerSessionHistory:

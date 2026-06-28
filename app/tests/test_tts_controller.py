@@ -1491,3 +1491,50 @@ class TestTTSControllerStop:
             e for e in dispatch_events if e.event_type == "system.error"
         ]
         assert len(error_events) == 0
+
+    def test_controller_stop_discards_late_synthesize_response(self) -> None:
+        """Test controller.stop() prevents late synthesize result from dispatching audio_ready."""
+        import threading
+
+        from app.contracts.events import TTS_AUDIO_READY
+
+        class BlockingSynthesizeProvider(TTSProvider):
+            supports_audio_path_playback = True
+
+            def __init__(self) -> None:
+                self.synthesize_started = threading.Event()
+                self.release = threading.Event()
+
+            def synthesize(self, request: TTSRequest) -> TTSResponse:
+                self.synthesize_started.set()
+                self.release.wait()
+                return TTSResponse(duration_seconds=0.0, audio_path="/tmp/test.mp3")
+
+            def speak(self, request: TTSRequest) -> TTSResponse:
+                return self.synthesize(request)
+
+        event_bus = EventBus()
+        provider = BlockingSynthesizeProvider()
+        mock_player = MockAudioPlayer()
+        dispatch_events, dispatch_event = _make_dispatch_collector(event_bus)
+
+        controller = TTSController(
+            event_bus,
+            provider,
+            dispatch_event,
+            audio_player=mock_player,  # type: ignore[arg-type]
+        )
+        controller.start()
+
+        event_bus.publish(_make_assistant_event("Hello"))
+        assert provider.synthesize_started.wait(timeout=1.0)
+
+        controller.stop()
+        provider.release.set()
+        time.sleep(0.05)
+
+        audio_ready_events = [
+            e for e in dispatch_events if e.event_type == TTS_AUDIO_READY
+        ]
+        assert audio_ready_events == []
+        assert mock_player.play_calls == []
