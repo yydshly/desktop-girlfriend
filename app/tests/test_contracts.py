@@ -3,13 +3,18 @@
 from datetime import datetime
 
 from app.contracts.events import (
+    ASSISTANT_TEXT_RECEIVED,
     STATE_CHANGE_REQUESTED,
     STATE_CHANGED,
     SYSTEM_ERROR,
     USER_TEXT_SUBMITTED,
     BaseEvent,
 )
-from app.contracts.payloads import StateChangedPayload
+from app.contracts.payloads import (
+    AssistantTextReceivedPayload,
+    StateChangedPayload,
+    UserTextSubmittedPayload,
+)
 from app.contracts.states import AppState
 
 
@@ -53,6 +58,22 @@ def test_event_type_constants() -> None:
     assert STATE_CHANGE_REQUESTED == "state.change_requested"
     assert STATE_CHANGED == "state.changed"
     assert SYSTEM_ERROR == "system.error"
+
+
+def test_assistant_text_received_event_constant() -> None:
+    assert ASSISTANT_TEXT_RECEIVED == "assistant.text_received"
+
+
+def test_user_text_submitted_payload_to_event_payload() -> None:
+    payload = UserTextSubmittedPayload(text="hello")
+
+    assert payload.to_event_payload() == {"text": "hello"}
+
+
+def test_assistant_text_received_payload_to_event_payload() -> None:
+    payload = AssistantTextReceivedPayload(text="hi there")
+
+    assert payload.to_event_payload() == {"text": "hi there"}
 
 
 def test_state_changed_payload_to_event_payload() -> None:

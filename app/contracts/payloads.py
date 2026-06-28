@@ -10,6 +10,28 @@ Payload = dict[str, Any]
 
 
 @dataclass
+class UserTextSubmittedPayload:
+    """Payload for user text submission events."""
+
+    text: str
+
+    def to_event_payload(self) -> Payload:
+        """Convert the payload to an event-safe dictionary."""
+        return {"text": self.text}
+
+
+@dataclass
+class AssistantTextReceivedPayload:
+    """Payload for assistant text response events."""
+
+    text: str
+
+    def to_event_payload(self) -> Payload:
+        """Convert the payload to an event-safe dictionary."""
+        return {"text": self.text}
+
+
+@dataclass
 class StateChangeRequestedPayload:
     """Payload for state change request events."""
 
