@@ -17,8 +17,13 @@ Environment variables required:
 import os
 import sys
 
-# Add project root to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+from dotenv import load_dotenv
+
+SCRIPT_DIR = os.path.dirname(__file__)
+PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
+sys.path.insert(0, PROJECT_ROOT)
+
+load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 
 
 def main() -> None:
