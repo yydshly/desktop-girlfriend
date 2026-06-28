@@ -7,6 +7,7 @@ import uuid
 from PySide6.QtWidgets import QApplication
 
 from app.brain.async_dialogue_controller import AsyncDialogueController
+from app.brain.prompts.history import CurrentSessionHistory
 from app.brain.prompts.registry import PromptRegistry
 from app.brain.providers import ChatProviderError, create_chat_provider
 from app.contracts.events import (
@@ -108,11 +109,15 @@ def main() -> None:
     # Create Qt event bridge for thread-safe event dispatch
     event_bridge = QtEventBridge(event_bus.publish)
 
+    # Initialize session history for short-term dialogue context
+    session_history = CurrentSessionHistory(max_turns=6)
+
     dialogue_controller = AsyncDialogueController(
         event_bus=event_bus,
         provider=provider,
         prompt_registry=prompt_registry,
         dispatch_event=event_bridge.event_ready.emit,
+        session_history=session_history,
     )
 
     # Initialize TTS components

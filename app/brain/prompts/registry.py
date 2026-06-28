@@ -1,6 +1,10 @@
 """Prompt registry for dialogue prompts."""
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.brain.prompts.history import DialogueTurn
 
 DEFAULT_SYSTEM_PROMPT = """你是"小云"，一个运行在用户桌面上的 AI 伙伴。
 
@@ -47,9 +51,28 @@ class PromptRegistry:
     def __init__(self, default_system_prompt: str = DEFAULT_SYSTEM_PROMPT) -> None:
         self.default_system_prompt = default_system_prompt
 
-    def build_chat_messages(self, user_text: str) -> list[PromptMessage]:
-        """Build provider-neutral chat messages for a user utterance."""
-        return [
+    def build_chat_messages(
+        self,
+        user_text: str,
+        history_turns: list["DialogueTurn"] | None = None,
+    ) -> list[PromptMessage]:
+        """Build provider-neutral chat messages for a user utterance.
+
+        Args:
+            user_text: The current user input text.
+            history_turns: Optional list of recent dialogue turns from the
+                           current session to include as context.
+        """
+        messages: list[PromptMessage] = [
             PromptMessage(role="system", content=self.default_system_prompt),
-            PromptMessage(role="user", content=user_text.strip()),
         ]
+
+        if history_turns:
+            for turn in history_turns:
+                if turn.role in ("user", "assistant") and turn.text.strip():
+                    messages.append(
+                        PromptMessage(role=turn.role, content=turn.text.strip())
+                    )
+
+        messages.append(PromptMessage(role="user", content=user_text.strip()))
+        return messages

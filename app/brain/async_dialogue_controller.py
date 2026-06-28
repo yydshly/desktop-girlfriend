@@ -5,6 +5,7 @@ import uuid
 from collections.abc import Callable
 from typing import cast
 
+from app.brain.prompts.history import CurrentSessionHistory
 from app.brain.prompts.registry import PromptMessage, PromptRegistry
 from app.brain.providers.base import ChatProvider, ChatProviderError, ChatRequest, PromptMessageLike
 from app.contracts.events import (
@@ -27,6 +28,7 @@ class AsyncDialogueController:
         provider: ChatProvider,
         prompt_registry: PromptRegistry,
         dispatch_event: Callable[[BaseEvent], None],
+        session_history: CurrentSessionHistory | None = None,
     ) -> None:
         """Initialize AsyncDialogueController.
 
@@ -35,11 +37,14 @@ class AsyncDialogueController:
             provider: Chat provider for generating responses.
             prompt_registry: Prompt registry for building messages.
             dispatch_event: Callback to dispatch events back to UI thread safely.
+            session_history: Optional in-memory session history for context.
+                             If None, a default CurrentSessionHistory is created.
         """
         self._event_bus = event_bus
         self._provider = provider
         self._prompt_registry = prompt_registry
         self._dispatch_event = dispatch_event
+        self._session_history = session_history if session_history is not None else CurrentSessionHistory()
         self._is_generating = False
         self._lock = threading.Lock()
 
@@ -93,12 +98,20 @@ class AsyncDialogueController:
             text: User input text.
         """
         try:
-            messages = self._prompt_registry.build_chat_messages(text)
+            history_turns = self._session_history.recent_turns()
+            messages = self._prompt_registry.build_chat_messages(
+                text,
+                history_turns=history_turns,
+            )
             prompt_messages = [
                 PromptMessage(role=m.role, content=m.content) for m in messages
             ]
             request = ChatRequest(messages=cast(list[PromptMessageLike], prompt_messages))
             response = self._provider.generate(request)
+
+            # Append to session history only on success
+            self._session_history.append_user_text(text)
+            self._session_history.append_assistant_text(response.text)
 
             # Dispatch success events back to UI thread
             self._dispatch_event(

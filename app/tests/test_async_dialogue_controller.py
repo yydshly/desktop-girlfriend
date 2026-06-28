@@ -5,6 +5,7 @@ from collections.abc import Callable
 from unittest.mock import MagicMock
 
 from app.brain.async_dialogue_controller import AsyncDialogueController
+from app.brain.prompts.history import CurrentSessionHistory
 from app.brain.prompts.registry import PromptRegistry
 from app.brain.providers.base import ChatProvider, ChatProviderError, ChatRequest, ChatResponse
 from app.contracts.events import BaseEvent
@@ -39,6 +40,18 @@ class ImmediateFakeProvider(ChatProvider):
         self._reply_text = reply_text
 
     def generate(self, request: ChatRequest) -> ChatResponse:
+        return ChatResponse(text=self._reply_text)
+
+
+class SpyProvider(ChatProvider):
+    """Fake provider that captures the last ChatRequest and returns a canned response."""
+
+    def __init__(self, reply_text: str = "Spy reply") -> None:
+        self._reply_text = reply_text
+        self.last_request: ChatRequest | None = None
+
+    def generate(self, request: ChatRequest) -> ChatResponse:
+        self.last_request = request
         return ChatResponse(text=self._reply_text)
 
 
@@ -250,3 +263,133 @@ class TestAsyncDialogueController:
             if call[0][0].payload.get("target_state") == "thinking"
         ]
         assert len(thinking_calls) == 2
+
+
+class TestAsyncDialogueControllerSessionHistory:
+    """Tests for AsyncDialogueController session history integration."""
+
+    def _make_event(self, text: str) -> BaseEvent:
+        return BaseEvent(
+            event_type="user.text_submitted",
+            request_id="req1",
+            source="test",
+            payload={"text": text},
+        )
+
+    def test_provider_receives_history_messages_before_current_user(self) -> None:
+        """Test that provider receives history messages before current user text."""
+        event_bus = MagicMock()
+        spy_provider = SpyProvider(reply_text="I heard you")
+        registry = PromptRegistry(default_system_prompt="system")
+        session_history = CurrentSessionHistory()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+
+        # Pre-populate session history
+        session_history.append_user_text("你好")
+        session_history.append_assistant_text("我在")
+
+        controller = AsyncDialogueController(
+            event_bus=event_bus,
+            provider=spy_provider,
+            prompt_registry=registry,
+            dispatch_event=dispatch_event,
+            session_history=session_history,
+        )
+
+        controller._on_user_text_submitted(self._make_event("刚才我说了什么？"))
+        time.sleep(0.05)
+
+        # Provider should have received system + history user + history assistant + current user
+        assert spy_provider.last_request is not None
+        messages = spy_provider.last_request.messages
+        roles = [m.role for m in messages]
+        assert roles == ["system", "user", "assistant", "user"]
+        assert messages[1].content == "你好"
+        assert messages[2].content == "我在"
+        assert messages[3].content == "刚才我说了什么？"
+
+    def test_successful_generation_appends_user_and_assistant_to_history(self) -> None:
+        """Test that successful generation appends both user and assistant to session_history."""
+        event_bus = MagicMock()
+        spy_provider = SpyProvider(reply_text="我的回复")
+        registry = PromptRegistry()
+        session_history = CurrentSessionHistory()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+
+        controller = AsyncDialogueController(
+            event_bus=event_bus,
+            provider=spy_provider,
+            prompt_registry=registry,
+            dispatch_event=dispatch_event,
+            session_history=session_history,
+        )
+
+        controller._on_user_text_submitted(self._make_event("我的问题"))
+        time.sleep(0.05)
+
+        turns = session_history.recent_turns()
+        assert len(turns) == 2
+        assert turns[0].role == "user"
+        assert turns[0].text == "我的问题"
+        assert turns[1].role == "assistant"
+        assert turns[1].text == "我的回复"
+
+    def test_failed_provider_does_not_append_to_history(self) -> None:
+        """Test that failed provider does not append user or assistant to session_history."""
+        event_bus = MagicMock()
+        provider = FailingFakeProvider()
+        registry = PromptRegistry()
+        session_history = CurrentSessionHistory()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+
+        controller = AsyncDialogueController(
+            event_bus=event_bus,
+            provider=provider,
+            prompt_registry=registry,
+            dispatch_event=dispatch_event,
+            session_history=session_history,
+        )
+
+        controller._on_user_text_submitted(self._make_event("我的问题"))
+        time.sleep(0.05)
+
+        # History should still be empty after failed generation
+        assert session_history.recent_turns() == []
+
+    def test_history_isolation_between_controllers(self) -> None:
+        """Test that two controllers have isolated session histories."""
+        event_bus = MagicMock()
+        registry = PromptRegistry()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+
+        history1 = CurrentSessionHistory()
+        history2 = CurrentSessionHistory()
+
+        controller1 = AsyncDialogueController(
+            event_bus=event_bus,
+            provider=SpyProvider(reply_text="Reply1"),
+            prompt_registry=registry,
+            dispatch_event=dispatch_event,
+            session_history=history1,
+        )
+
+        controller2 = AsyncDialogueController(
+            event_bus=event_bus,
+            provider=SpyProvider(reply_text="Reply2"),
+            prompt_registry=registry,
+            dispatch_event=dispatch_event,
+            session_history=history2,
+        )
+
+        controller1._on_user_text_submitted(self._make_event("User1"))
+        time.sleep(0.05)
+
+        controller2._on_user_text_submitted(self._make_event("User2"))
+        time.sleep(0.05)
+
+        # Each history should only have its own turns
+        assert len(history1.recent_turns()) == 2
+        assert len(history2.recent_turns()) == 2
+        assert history1.recent_turns()[0].text == "User1"
+        assert history2.recent_turns()[0].text == "User2"
+
