@@ -71,3 +71,9 @@ def test_speak_str_subclass_raises_tts_provider_error() -> None:
         assert False, "Expected TTSProviderError"
     except TTSProviderError as e:
         assert str(e) == "Empty TTS text"
+
+
+def test_fake_tts_provider_does_not_support_audio_path_playback() -> None:
+    """Test FakeTTSProvider.supports_audio_path_playback is False."""
+    provider = FakeTTSProvider()
+    assert provider.supports_audio_path_playback is False

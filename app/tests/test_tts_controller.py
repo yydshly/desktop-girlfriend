@@ -292,6 +292,8 @@ class TestTTSController:
 class SynthesizeOnlyProvider(TTSProvider):
     """Provider that implements synthesize() returning audio_path but not speak()."""
 
+    supports_audio_path_playback = True
+
     def __init__(self, audio_path: str | None = "/tmp/test.mp3", should_fail: bool = False) -> None:
         self._audio_path = audio_path
         self._should_fail = should_fail
@@ -584,3 +586,173 @@ class TestTTSControllerWithAudioPlayer:
             e for e in dispatch_events if e.event_type == TTS_AUDIO_READY
         ]
         assert len(audio_ready_events) >= 2
+
+
+class TestTTSControllerWithAudioPlayerAndFakeProvider:
+    """Tests for FakeTTSProvider + audio_player: must use legacy speak() path."""
+
+    def test_fake_provider_with_audio_player_uses_speak_legacy_path(self) -> None:
+        """Test FakeTTSProvider + audio_player dispatches SPEAKING → IDLE via speak()."""
+        from app.expression.tts.providers.fake import FakeTTSProvider
+
+        event_bus = EventBus()
+        provider = FakeTTSProvider(delay_seconds=0.01)
+        mock_player = MockAudioPlayer()
+        bus_events: list[BaseEvent] = []
+        event_bus.subscribe(STATE_CHANGE_REQUESTED, bus_events.append)
+        dispatch_events, dispatch_event = _make_dispatch_collector(event_bus)
+
+        controller = TTSController(
+            event_bus,
+            provider,
+            dispatch_event,
+            audio_player=mock_player,  # type: ignore[arg-type]
+        )
+        controller.start()
+
+        event_bus.publish(_make_assistant_event("Hello"))
+        time.sleep(0.05)
+
+        # Should dispatch IDLE, not ERROR
+        idle_events = [
+            e for e in dispatch_events if e.payload.get("target_state") == "idle"
+        ]
+        assert len(idle_events) >= 1
+
+        error_events = [
+            e for e in dispatch_events if e.event_type == "system.error"
+        ]
+        assert len(error_events) == 0
+
+        # audio_player.play should NOT have been called
+        assert len(mock_player.play_calls) == 0
+
+    def test_fake_provider_with_audio_player_does_not_require_audio_path(self) -> None:
+        """Test FakeTTSProvider + audio_player does not raise on missing audio_path."""
+        from app.expression.tts.providers.fake import FakeTTSProvider
+
+        event_bus = EventBus()
+        provider = FakeTTSProvider(delay_seconds=0.01)
+        mock_player = MockAudioPlayer()
+        dispatch_events, dispatch_event = _make_dispatch_collector(event_bus)
+
+        controller = TTSController(
+            event_bus,
+            provider,
+            dispatch_event,
+            audio_player=mock_player,  # type: ignore[arg-type]
+        )
+        controller.start()
+
+        event_bus.publish(_make_assistant_event("Hello"))
+        time.sleep(0.05)
+
+        # No system error should have been dispatched
+        error_events = [
+            e for e in dispatch_events if e.event_type == "system.error"
+        ]
+        assert len(error_events) == 0
+
+
+class TestEmbeddedPlaybackStateGuard:
+    """Tests for _is_speaking release timing in embedded playback path."""
+
+    def test_is_speaking_not_released_until_playback_finished(self) -> None:
+        """Test _is_speaking stays True while playback is in progress."""
+        event_bus = EventBus()
+        provider = SynthesizeOnlyProvider(audio_path="/tmp/test.mp3")
+        mock_player = MockAudioPlayer()
+        dispatch_events, dispatch_event = _make_dispatch_collector(event_bus)
+
+        controller = TTSController(
+            event_bus,
+            provider,
+            dispatch_event,
+            audio_player=mock_player,  # type: ignore[arg-type]
+        )
+        controller.start()
+
+        event_bus.publish(_make_assistant_event("Hello"))
+        time.sleep(0.05)
+
+        # audio_ready dispatched, playback in progress — _is_speaking still True
+        audio_ready_events = [
+            e for e in dispatch_events if e.event_type == "tts.audio_ready"
+        ]
+        assert len(audio_ready_events) >= 1
+
+        # Second event while playback in progress should be ignored
+        event_bus.publish(_make_assistant_event("Second"))
+        time.sleep(0.05)
+
+        # Only one audio_ready should have been dispatched (second ignored)
+        audio_ready_after = [
+            e for e in dispatch_events if e.event_type == "tts.audio_ready"
+        ]
+        assert len(audio_ready_after) == 1
+
+    def test_on_error_releases_is_speaking(self) -> None:
+        """Test on_error callback releases _is_speaking so new events are processed."""
+        event_bus = EventBus()
+        provider = SynthesizeOnlyProvider(audio_path="/tmp/test.mp3")
+        mock_player = MockAudioPlayer()
+        dispatch_events, dispatch_event = _make_dispatch_collector(event_bus)
+
+        controller = TTSController(
+            event_bus,
+            provider,
+            dispatch_event,
+            audio_player=mock_player,  # type: ignore[arg-type]
+        )
+        controller.start()
+
+        event_bus.publish(_make_assistant_event("Hello"))
+        time.sleep(0.05)
+
+        # Simulate playback error
+        mock_player.simulate_error("Audio playback failed")
+        time.sleep(0.02)
+
+        # After error, new events should be processed
+        event_bus.publish(_make_assistant_event("After error"))
+        time.sleep(0.05)
+
+        # Should have 2 audio_ready events (original + new after error release)
+        audio_ready_events = [
+            e for e in dispatch_events if e.event_type == "tts.audio_ready"
+        ]
+        assert len(audio_ready_events) >= 2
+
+    def test_invalid_audio_path_releases_is_speaking(self) -> None:
+        """Test invalid/missing audio_path releases _is_speaking."""
+        event_bus = EventBus()
+        provider = SynthesizeOnlyProvider(audio_path=None)  # invalid
+        mock_player = MockAudioPlayer()
+        dispatch_events, dispatch_event = _make_dispatch_collector(event_bus)
+
+        controller = TTSController(
+            event_bus,
+            provider,
+            dispatch_event,
+            audio_player=mock_player,  # type: ignore[arg-type]
+        )
+        controller.start()
+
+        event_bus.publish(_make_assistant_event("Hello"))
+        time.sleep(0.05)
+
+        # Should have error state dispatched
+        error_events = [
+            e for e in dispatch_events if e.event_type == "system.error"
+        ]
+        assert len(error_events) >= 1
+
+        # New event should now be processed (not permanently blocked)
+        event_bus.publish(_make_assistant_event("After invalid"))
+        time.sleep(0.05)
+
+        # The second event should have been processed (ERROR state dispatched)
+        error_events_after = [
+            e for e in dispatch_events if e.event_type == "system.error"
+        ]
+        assert len(error_events_after) >= 2

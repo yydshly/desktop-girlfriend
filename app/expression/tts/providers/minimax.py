@@ -33,6 +33,8 @@ class MiniMaxTTSConfig:
 class MiniMaxTTSProvider(TTSProvider):
     """MiniMax TTS provider using the MiniMax T2A v2 API."""
 
+    supports_audio_path_playback = True
+
     def __init__(
         self,
         api_key: str,

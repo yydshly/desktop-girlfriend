@@ -101,11 +101,18 @@ class TTSController:
             request_id: Request ID for tracking.
             text: Text to speak.
         """
+        # Determine which path to use: embedded playback requires both audio_player
+        # and a provider that supports audio_path playback (not FakeTTSProvider)
+        use_embedded = (
+            self._audio_player is not None
+            and self._provider.supports_audio_path_playback
+        )
+
         try:
             request = TTSRequest(text=text)
 
-            if self._audio_player is not None:
-                # Use synthesize() path: generate audio file, play via QtAudioPlayer
+            if use_embedded:
+                # Embedded path: synthesize audio file, play via QtAudioPlayer
                 response = self._provider.synthesize(request)
                 if response.audio_path is None:
                     raise TTSProviderError("TTS returned empty audio path")
@@ -117,19 +124,20 @@ class TTSController:
                     payload={"audio_path": response.audio_path},
                 )
                 self._dispatch_event(audio_event)
+                # Do NOT release _is_speaking here — wait for playback to finish
             else:
                 # Legacy path: provider.speak() handles playback (e.g. os.startfile)
                 self._provider.speak(request)
                 self._dispatch_state_request(AppState.IDLE, "tts_complete")
+                self._release_speaking()
         except TTSProviderError:
             self._dispatch_error(request_id, _SAFE_TTS_ERROR_MESSAGE)
             self._dispatch_state_request(AppState.ERROR, "tts_error")
+            self._release_speaking()
         except Exception:
             self._dispatch_error(request_id, _SAFE_TTS_ERROR_MESSAGE)
             self._dispatch_state_request(AppState.ERROR, "tts_error")
-        finally:
-            with self._lock:
-                self._is_speaking = False
+            self._release_speaking()
 
     def _on_audio_ready(self, event: BaseEvent) -> None:
         """Handle tts.audio_ready event on the UI thread.
@@ -142,20 +150,34 @@ class TTSController:
 
         audio_path = event.payload.get("audio_path")
         if not audio_path:
+            self._release_speaking()
             self._dispatch_error(event.request_id, _SAFE_TTS_ERROR_MESSAGE)
             self._dispatch_state_request(AppState.ERROR, "tts_error")
             return
 
-        # Callbacks dispatch events back to the event bus
+        # Callbacks release _is_speaking and dispatch events
         def on_finished() -> None:
+            self._release_speaking()
             self._dispatch_state_request(AppState.IDLE, "tts_complete")
 
         def on_error(message: str) -> None:
+            self._release_speaking()
             self._dispatch_error(event.request_id, _SAFE_TTS_ERROR_MESSAGE)
             self._dispatch_state_request(AppState.ERROR, "tts_error")
 
         assert self._audio_player is not None
-        self._audio_player.play(audio_path, on_finished, on_error)
+        try:
+            self._audio_player.play(audio_path, on_finished, on_error)
+        except Exception:
+            # audio_player.play() should not raise, but guard against it
+            self._release_speaking()
+            self._dispatch_error(event.request_id, _SAFE_TTS_ERROR_MESSAGE)
+            self._dispatch_state_request(AppState.ERROR, "tts_error")
+
+    def _release_speaking(self) -> None:
+        """Release the _is_speaking flag (thread-safe)."""
+        with self._lock:
+            self._is_speaking = False
 
     def _request_state(self, target_state: AppState, reason: str) -> None:
         """Request a state change via event bus (UI thread only).

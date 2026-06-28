@@ -26,6 +26,8 @@ class TTSResponse:
 class TTSProvider(ABC):
     """Abstract base class for TTS providers."""
 
+    supports_audio_path_playback: bool = False
+
     def synthesize(self, request: TTSRequest) -> TTSResponse:
         """Synthesize text to an audio file and return the response.
 

@@ -316,3 +316,9 @@ class TestMiniMaxTTSProviderSynthesize:
             except TTSProviderError as e:
                 assert "super-secret-key" not in str(e)
                 assert "Bearer super-secret-key" not in str(e)
+
+
+def test_minimax_tts_provider_supports_audio_path_playback() -> None:
+    """Test MiniMaxTTSProvider.supports_audio_path_playback is True."""
+    provider = _make_provider()
+    assert provider.supports_audio_path_playback is True
