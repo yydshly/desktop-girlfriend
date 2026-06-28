@@ -54,12 +54,24 @@ Gate 通过后才允许进入功能实现。详见：
 
 **目标**：建立核心基础设施
 
-- [ ] EventBus 实现
-- [ ] StateMachine 实现
-- [ ] 角色状态定义
-- [ ] 基础事件发布/订阅
+- [x] EventBus 实现
+- [x] StateMachine 实现
+- [x] 角色状态定义
+- [x] 基础事件发布/订阅
+- [x] StateController（唯一状态调度入口）
+- [x] ViewModel（状态映射层）
+- [x] DesktopWindow 状态展示
 
-**技术模块**：Core 层
+**技术模块**：Core 层 + UI 层
+
+#### V2 Freeze
+
+> **V2 已冻结** — 事件驱动核心系统已稳定，不再新增功能。
+
+- V2 已作为事件驱动核心系统冻结
+- 包含 EventBus / StateMachine / StateController / ViewModel / UI
+- V2 不再新增功能，仅允许 bugfix
+- V3 才引入 MiniMax / TTS / ASR / Agent / Memory
 
 ---
 
