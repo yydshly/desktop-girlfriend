@@ -841,6 +841,55 @@ class TestTTSControllerStop:
         ]
         assert len(error_events) == 0
 
+    def test_stop_legacy_speaking_calls_provider_stop(self) -> None:
+        """Test stop during legacy speak() forwards stop to provider."""
+        import threading
+
+        from app.contracts.events import TTS_STOP_REQUESTED
+
+        class StoppableLegacyProvider(TTSProvider):
+            def __init__(self) -> None:
+                self.speak_started = threading.Event()
+                self.finished = threading.Event()
+                self._stop_event = threading.Event()
+                self.stop_called = False
+
+            def speak(self, request: TTSRequest) -> TTSResponse:
+                self.speak_started.set()
+                self._stop_event.wait()
+                self.finished.set()
+                return TTSResponse(duration_seconds=0.0)
+
+            def stop(self) -> None:
+                self.stop_called = True
+                self._stop_event.set()
+
+        event_bus = EventBus()
+        provider = StoppableLegacyProvider()
+        dispatch_events, dispatch_event = _make_dispatch_collector(event_bus)
+
+        controller = TTSController(event_bus, provider, dispatch_event)
+        controller.start()
+
+        event_bus.publish(_make_assistant_event("Hello"))
+        assert provider.speak_started.wait(timeout=1.0)
+
+        stop_event = BaseEvent(
+            event_type=TTS_STOP_REQUESTED,
+            request_id="stop_provider",
+            source="test",
+            payload={},
+        )
+        event_bus.publish(stop_event)
+
+        assert provider.stop_called is True
+        assert provider.finished.wait(timeout=0.5)
+
+        error_events = [
+            e for e in dispatch_events if e.event_type == "system.error"
+        ]
+        assert len(error_events) == 0
+
     def test_stop_embedded_playback_calls_player_stop(self) -> None:
         """Test stop during embedded playback calls audio_player.stop()."""
         from app.contracts.events import TTS_STOP_REQUESTED

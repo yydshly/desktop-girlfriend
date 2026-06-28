@@ -74,6 +74,7 @@ class TTSController:
             self._is_speaking = False
         self._event_bus.unsubscribe(ASSISTANT_TEXT_RECEIVED, self._on_assistant_text_received)
         self._event_bus.unsubscribe(TTS_STOP_REQUESTED, self._on_tts_stop_requested)
+        self._provider.stop()
         if self._audio_player is not None:
             self._event_bus.unsubscribe(TTS_AUDIO_READY, self._on_audio_ready)
             self._audio_player.stop()
@@ -197,6 +198,7 @@ class TTSController:
 
         if self._audio_player is not None:
             self._audio_player.stop()
+        self._provider.stop()
 
         stopped_event = BaseEvent(
             event_type=TTS_STOPPED,

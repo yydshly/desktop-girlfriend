@@ -44,6 +44,9 @@ class TTSProvider(ABC):
         """
         return self.speak(request)
 
+    def stop(self) -> None:
+        """Request the provider to stop any active synthesis or playback."""
+
     @abstractmethod
     def speak(self, request: TTSRequest) -> TTSResponse:
         """Speak the given text and return when playback is complete.

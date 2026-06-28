@@ -1,5 +1,6 @@
 """Tests for FakeTTSProvider."""
 
+import threading
 import time
 
 from app.expression.tts.providers.base import TTSProviderError, TTSRequest
@@ -77,3 +78,23 @@ def test_fake_tts_provider_does_not_support_audio_path_playback() -> None:
     """Test FakeTTSProvider.supports_audio_path_playback is False."""
     provider = FakeTTSProvider()
     assert provider.supports_audio_path_playback is False
+
+
+def test_stop_interrupts_fake_tts_delay() -> None:
+    """Test stop() interrupts fake playback delay promptly."""
+    provider = FakeTTSProvider(delay_seconds=2.0)
+    finished = threading.Event()
+
+    def speak() -> None:
+        provider.speak(TTSRequest(text="Interrupt me"))
+        finished.set()
+
+    thread = threading.Thread(target=speak, daemon=True)
+    thread.start()
+    time.sleep(0.05)
+
+    provider.stop()
+
+    assert finished.wait(timeout=0.5)
+    thread.join(timeout=0.5)
+    assert not thread.is_alive()

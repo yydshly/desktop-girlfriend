@@ -1,6 +1,6 @@
 """Fake TTS provider for testing and development."""
 
-import time
+import threading
 
 from app.expression.tts.providers.base import (
     TTSProvider,
@@ -22,6 +22,7 @@ class FakeTTSProvider(TTSProvider):
         """
         self._delay = delay_seconds
         self._should_fail = should_fail
+        self._stop_event = threading.Event()
 
     def speak(self, request: TTSRequest) -> TTSResponse:
         """Simulate TTS playback with a delay.
@@ -42,5 +43,10 @@ class FakeTTSProvider(TTSProvider):
         if self._should_fail:
             raise TTSProviderError("Fake TTS failure")
 
-        time.sleep(self._delay)
+        self._stop_event.clear()
+        self._stop_event.wait(self._delay)
         return TTSResponse(duration_seconds=self._delay)
+
+    def stop(self) -> None:
+        """Interrupt the simulated playback delay."""
+        self._stop_event.set()
