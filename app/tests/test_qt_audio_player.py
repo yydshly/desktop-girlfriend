@@ -3,6 +3,8 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+from PySide6.QtMultimedia import QMediaPlayer
+
 
 class TestQtAudioPlayerConstruction:
     """Tests for QtAudioPlayer construction."""
@@ -194,3 +196,154 @@ class TestQtAudioPlayerStop:
 
                 player.stop()
                 assert player.is_playing is False
+
+
+class TestQtAudioPlayerCompletionDetection:
+    """Tests for playback completion detection via mediaStatusChanged."""
+
+    def test_stopped_state_does_not_trigger_on_finished(self, tmp_path: Path) -> None:
+        """Test that StoppedState from playbackStateChanged does not trigger on_finished.
+
+        StoppedState can occur for many reasons (initialization, source change, etc.)
+        and is not a reliable indicator of natural playback end.
+        """
+        audio_file = tmp_path / "test.mp3"
+        audio_file.write_bytes(b"fake mp3 data")
+
+        with patch("app.expression.tts.player.QMediaPlayer") as mock_player_cls:
+            mock_player = MagicMock()
+            mock_player_cls.return_value = mock_player
+            with patch("app.expression.tts.player.QAudioOutput"):
+                from app.expression.tts.player import QtAudioPlayer
+
+                player = QtAudioPlayer()
+                on_finished = MagicMock()
+                on_error = MagicMock()
+                player.play(str(audio_file), on_finished=on_finished, on_error=on_error)
+
+                # Simulate a StoppedState (e.g. during initialization or source change)
+                # This should NOT trigger on_finished
+                player._on_playback_state_changed(
+                    QMediaPlayer.PlaybackState.StoppedState
+                )
+
+                on_finished.assert_not_called()
+                on_error.assert_not_called()
+                assert player.is_playing is True
+
+    def test_end_of_media_after_manual_stop_is_ignored(self, tmp_path: Path) -> None:
+        """Test that EndOfMedia after stop() does not trigger on_finished."""
+        audio_file = tmp_path / "test.mp3"
+        audio_file.write_bytes(b"fake mp3 data")
+
+        with patch("app.expression.tts.player.QMediaPlayer") as mock_player_cls:
+            mock_player = MagicMock()
+            mock_player_cls.return_value = mock_player
+            with patch("app.expression.tts.player.QAudioOutput"):
+                from app.expression.tts.player import QtAudioPlayer
+
+                player = QtAudioPlayer()
+                on_finished = MagicMock()
+                on_error = MagicMock()
+                player.play(str(audio_file), on_finished=on_finished, on_error=on_error)
+                player.stop()
+
+                # EndOfMedia arrives after manual stop — should be ignored
+                player._on_media_status_changed(QMediaPlayer.MediaStatus.EndOfMedia)
+
+                on_finished.assert_not_called()
+                on_error.assert_not_called()
+
+    def test_error_after_manual_stop_is_ignored(self, tmp_path: Path) -> None:
+        """Test that error after stop() does not trigger on_error."""
+        audio_file = tmp_path / "test.mp3"
+        audio_file.write_bytes(b"fake mp3 data")
+
+        with patch("app.expression.tts.player.QMediaPlayer") as mock_player_cls:
+            mock_player = MagicMock()
+            mock_player_cls.return_value = mock_player
+            with patch("app.expression.tts.player.QAudioOutput"):
+                from app.expression.tts.player import QtAudioPlayer
+
+                player = QtAudioPlayer()
+                on_finished = MagicMock()
+                on_error = MagicMock()
+                player.play(str(audio_file), on_finished=on_finished, on_error=on_error)
+                player.stop()
+
+                # Error arrives after manual stop — should be ignored
+                player._on_error_occurred(QMediaPlayer.Error.NoError, "some error")
+
+                on_finished.assert_not_called()
+                on_error.assert_not_called()
+
+    def test_error_triggers_on_error(self, tmp_path: Path) -> None:
+        """Test that playback error triggers on_error callback."""
+        audio_file = tmp_path / "test.mp3"
+        audio_file.write_bytes(b"fake mp3 data")
+
+        with patch("app.expression.tts.player.QMediaPlayer") as mock_player_cls:
+            mock_player = MagicMock()
+            mock_player_cls.return_value = mock_player
+            with patch("app.expression.tts.player.QAudioOutput"):
+                from app.expression.tts.player import QtAudioPlayer
+
+                player = QtAudioPlayer()
+                on_finished = MagicMock()
+                on_error = MagicMock()
+                player.play(str(audio_file), on_finished=on_finished, on_error=on_error)
+
+                # Simulate playback error
+                player._on_error_occurred(QMediaPlayer.Error.ResourceError, "resource error")
+
+                on_error.assert_called_once()
+                # Error message must be safe (no internal details)
+                error_msg = on_error.call_args[0][0]
+                assert error_msg == "Audio playback failed"
+                on_finished.assert_not_called()
+                assert player.is_playing is False
+
+    def test_stop_does_not_raise(self, tmp_path: Path) -> None:
+        """Test that stop() does not raise even if player.stop() raises."""
+        audio_file = tmp_path / "test.mp3"
+        audio_file.write_bytes(b"fake mp3 data")
+
+        with patch("app.expression.tts.player.QMediaPlayer") as mock_player_cls:
+            mock_player = MagicMock()
+            mock_player.side_effect = Exception("player error")
+            mock_player_cls.return_value = mock_player
+            with patch("app.expression.tts.player.QAudioOutput"):
+                from app.expression.tts.player import QtAudioPlayer
+
+                player = QtAudioPlayer()
+                on_finished = MagicMock()
+                on_error = MagicMock()
+                player.play(str(audio_file), on_finished=on_finished, on_error=on_error)
+
+                # stop() should not raise
+                result = player.stop()
+
+                assert result is True
+                on_finished.assert_not_called()
+                on_error.assert_not_called()
+
+    def test_end_of_media_when_not_playing_is_ignored(self, tmp_path: Path) -> None:
+        """Test that EndOfMedia when not playing does not trigger on_finished."""
+        audio_file = tmp_path / "test.mp3"
+        audio_file.write_bytes(b"fake mp3 data")
+
+        with patch("app.expression.tts.player.QMediaPlayer") as mock_player_cls:
+            mock_player = MagicMock()
+            mock_player_cls.return_value = mock_player
+            with patch("app.expression.tts.player.QAudioOutput"):
+                from app.expression.tts.player import QtAudioPlayer
+
+                player = QtAudioPlayer()
+                on_finished = MagicMock()
+                on_error = MagicMock()
+
+                # EndOfMedia arrives before play — should be ignored
+                player._on_media_status_changed(QMediaPlayer.MediaStatus.EndOfMedia)
+
+                on_finished.assert_not_called()
+                on_error.assert_not_called()
