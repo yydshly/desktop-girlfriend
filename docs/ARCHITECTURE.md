@@ -152,12 +152,11 @@ External Service --> Provider Interface --> Business Logic
 
 | Skill | 职责 |
 |-------|------|
-| `desktop-girlfriend-guard` | 项目级聚合 Guard，覆盖当前阶段、架构边界、质量命令、V3 Gate 和提交卫生 |
 | `architecture-guard` | 守护分层架构边界 |
 | `prompt-registry` | 集中管理 Prompt |
 | `safety-privacy-guard` | 安全与隐私合规 |
 
-> `desktop-girlfriend-guard` 已创建为当前项目级基线 Skill；其他专项 Skill 是后续从实际使用中继续拆分的名称。在专项 Skill 创建前，相关检查以聚合 Guard、Review Guide 清单、内置/外部辅助 Skill 和人工审查为准。
+> 当前这些是计划沉淀的项目自定义 Skill 名称；在真实创建和验证前，相关检查以 Review Guide 清单、内置/外部辅助 Skill 和人工审查为准。
 
 ---
 
