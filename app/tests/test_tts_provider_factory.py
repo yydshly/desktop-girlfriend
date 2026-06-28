@@ -9,6 +9,7 @@ from app.expression.tts.providers import (
     TTSProviderError,
     create_tts_provider,
 )
+from app.tests.conftest import clear_config_env
 
 
 def _make_config(**overrides) -> AppConfig:
@@ -81,9 +82,11 @@ class TestCreateTTSProvider:
 class TestConfigTTSDefaults:
     """Tests for TTS configuration defaults."""
 
-    def test_default_tts_provider_mode_is_fake(self) -> None:
+    def test_default_tts_provider_mode_is_fake(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test that default TTS provider mode is 'fake'."""
-        reset_config()
+        clear_config_env(monkeypatch)
         config = AppConfig()
         assert config.tts_provider_mode == "fake"
 

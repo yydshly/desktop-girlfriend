@@ -1,31 +1,34 @@
 """Tests for app configuration."""
 
-import os
-
 import pytest
 
 from app.core.config import AppConfig, get_config, reset_config
+from app.tests.conftest import clear_config_env
 
 
-def test_default_chat_provider_mode_is_fake() -> None:
+def test_default_chat_provider_mode_is_fake(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Test default chat provider mode is fake."""
-    reset_config()
-    # Ensure env vars don't interfere
-    os.environ.pop("CHAT_PROVIDER_MODE", None)
+    clear_config_env(monkeypatch)
     config = AppConfig()
     assert config.chat_provider_mode == "fake"
 
 
-def test_default_minimax_base_url_exists() -> None:
+def test_default_minimax_base_url_exists(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Test default minimax base URL is set."""
-    reset_config()
+    clear_config_env(monkeypatch)
     config = AppConfig()
     assert config.minimax_base_url == "https://api.minimax.chat/v1"
 
 
-def test_default_minimax_timeout_seconds() -> None:
+def test_default_minimax_timeout_seconds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Test default minimax timeout is 30.0."""
-    reset_config()
+    clear_config_env(monkeypatch)
     config = AppConfig()
     assert config.minimax_timeout_seconds == 30.0
 
@@ -54,9 +57,11 @@ def test_env_vars_override_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
     assert config.minimax_timeout_seconds == 15.0
 
 
-def test_default_minimax_chat_path() -> None:
+def test_default_minimax_chat_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Test default minimax chat path is set."""
-    reset_config()
+    clear_config_env(monkeypatch)
     config = AppConfig()
     assert config.minimax_chat_path == "/text/chatcompletion_v2"
 
@@ -69,9 +74,11 @@ def test_env_vars_override_chat_path(monkeypatch: pytest.MonkeyPatch) -> None:
     assert config.minimax_chat_path == "/custom/chat/path"
 
 
-def test_get_config_returns_singleton() -> None:
+def test_get_config_returns_singleton(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Test get_config returns the same instance."""
-    reset_config()
+    clear_config_env(monkeypatch)
     c1 = get_config()
     c2 = get_config()
     assert c1 is c2
