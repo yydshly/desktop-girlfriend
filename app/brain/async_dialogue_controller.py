@@ -60,6 +60,7 @@ class AsyncDialogueController:
         with self._lock:
             self._is_stopped = True
             self._is_generating = False
+        self._provider.stop()
         self._event_bus.unsubscribe(USER_TEXT_SUBMITTED, self._on_user_text_submitted)
 
     def _on_user_text_submitted(self, event: BaseEvent) -> None:

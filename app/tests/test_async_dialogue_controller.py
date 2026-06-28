@@ -80,6 +80,27 @@ class BlockingChatProvider(ChatProvider):
         return ChatResponse(text=self.reply_text)
 
 
+class StoppableBlockingChatProvider(ChatProvider):
+    """Fake provider that blocks until stop() is called."""
+
+    def __init__(self, reply_text: str = "Stopped reply") -> None:
+        self.reply_text = reply_text
+        self.generate_started = threading.Event()
+        self.generate_finished = threading.Event()
+        self._stop_requested = threading.Event()
+        self.stop_called = False
+
+    def generate(self, request: ChatRequest) -> ChatResponse:
+        self.generate_started.set()
+        self._stop_requested.wait()
+        self.generate_finished.set()
+        return ChatResponse(text=self.reply_text)
+
+    def stop(self) -> None:
+        self.stop_called = True
+        self._stop_requested.set()
+
+
 def make_dispatch_collector() -> tuple[list[BaseEvent], Callable[[BaseEvent], None]]:
     """Create a list and a callback that appends to it."""
     events: list[BaseEvent] = []
@@ -314,6 +335,30 @@ class TestAsyncDialogueController:
         provider.release.set()
         time.sleep(0.05)
 
+        assert dispatch_events == []
+
+    def test_stop_forwards_cancellation_to_provider(self) -> None:
+        """Test stop() asks the provider to cancel active generation."""
+        event_bus = MagicMock()
+        provider = StoppableBlockingChatProvider(reply_text="Too late")
+        registry = PromptRegistry()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+
+        controller = AsyncDialogueController(
+            event_bus=event_bus,
+            provider=provider,
+            prompt_registry=registry,
+            dispatch_event=dispatch_event,
+        )
+        controller.start()
+
+        controller._on_user_text_submitted(self._make_event("Hello"))
+        assert provider.generate_started.wait(timeout=1.0)
+
+        controller.stop()
+
+        assert provider.stop_called is True
+        assert provider.generate_finished.wait(timeout=0.5)
         assert dispatch_events == []
 
 

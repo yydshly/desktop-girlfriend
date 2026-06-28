@@ -38,6 +38,9 @@ class ChatResponse:
 class ChatProvider(ABC):
     """Abstract base class for chat providers."""
 
+    def stop(self) -> None:
+        """Request cancellation of any active generation."""
+
     @abstractmethod
     def generate(self, request: ChatRequest) -> ChatResponse:
         """Generate a chat response.

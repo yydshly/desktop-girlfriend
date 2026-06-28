@@ -35,3 +35,8 @@ class TestFakeChatProvider:
             provider.generate(request)
 
         assert "simulated failure" in str(exc_info.value)
+
+    def test_default_stop_does_not_raise(self) -> None:
+        """Test ChatProvider.stop() is safe for providers without cancellation."""
+        provider = FakeChatProvider()
+        provider.stop()
