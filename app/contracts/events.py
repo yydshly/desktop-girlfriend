@@ -6,6 +6,7 @@ from typing import Any
 
 # Event type constants
 USER_TEXT_SUBMITTED = "user.text_submitted"
+STATE_CHANGE_REQUESTED = "state.change_requested"
 STATE_CHANGED = "state.changed"
 SYSTEM_ERROR = "system.error"
 

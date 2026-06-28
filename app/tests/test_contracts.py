@@ -3,6 +3,7 @@
 from datetime import datetime
 
 from app.contracts.events import (
+    STATE_CHANGE_REQUESTED,
     STATE_CHANGED,
     SYSTEM_ERROR,
     USER_TEXT_SUBMITTED,
@@ -48,5 +49,6 @@ def test_base_event_with_payload() -> None:
 def test_event_type_constants() -> None:
     """Test event type constants."""
     assert USER_TEXT_SUBMITTED == "user.text_submitted"
+    assert STATE_CHANGE_REQUESTED == "state.change_requested"
     assert STATE_CHANGED == "state.changed"
     assert SYSTEM_ERROR == "system.error"

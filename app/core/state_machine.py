@@ -44,3 +44,22 @@ class StateMachine:
 
         self._state = new_state
         return self._state
+
+    def transition_to(
+        self, new_state: AppState | str, request_id: str | None = None
+    ) -> tuple[AppState, AppState]:
+        """Transition to a new state and return the transition result.
+
+        Args:
+            new_state: The new state to transition to.
+            request_id: Optional request ID for tracking.
+
+        Returns:
+            A tuple of (previous_state, current_state).
+
+        Raises:
+            InvalidStateError: If the state is not a valid AppState.
+        """
+        previous_state = self._state
+        self.set_state(new_state, request_id)
+        return (previous_state, self._state)
