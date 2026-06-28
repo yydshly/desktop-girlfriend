@@ -76,3 +76,23 @@ def test_publish_no_handlers() -> None:
     bus = EventBus()
     event = BaseEvent(event_type="no.handler", request_id="req1", source="test")
     bus.publish(event)  # Should not raise
+
+
+def test_handler_exception_does_not_stop_later_handlers() -> None:
+    """Test a failing handler is isolated from later handlers."""
+    bus = EventBus()
+    received: list[BaseEvent] = []
+
+    def failing_handler(_: BaseEvent) -> None:
+        raise RuntimeError("handler failed")
+
+    def later_handler(event: BaseEvent) -> None:
+        received.append(event)
+
+    bus.subscribe("test.event", failing_handler)
+    bus.subscribe("test.event", later_handler)
+    event = BaseEvent(event_type="test.event", request_id="req1", source="test")
+
+    bus.publish(event)
+
+    assert received == [event]

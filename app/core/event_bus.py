@@ -1,9 +1,12 @@
 """Event bus implementation."""
 
+import logging
 from collections import defaultdict
 from collections.abc import Callable
 
 from app.contracts.events import BaseEvent
+
+logger = logging.getLogger(__name__)
 
 
 class EventBus:
@@ -29,12 +32,19 @@ class EventBus:
         Args:
             event: The event to publish.
 
-        Raises:
-            Exception: Any exception raised by a handler is propagated.
+        Handler exceptions are logged and isolated so later subscribers still
+        receive the event.
         """
         handlers = self._handlers.get(event.event_type, [])
         for handler in handlers:
-            handler(event)
+            try:
+                handler(event)
+            except Exception:
+                logger.exception(
+                    "Event handler failed for event_type=%s request_id=%s",
+                    event.event_type,
+                    event.request_id,
+                )
 
     def unsubscribe(
         self, event_type: str, handler: Callable[[BaseEvent], None]
