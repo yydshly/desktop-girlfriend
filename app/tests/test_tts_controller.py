@@ -318,6 +318,11 @@ class MockAudioPlayer:
         self.play_calls: list[tuple[str, Callable[[], None], Callable[[str], None]]] = []
         self._finished_callback: Callable[[], None] | None = None
         self._error_callback: Callable[[str], None] | None = None
+        self._is_playing = False
+
+    @property
+    def is_playing(self) -> bool:
+        return self._is_playing
 
     def play(
         self,
@@ -328,14 +333,26 @@ class MockAudioPlayer:
         self.play_calls.append((path, on_finished, on_error))
         self._finished_callback = on_finished
         self._error_callback = on_error
+        self._is_playing = True
+
+    def stop(self) -> bool:
+        """Stop playback. Returns True if was playing, False otherwise."""
+        if not self._is_playing:
+            return False
+        self._is_playing = False
+        self._finished_callback = None
+        self._error_callback = None
+        return True
 
     def simulate_finished(self) -> None:
         if self._finished_callback:
             self._finished_callback()
+        self._is_playing = False
 
     def simulate_error(self, message: str = "playback failed") -> None:
         if self._error_callback:
             self._error_callback(message)
+        self._is_playing = False
 
 
 class TestTTSControllerWithAudioPlayer:
@@ -756,3 +773,280 @@ class TestEmbeddedPlaybackStateGuard:
             e for e in dispatch_events if e.event_type == "system.error"
         ]
         assert len(error_events_after) >= 2
+
+
+class TestTTSControllerStop:
+    """Tests for TTS stop functionality."""
+
+    def test_stop_requested_while_not_speaking_does_not_dispatch_error(self) -> None:
+        """Test stop requested while not speaking does not dispatch ERROR."""
+        from app.contracts.events import TTS_STOP_REQUESTED
+
+        event_bus = EventBus()
+        provider = ImmediateTTSProvider(delay=0.0)
+        dispatch_events, dispatch_event = _make_dispatch_collector(event_bus)
+
+        controller = TTSController(event_bus, provider, dispatch_event)
+        controller.start()
+
+        # Publish stop without any preceding speech
+        stop_event = BaseEvent(
+            event_type=TTS_STOP_REQUESTED,
+            request_id="stop1",
+            source="test",
+            payload={},
+        )
+        event_bus.publish(stop_event)
+        time.sleep(0.02)
+
+        error_events = [
+            e for e in dispatch_events if e.event_type == "system.error"
+        ]
+        assert len(error_events) == 0
+
+    def test_stop_legacy_fake_speaking_releases_and_idles(self) -> None:
+        """Test stop during legacy fake speak() releases _is_speaking and dispatches IDLE."""
+        from app.contracts.events import TTS_STOP_REQUESTED
+
+        event_bus = EventBus()
+        provider = ImmediateTTSProvider(delay=0.5)  # long enough to be stoppable
+        dispatch_events, dispatch_event = _make_dispatch_collector(event_bus)
+
+        controller = TTSController(event_bus, provider, dispatch_event)
+        controller.start()
+
+        event_bus.publish(_make_assistant_event("Hello"))
+        time.sleep(0.05)
+
+        # Stop while speaking
+        stop_event = BaseEvent(
+            event_type=TTS_STOP_REQUESTED,
+            request_id="stop2",
+            source="test",
+            payload={},
+        )
+        event_bus.publish(stop_event)
+        time.sleep(0.05)
+
+        # Should dispatch IDLE with reason tts_stopped
+        idle_events = [
+            e for e in dispatch_events
+            if e.payload.get("target_state") == "idle"
+        ]
+        assert len(idle_events) >= 1
+
+        # Should NOT dispatch SYSTEM_ERROR
+        error_events = [
+            e for e in dispatch_events if e.event_type == "system.error"
+        ]
+        assert len(error_events) == 0
+
+    def test_stop_embedded_playback_calls_player_stop(self) -> None:
+        """Test stop during embedded playback calls audio_player.stop()."""
+        from app.contracts.events import TTS_STOP_REQUESTED
+
+        event_bus = EventBus()
+        provider = SynthesizeOnlyProvider(audio_path="/tmp/test.mp3")
+        mock_player = MockAudioPlayer()
+        dispatch_events, dispatch_event = _make_dispatch_collector(event_bus)
+
+        controller = TTSController(
+            event_bus,
+            provider,
+            dispatch_event,
+            audio_player=mock_player,  # type: ignore[arg-type]
+        )
+        controller.start()
+
+        event_bus.publish(_make_assistant_event("Hello"))
+        time.sleep(0.05)
+
+        # Stop while audio is ready (before simulate_finished)
+        stop_event = BaseEvent(
+            event_type=TTS_STOP_REQUESTED,
+            request_id="stop3",
+            source="test",
+            payload={},
+        )
+        event_bus.publish(stop_event)
+        time.sleep(0.05)
+
+        # audio_player.stop() should have been called
+        # Since MockAudioPlayer.stop() returns True when playing, we check play_calls is empty
+        # because stop clears the callbacks
+        # Verify audio_player.stop was called (it's a side effect we can check via state)
+        assert mock_player.is_playing is False
+
+    def test_stop_embedded_dispatches_idle_without_error(self) -> None:
+        """Test stop during embedded playback dispatches IDLE without ERROR."""
+        from app.contracts.events import TTS_STOP_REQUESTED
+
+        event_bus = EventBus()
+        provider = SynthesizeOnlyProvider(audio_path="/tmp/test.mp3")
+        mock_player = MockAudioPlayer()
+        dispatch_events, dispatch_event = _make_dispatch_collector(event_bus)
+
+        controller = TTSController(
+            event_bus,
+            provider,
+            dispatch_event,
+            audio_player=mock_player,  # type: ignore[arg-type]
+        )
+        controller.start()
+
+        event_bus.publish(_make_assistant_event("Hello"))
+        time.sleep(0.05)
+
+        stop_event = BaseEvent(
+            event_type=TTS_STOP_REQUESTED,
+            request_id="stop4",
+            source="test",
+            payload={},
+        )
+        event_bus.publish(stop_event)
+        time.sleep(0.05)
+
+        idle_events = [
+            e for e in dispatch_events
+            if e.payload.get("target_state") == "idle"
+        ]
+        assert len(idle_events) >= 1
+
+        error_events = [
+            e for e in dispatch_events if e.event_type == "system.error"
+        ]
+        assert len(error_events) == 0
+
+    def test_stop_during_synthesize_prevents_audio_ready(self) -> None:
+        """Test stop during synthesize prevents TTS_AUDIO_READY dispatch.
+
+        Since SynthesizeOnlyProvider is immediate, we test the guard logic:
+        when stop is called, the request_id is added to _stop_requested_request_ids,
+        so even if synthesize returns afterward, audio_ready is not dispatched.
+        """
+        import threading
+
+        from app.contracts.events import TTS_STOP_REQUESTED
+
+        # A provider that blocks until we release it
+        class BlockingSynthesizeProvider(TTSProvider):
+            supports_audio_path_playback = True
+
+            def __init__(self) -> None:
+                self._block_event = threading.Event()
+                self.synthesize_called = False
+
+            def unblock(self) -> None:
+                self._block_event.set()
+
+            def synthesize(self, request: TTSRequest) -> TTSResponse:
+                self.synthesize_called = True
+                self._block_event.wait()  # Block until test unblocks
+                return TTSResponse(duration_seconds=0.0, audio_path="/tmp/test.mp3")
+
+            def speak(self, request: TTSRequest) -> TTSResponse:
+                return self.synthesize(request)
+
+        event_bus = EventBus()
+        provider = BlockingSynthesizeProvider()
+        mock_player = MockAudioPlayer()
+        dispatch_events, dispatch_event = _make_dispatch_collector(event_bus)
+
+        controller = TTSController(
+            event_bus,
+            provider,
+            dispatch_event,
+            audio_player=mock_player,  # type: ignore[arg-type]
+        )
+        controller.start()
+
+        # Start TTS in another thread (speak_text will block on provider)
+        event_bus.publish(_make_assistant_event("Hello"))
+
+        # Wait for synthesize to be called (provider is blocking)
+        for _ in range(50):
+            if provider.synthesize_called:
+                break
+            time.sleep(0.01)
+
+        # Now stop while synthesize is blocked
+        stop_event = BaseEvent(
+            event_type=TTS_STOP_REQUESTED,
+            request_id="stop5",
+            source="test",
+            payload={},
+        )
+        event_bus.publish(stop_event)
+
+        # Release the provider's block
+        provider.unblock()
+
+        time.sleep(0.1)
+
+        # audio_player.play should NOT have been called because stop was requested
+        assert len(mock_player.play_calls) == 0
+
+        # Should have IDLE (tts_stopped), not ERROR
+        idle_events = [
+            e for e in dispatch_events
+            if e.payload.get("target_state") == "idle"
+            and e.payload.get("reason") == "tts_stopped"
+        ]
+        assert len(idle_events) >= 1
+
+    def test_after_stop_can_start_new_tts(self) -> None:
+        """Test after stop, a new assistant.text_received can start a new TTS."""
+        import threading
+
+        from app.contracts.events import TTS_STOP_REQUESTED
+
+        # A provider that blocks until released
+        class BlockingFakeProvider(TTSProvider):
+            def __init__(self) -> None:
+                self._block_event = threading.Event()
+                self.speak_calls = 0
+
+            def unblock(self) -> None:
+                self._block_event.set()
+
+            def speak(self, request: TTSRequest) -> TTSResponse:
+                self.speak_calls += 1
+                self._block_event.wait()
+                return TTSResponse(duration_seconds=0.0)
+
+        event_bus = EventBus()
+        provider = BlockingFakeProvider()
+        dispatch_events, dispatch_event = _make_dispatch_collector(event_bus)
+
+        controller = TTSController(event_bus, provider, dispatch_event)
+        controller.start()
+
+        # First TTS
+        event_bus.publish(_make_assistant_event("First"))
+
+        # Wait for first speak to be called
+        for _ in range(50):
+            if provider.speak_calls > 0:
+                break
+            time.sleep(0.01)
+
+        # Stop it
+        stop_event = BaseEvent(
+            event_type=TTS_STOP_REQUESTED,
+            request_id="stop6",
+            source="test",
+            payload={},
+        )
+        event_bus.publish(stop_event)
+        time.sleep(0.05)
+
+        # Unblock first provider - its speak will return but should not cause issues
+        provider.unblock()
+        time.sleep(0.05)
+
+        # New TTS should be allowed
+        event_bus.publish(_make_assistant_event("Second"))
+        time.sleep(0.05)
+
+        # Should have at least 2 speak calls (one per TTS)
+        assert provider.speak_calls >= 2

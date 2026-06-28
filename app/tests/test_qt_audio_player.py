@@ -78,11 +78,119 @@ class TestQtAudioPlayerPlay:
 class TestQtAudioPlayerStop:
     """Tests for QtAudioPlayer.stop()."""
 
-    def test_stop_can_be_called_safely(self) -> None:
-        """Test stop() can be called without error even if nothing is playing."""
+    def test_stop_returns_false_when_not_playing(self) -> None:
+        """Test stop() returns False when not playing."""
         with patch("app.expression.tts.player.QMediaPlayer"):
             with patch("app.expression.tts.player.QAudioOutput"):
                 from app.expression.tts.player import QtAudioPlayer
 
                 player = QtAudioPlayer()
-                player.stop()  # Must not raise
+                assert player.stop() is False
+
+    def test_stop_returns_true_when_playing(self, tmp_path: Path) -> None:
+        """Test stop() returns True when playing."""
+        audio_file = tmp_path / "test.mp3"
+        audio_file.write_bytes(b"fake mp3 data")
+
+        with patch("app.expression.tts.player.QMediaPlayer") as mock_player_cls:
+            mock_player = MagicMock()
+            mock_player_cls.return_value = mock_player
+            with patch("app.expression.tts.player.QAudioOutput"):
+                from app.expression.tts.player import QtAudioPlayer
+
+                player = QtAudioPlayer()
+                on_finished = MagicMock()
+                on_error = MagicMock()
+                player.play(str(audio_file), on_finished=on_finished, on_error=on_error)
+
+                assert player.stop() is True
+                on_finished.assert_not_called()
+                on_error.assert_not_called()
+
+    def test_stop_clears_callbacks(self, tmp_path: Path) -> None:
+        """Test stop() clears on_finished and on_error callbacks."""
+        audio_file = tmp_path / "test.mp3"
+        audio_file.write_bytes(b"fake mp3 data")
+
+        with patch("app.expression.tts.player.QMediaPlayer") as mock_player_cls:
+            mock_player = MagicMock()
+            mock_player_cls.return_value = mock_player
+            with patch("app.expression.tts.player.QAudioOutput"):
+                from app.expression.tts.player import QtAudioPlayer
+
+                player = QtAudioPlayer()
+                on_finished = MagicMock()
+                on_error = MagicMock()
+                player.play(str(audio_file), on_finished=on_finished, on_error=on_error)
+                player.stop()
+
+                # Callbacks should be cleared (calling them should have no effect)
+                # This is implicitly tested by stop() not calling them
+                assert player._on_finished is None
+                assert player._on_error is None
+
+    def test_stop_does_not_call_on_finished(self, tmp_path: Path) -> None:
+        """Test stop() does not trigger on_finished callback."""
+        audio_file = tmp_path / "test.mp3"
+        audio_file.write_bytes(b"fake mp3 data")
+
+        with patch("app.expression.tts.player.QMediaPlayer") as mock_player_cls:
+            mock_player = MagicMock()
+            mock_player_cls.return_value = mock_player
+            with patch("app.expression.tts.player.QAudioOutput"):
+                from app.expression.tts.player import QtAudioPlayer
+
+                player = QtAudioPlayer()
+                on_finished = MagicMock()
+                on_error = MagicMock()
+                player.play(str(audio_file), on_finished=on_finished, on_error=on_error)
+                player.stop()
+
+                on_finished.assert_not_called()
+                on_error.assert_not_called()
+
+    def test_stop_can_be_called_twice_safely(self, tmp_path: Path) -> None:
+        """Test stop() can be called twice without error."""
+        audio_file = tmp_path / "test.mp3"
+        audio_file.write_bytes(b"fake mp3 data")
+
+        with patch("app.expression.tts.player.QMediaPlayer") as mock_player_cls:
+            mock_player = MagicMock()
+            mock_player_cls.return_value = mock_player
+            with patch("app.expression.tts.player.QAudioOutput"):
+                from app.expression.tts.player import QtAudioPlayer
+
+                player = QtAudioPlayer()
+                on_finished = MagicMock()
+                on_error = MagicMock()
+                player.play(str(audio_file), on_finished=on_finished, on_error=on_error)
+
+                result1 = player.stop()
+                result2 = player.stop()
+
+                assert result1 is True
+                assert result2 is False
+                on_finished.assert_not_called()
+                on_error.assert_not_called()
+
+    def test_is_playing_reflects_flag(self, tmp_path: Path) -> None:
+        """Test is_playing property reflects current playing state."""
+        audio_file = tmp_path / "test.mp3"
+        audio_file.write_bytes(b"fake mp3 data")
+
+        with patch("app.expression.tts.player.QMediaPlayer") as mock_player_cls:
+            mock_player = MagicMock()
+            mock_player_cls.return_value = mock_player
+            with patch("app.expression.tts.player.QAudioOutput"):
+                from app.expression.tts.player import QtAudioPlayer
+
+                player = QtAudioPlayer()
+                assert player.is_playing is False
+
+                on_finished = MagicMock()
+                on_error = MagicMock()
+                player.play(str(audio_file), on_finished=on_finished, on_error=on_error)
+                assert player.is_playing is True
+
+                player.stop()
+                assert player.is_playing is False

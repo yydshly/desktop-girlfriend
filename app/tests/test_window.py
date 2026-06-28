@@ -175,3 +175,109 @@ class TestDesktopWindowNewConversation:
         assert window._new_conversation_button.isEnabled()
 
 
+class TestDesktopWindowStopSpeaking:
+    """Tests for DesktopWindow stop speaking button."""
+
+    @pytest.fixture(autouse=True)
+    def _check_qt(self) -> None:
+        """Skip all tests in this class if Qt display is not available."""
+        if not _qt_available():
+            pytest.skip("No Qt display available")
+
+    def _make_window_with_stop(self) -> tuple[DesktopWindow, MagicMock, MagicMock, MagicMock]:
+        """Create a DesktopWindow with stop callback."""
+        vm = DesktopViewModel()
+        on_submit = MagicMock()
+        on_clear = MagicMock()
+        on_stop = MagicMock()
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=on_submit,
+            on_conversation_cleared=on_clear,
+            on_tts_stop_requested=on_stop,
+        )
+        return window, on_submit, on_clear, on_stop
+
+    def test_window_has_stop_speaking_button(self) -> None:
+        """Test DesktopWindow has stop speaking button."""
+        window, _, _, _ = self._make_window_with_stop()
+        assert hasattr(window, "_stop_speaking_button")
+
+    def test_stop_button_disabled_when_idle(self) -> None:
+        """Test stop button is disabled when IDLE."""
+        window, _, _, _ = self._make_window_with_stop()
+        window.update_from_view_model()
+        assert not window._stop_speaking_button.isEnabled()
+
+    def test_stop_button_disabled_when_thinking(self) -> None:
+        """Test stop button is disabled when THINKING."""
+        vm = DesktopViewModel()
+        on_stop = MagicMock()
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=MagicMock(),
+            on_conversation_cleared=MagicMock(),
+            on_tts_stop_requested=on_stop,
+        )
+        vm.state = AppState.THINKING
+        window.update_from_view_model()
+        assert not window._stop_speaking_button.isEnabled()
+
+    def test_stop_button_enabled_when_speaking(self) -> None:
+        """Test stop button is enabled when SPEAKING."""
+        vm = DesktopViewModel()
+        on_stop = MagicMock()
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=MagicMock(),
+            on_conversation_cleared=MagicMock(),
+            on_tts_stop_requested=on_stop,
+        )
+        vm.state = AppState.SPEAKING
+        window.update_from_view_model()
+        assert window._stop_speaking_button.isEnabled()
+
+    def test_stop_button_clicked_invokes_callback(self) -> None:
+        """Test clicking stop button invokes on_tts_stop_requested."""
+        vm = DesktopViewModel()
+        on_stop = MagicMock()
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=MagicMock(),
+            on_conversation_cleared=MagicMock(),
+            on_tts_stop_requested=on_stop,
+        )
+        # Set SPEAKING so button is enabled
+        vm.state = AppState.SPEAKING
+        window.update_from_view_model()
+        window._stop_speaking_button.click()
+        on_stop.assert_called_once()
+
+    def test_speaking_send_and_input_disabled(self) -> None:
+        """Test send and input are disabled when SPEAKING."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=MagicMock(),
+            on_conversation_cleared=MagicMock(),
+            on_tts_stop_requested=MagicMock(),
+        )
+        vm.state = AppState.SPEAKING
+        window.update_from_view_model()
+        assert not window._send_button.isEnabled()
+        assert not window._input_field.isEnabled()
+        assert not window._new_conversation_button.isEnabled()
+
+    def test_stop_button_no_callback_when_none(self) -> None:
+        """Test stop button click with no callback does not raise."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=MagicMock(),
+            on_conversation_cleared=MagicMock(),
+            on_tts_stop_requested=None,
+        )
+        # Should not raise
+        window._stop_speaking_button.click()
+
+

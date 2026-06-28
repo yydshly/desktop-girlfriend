@@ -15,6 +15,7 @@ from app.contracts.events import (
     CONVERSATION_CLEARED,
     STATE_CHANGED,
     SYSTEM_ERROR,
+    TTS_STOP_REQUESTED,
     USER_TEXT_SUBMITTED,
     BaseEvent,
 )
@@ -74,10 +75,22 @@ def main() -> None:
             )
         )
 
+    # Callback to request TTS stop
+    def request_tts_stop() -> None:
+        event_bus.publish(
+            BaseEvent(
+                event_type=TTS_STOP_REQUESTED,
+                request_id=str(uuid.uuid4()),
+                source="desktop_window",
+                payload={},
+            )
+        )
+
     window = DesktopWindow(
         view_model,
         on_user_text_submitted=submit_user_text,
         on_conversation_cleared=clear_conversation,
+        on_tts_stop_requested=request_tts_stop,
     )
 
     # Initialize StateController and wire EventBus + StateMachine

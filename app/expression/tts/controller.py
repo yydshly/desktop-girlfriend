@@ -10,6 +10,7 @@ from app.contracts.events import (
     STATE_CHANGE_REQUESTED,
     SYSTEM_ERROR,
     TTS_AUDIO_READY,
+    TTS_STOP_REQUESTED,
     BaseEvent,
 )
 from app.contracts.states import AppState
@@ -47,17 +48,21 @@ class TTSController:
         self._dispatch_event = dispatch_event
         self._audio_player = audio_player
         self._is_speaking = False
+        self._active_request_id: str | None = None
+        self._stop_requested_request_ids: set[str] = set()
         self._lock = threading.Lock()
 
     def start(self) -> None:
         """Start listening for assistant text received events."""
         self._event_bus.subscribe(ASSISTANT_TEXT_RECEIVED, self._on_assistant_text_received)
+        self._event_bus.subscribe(TTS_STOP_REQUESTED, self._on_tts_stop_requested)
         if self._audio_player is not None:
             self._event_bus.subscribe(TTS_AUDIO_READY, self._on_audio_ready)
 
     def stop(self) -> None:
         """Stop listening for assistant text received events."""
         self._event_bus.unsubscribe(ASSISTANT_TEXT_RECEIVED, self._on_assistant_text_received)
+        self._event_bus.unsubscribe(TTS_STOP_REQUESTED, self._on_tts_stop_requested)
         if self._audio_player is not None:
             self._event_bus.unsubscribe(TTS_AUDIO_READY, self._on_audio_ready)
 
@@ -82,6 +87,7 @@ class TTSController:
             if self._is_speaking:
                 return
             self._is_speaking = True
+            self._active_request_id = event.request_id or str(uuid.uuid4())
 
         # Request SPEAKING state on UI thread immediately
         self._request_state(AppState.SPEAKING, "tts_start")
@@ -89,7 +95,7 @@ class TTSController:
         # Start worker thread
         thread = threading.Thread(
             target=self._speak_text,
-            args=(event.request_id or str(uuid.uuid4()), text),
+            args=(self._active_request_id, text),
             daemon=True,
         )
         thread.start()
@@ -114,6 +120,16 @@ class TTSController:
             if use_embedded:
                 # Embedded path: synthesize audio file, play via QtAudioPlayer
                 response = self._provider.synthesize(request)
+                # Check if stop was requested for this request
+                with self._lock:
+                    stopped = request_id in self._stop_requested_request_ids
+                    if stopped:
+                        self._stop_requested_request_ids.discard(request_id)
+                if stopped:
+                    # Stop was requested during synthesize; do not play audio
+                    self._release_speaking()
+                    return
+
                 if response.audio_path is None:
                     raise TTSProviderError("TTS returned empty audio path")
                 # Dispatch audio_ready event to UI thread to trigger playback
@@ -138,6 +154,29 @@ class TTSController:
             self._dispatch_error(request_id, _SAFE_TTS_ERROR_MESSAGE)
             self._dispatch_state_request(AppState.ERROR, "tts_error")
             self._release_speaking()
+
+    def _on_tts_stop_requested(self, event: BaseEvent) -> None:
+        """Handle tts.stop_requested event from UI.
+
+        Args:
+            event: The tts.stop_requested event.
+        """
+        if event.event_type != TTS_STOP_REQUESTED:
+            return
+
+        with self._lock:
+            if not self._is_speaking:
+                return
+            request_id = self._active_request_id
+            if request_id is not None:
+                self._stop_requested_request_ids.add(request_id)
+                self._active_request_id = None
+            self._is_speaking = False
+
+        if self._audio_player is not None:
+            self._audio_player.stop()
+
+        self._dispatch_state_request(AppState.IDLE, "tts_stopped")
 
     def _on_audio_ready(self, event: BaseEvent) -> None:
         """Handle tts.audio_ready event on the UI thread.
@@ -178,6 +217,7 @@ class TTSController:
         """Release the _is_speaking flag (thread-safe)."""
         with self._lock:
             self._is_speaking = False
+            self._active_request_id = None
 
     def _request_state(self, target_state: AppState, reason: str) -> None:
         """Request a state change via event bus (UI thread only).

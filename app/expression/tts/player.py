@@ -24,6 +24,11 @@ class QtAudioPlayer:
         self._player.playbackStateChanged.connect(self._on_playback_state_changed)
         self._player.errorOccurred.connect(self._on_error_occurred)
 
+    @property
+    def is_playing(self) -> bool:
+        """Return True if audio is currently playing."""
+        return self._is_playing
+
     def play(
         self,
         path: str,
@@ -49,12 +54,24 @@ class QtAudioPlayer:
         self._player.setSource(QUrl.fromLocalFile(str(audio_path.resolve())))
         self._player.play()
 
-    def stop(self) -> None:
-        """Stop any currently playing audio."""
+    def stop(self) -> bool:
+        """Stop any currently playing audio.
+
+        Returns:
+            True if audio was playing and has been stopped, False otherwise.
+            Does NOT trigger on_finished or on_error callbacks.
+        """
+        if not self._is_playing:
+            self._player.stop()
+            self._on_finished = None
+            self._on_error = None
+            return False
+
         self._is_playing = False
         self._player.stop()
         self._on_finished = None
         self._on_error = None
+        return True
 
     def _on_playback_state_changed(self, state: QMediaPlayer.PlaybackState) -> None:
         """Handle playback state changes.
