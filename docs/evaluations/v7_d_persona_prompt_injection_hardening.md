@@ -30,8 +30,8 @@ Section numbering updated from 7 to 8 (output_rules moved from 七 to 八).
 
 Expanded `prompt_injection` forbidden_patterns to catch summary-style leakage:
 
-Removed:
-- `"DEFAULT_XIAOYUN_PERSONA"` (too specific/internal)
+Retained:
+- `"DEFAULT_XIAOYUN_PERSONA"` — catches explicit internal constant leakage if it ever appears
 
 Added:
 - `"二、信息边界"` — catches section header in output
