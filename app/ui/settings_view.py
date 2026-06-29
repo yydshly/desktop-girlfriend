@@ -148,6 +148,9 @@ def build_settings_view(
     if config.proactive_enabled:
         proactive_lines.append("")
         proactive_lines.append("小云会在你空闲一段时间后主动出现。")
+        proactive_lines.append("冷却时间用于防止小云频繁打扰。")
+        proactive_lines.append("勿扰时间开启后，小云会在指定时间段保持安静。")
+        proactive_lines.append("你可以说「别打扰」「安静一会儿」让小云暂停。")
 
     # Section 6: Configuration example
     example_lines = (

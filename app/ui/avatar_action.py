@@ -31,7 +31,7 @@ _AVATAR_ACTION_LABEL: dict[AvatarAction, str] = {
     AvatarAction.LISTENING: "小云正在听你说",
     AvatarAction.THINKING: "小云正在想",
     AvatarAction.SPEAKING: "小云正在回应",
-    AvatarAction.PROACTIVE: "小云主动出现了一下",
+    AvatarAction.PROACTIVE: "小云来陪你一下",
     AvatarAction.ERROR: "小云遇到了一点问题",
 }
 

@@ -26,7 +26,7 @@ _COMPANTION_STATUS_TEXT: dict[AvatarAction, str] = {
     AvatarAction.LISTENING: "我正在听你说。",
     AvatarAction.THINKING: "我在想怎么回答你。",
     AvatarAction.SPEAKING: "我正在回应你。",
-    AvatarAction.PROACTIVE: "我刚刚主动出现了一下。",
+    AvatarAction.PROACTIVE: "我看到你安静了一会儿，就来陪你一下。",
     AvatarAction.ERROR: "我遇到了一点问题。",
 }
 

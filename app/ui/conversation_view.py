@@ -42,6 +42,22 @@ def render_message_prefix(role: str) -> str:
     return ""
 
 
+def render_proactive_message_prefix(role: str) -> str:
+    """Return the speaker label for a proactive message.
+
+    Args:
+        role: The message role, expected to be "assistant" for proactive.
+
+    Returns:
+        The proactive prefix label, e.g. "小云主动来陪你：".
+    """
+    if role == "assistant":
+        return "小云主动来陪你："
+    if role == "user":
+        return "你："
+    return ""
+
+
 def get_input_placeholder() -> str:
     """Return the input field placeholder text.
 
