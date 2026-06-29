@@ -104,6 +104,12 @@ def build_settings_view(
     if config.app_env != "dev":
         basic_lines.append(f"环境：{config.app_env}")
 
+    # Section 1b: Desktop behavior (Phase 3-A)
+    behavior_lines = (
+        "关闭窗口时，小云会尽量隐藏到托盘；",
+        "如需退出，请从托盘菜单选择「退出」。",
+    )
+
     # Section 2: Chat settings
     chat_api_key_status = render_api_key_status(config.minimax_api_key)
     chat_lines = [
@@ -162,6 +168,7 @@ def build_settings_view(
     return SettingsView(
         sections=(
             SettingsSection(title="基础信息", lines=tuple(basic_lines)),
+            SettingsSection(title="桌面行为", lines=behavior_lines),
             SettingsSection(title="对话设置", lines=tuple(chat_lines)),
             SettingsSection(title="语音设置", lines=tuple(voice_lines)),
             SettingsSection(title="记忆设置", lines=tuple(memory_lines)),

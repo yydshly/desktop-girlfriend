@@ -85,6 +85,7 @@ class DesktopWindow(QMainWindow):
         on_memory_delete_requested: Callable[[str], None] | None = None,
         on_product_status_requested: Callable[[], None] | None = None,
         on_hide_requested: Callable[[], None] | None = None,
+        on_close_requested: Callable[[], bool] | None = None,
         memory_management_enabled: bool = False,
     ) -> None:
         super().__init__()
@@ -99,6 +100,7 @@ class DesktopWindow(QMainWindow):
         self._on_memory_delete_requested = on_memory_delete_requested
         self._on_product_status_requested = on_product_status_requested
         self._on_hide_requested = on_hide_requested
+        self._on_close_requested = on_close_requested
         self._memory_management_enabled = memory_management_enabled
 
         config = get_config()
@@ -523,3 +525,20 @@ class DesktopWindow(QMainWindow):
         self._new_conversation_button.setEnabled(not busy)
         self._voice_input_button.setEnabled(not busy)
         self._stop_speaking_button.setEnabled(is_speaking)
+
+    def closeEvent(self, event) -> None:  # noqa: N802 (Qt override)
+        """Handle window close event (Phase 3-A).
+
+        Delegates to on_close_requested callback if set.
+        - Returns True from callback: accept close, application exits.
+        - Returns False from callback: ignore close, window already hidden to tray.
+        """
+        if self._on_close_requested is None:
+            event.accept()
+            return
+
+        should_accept = self._on_close_requested()
+        if should_accept:
+            event.accept()
+        else:
+            event.ignore()

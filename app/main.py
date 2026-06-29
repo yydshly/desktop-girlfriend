@@ -60,6 +60,7 @@ from app.expression.tts.providers import TTSProviderError, create_tts_provider
 from app.input.asr.controller import VoiceInputController
 from app.input.asr.providers import ASRProviderError, create_asr_provider
 from app.input.audio import MicrophoneRecorder, MicrophoneRecorderLike
+from app.ui.close_behavior import decide_close_behavior
 from app.ui.product_status_builder import build_product_status_view
 from app.ui.qt_event_bridge import QtEventBridge
 from app.ui.settings_view import build_settings_view, render_settings_view_text
@@ -250,8 +251,24 @@ def main() -> None:
             view_model.set_hidden_to_tray(True)
 
     def _on_quit_from_tray() -> None:
-        """Handle quit from tray menu."""
+        """Handle quit from tray menu (Phase 3-A)."""
+        view_model.request_force_quit()
         app.quit()
+
+    def _handle_close_requested() -> bool:
+        """Handle window close event (Phase 3-A).
+
+        Returns True to accept close and exit, False to hide to tray instead.
+        """
+        decision = decide_close_behavior(
+            tray_available=view_model.tray_available,
+            force_quit=view_model.force_quit_requested,
+        )
+        if decision.should_hide_to_tray and tray_controller is not None:
+            tray_controller.hide_to_tray()
+            view_model.set_hidden_to_tray(True)
+            return False
+        return decision.should_accept_close
 
     window = DesktopWindow(
         view_model,
@@ -265,6 +282,7 @@ def main() -> None:
         on_memory_delete_requested=request_memory_delete,
         on_product_status_requested=_on_product_status_requested,
         on_hide_requested=_on_hide_requested,
+        on_close_requested=_handle_close_requested,
         memory_management_enabled=config.memory_management_enabled,
     )
 
