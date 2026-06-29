@@ -606,6 +606,8 @@ def main() -> None:
     _wire_shutdown(app, *shutdown_components)  # type: ignore[arg-type]
 
     window.show()
+    # Phase 3-B: Ensure onboarding card and all UI labels are populated on first frame
+    window.update_from_view_model()
 
     logger.info("Application started successfully")
     app.exec()
