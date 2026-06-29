@@ -6,6 +6,7 @@ import uuid
 from dataclasses import replace
 from typing import Protocol
 
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication
 
 from app.brain.async_dialogue_controller import AsyncDialogueController
@@ -28,6 +29,7 @@ from app.contracts.events import (
     MEMORY_REJECT_REQUESTED,
     MEMORY_REJECTED,
     MEMORY_SUGGESTIONS_DETECTED,
+    PROACTIVE_NUDGE_READY,
     STATE_CHANGED,
     SYSTEM_ERROR,
     TTS_STOP_REQUESTED,
@@ -38,12 +40,14 @@ from app.contracts.events import (
     BaseEvent,
 )
 from app.contracts.payloads import (
+    AssistantTextReceivedPayload,
     MemoryConfirmRequestedPayload,
     MemoryDeleteRequestedPayload,
     MemoryListRequestedPayload,
     MemoryRejectRequestedPayload,
     UserTextSubmittedPayload,
 )
+from app.contracts.states import AppState
 from app.core.config import get_config
 from app.core.event_bus import EventBus
 from app.core.logging import setup_logging
@@ -292,6 +296,32 @@ def main() -> None:
 
     event_bus.subscribe(MEMORY_DELETED, on_memory_deleted)
 
+    # Register ViewModel subscription to proactive nudge events (V9-A / V9-B)
+    def on_proactive_nudge_ready(event: BaseEvent) -> None:
+        text = event.payload.get("text")
+        if not isinstance(text, str) or not text.strip():
+            return
+
+        if config.proactive_tts_enabled:
+            # V9-B: route to TTS pipeline via ASSISTANT_TEXT_RECEIVED
+            # This triggers both TTSController (plays audio) and
+            # ViewModel's on_assistant_text_received (appends to chat_messages)
+            event_bus.publish(
+                BaseEvent(
+                    event_type=ASSISTANT_TEXT_RECEIVED,
+                    request_id=event.request_id,
+                    source="proactive_controller",
+                    payload=AssistantTextReceivedPayload(text=text).to_event_payload(),
+                )
+            )
+            return
+
+        # V9-A: text-only mode, direct to ViewModel
+        view_model.handle_proactive_nudge_ready(event)
+        window.update_from_view_model()
+
+    event_bus.subscribe(PROACTIVE_NUDGE_READY, on_proactive_nudge_ready)
+
     # Initialize Dialogue components
     persona_profile = replace(
         DEFAULT_XIAOYUN_PERSONA,
@@ -345,6 +375,33 @@ def main() -> None:
         memory_runtime = create_local_memory_runtime(memory_repository)
         memory_suggestion_controller = MemorySuggestionController(
             runtime=memory_runtime,
+            subscribe=event_bus.subscribe,
+            unsubscribe=event_bus.unsubscribe,
+            dispatch_event=event_bridge.event_ready.emit,
+        )
+
+    # V9-A: Proactive nudge controller
+    proactive_controller = None
+    proactive_timer = None
+
+    if config.proactive_enabled:
+        from app.brain.proactive.controller import ProactiveController
+        from app.brain.proactive.service import ProactiveNudgeConfig, ProactiveNudgeService
+
+        proactive_service = ProactiveNudgeService(
+            ProactiveNudgeConfig(
+                enabled=config.proactive_enabled,
+                idle_seconds=config.proactive_idle_seconds,
+                cooldown_seconds=config.proactive_cooldown_seconds,
+                max_per_session=config.proactive_max_per_session,
+                quiet_hours_enabled=config.proactive_quiet_hours_enabled,
+                quiet_start_hour=config.proactive_quiet_start_hour,
+                quiet_end_hour=config.proactive_quiet_end_hour,
+                feedback_pause_seconds=config.proactive_feedback_pause_seconds,
+            )
+        )
+        proactive_controller = ProactiveController(
+            service=proactive_service,
             subscribe=event_bus.subscribe,
             unsubscribe=event_bus.unsubscribe,
             dispatch_event=event_bridge.event_ready.emit,
@@ -417,6 +474,23 @@ def main() -> None:
     if memory_suggestion_controller is not None:
         memory_suggestion_controller.start()
 
+    # V9-A: Start proactive nudge controller and timer
+    if proactive_controller is not None:
+        proactive_controller.start()
+
+        proactive_timer = QTimer()
+        proactive_timer.setInterval(10_000)
+        proactive_timer.timeout.connect(
+            lambda: proactive_controller.tick(
+                is_busy=view_model.state in {
+                    AppState.LISTENING,
+                    AppState.THINKING,
+                    AppState.SPEAKING,
+                }
+            )
+        )
+        proactive_timer.start()
+
     shutdown_components: list[object] = [
         voice_input_controller,
         tts_controller,
@@ -425,6 +499,8 @@ def main() -> None:
     ]
     if memory_suggestion_controller is not None:
         shutdown_components.append(memory_suggestion_controller)
+    if proactive_controller is not None:
+        shutdown_components.append(proactive_controller)
     _wire_shutdown(app, *shutdown_components)  # type: ignore[arg-type]
 
     window.show()

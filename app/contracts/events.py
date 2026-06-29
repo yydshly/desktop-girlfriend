@@ -34,6 +34,9 @@ MEMORY_LISTED = "memory.listed"
 MEMORY_DELETE_REQUESTED = "memory.delete_requested"
 MEMORY_DELETED = "memory.deleted"
 
+# Proactive nudge events (V9-A)
+PROACTIVE_NUDGE_READY = "proactive.nudge_ready"
+
 
 @dataclass
 class BaseEvent:

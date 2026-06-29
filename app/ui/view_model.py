@@ -11,6 +11,7 @@ from app.contracts.events import (
     MEMORY_LISTED,
     MEMORY_REJECTED,
     MEMORY_SUGGESTIONS_DETECTED,
+    PROACTIVE_NUDGE_READY,
     STATE_CHANGED,
     SYSTEM_ERROR,
     USER_TEXT_SUBMITTED,
@@ -304,6 +305,21 @@ class DesktopViewModel:
                 r for r in self.memory_records if r.record_id != record_id
             ]
         self.memory_status_text = "已删除记忆"
+
+    def handle_proactive_nudge_ready(self, event: BaseEvent) -> None:
+        """Handle proactive.nudge_ready event and append as assistant message.
+
+        Args:
+            event: The proactive.nudge_ready event.
+        """
+        if event.event_type != PROACTIVE_NUDGE_READY:
+            return
+
+        text = event.payload.get("text")
+        if not isinstance(text, str) or not text.strip():
+            return
+
+        self.chat_messages.append(ChatMessage(role="assistant", text=text))
 
     def toggle_memory_panel(self) -> None:
         """Toggle the memory panel visibility."""
