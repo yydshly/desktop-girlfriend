@@ -60,9 +60,9 @@ class TestRenderChatMessages:
     """Tests for render_chat_messages() — no Qt required."""
 
     def test_empty_list_returns_placeholder(self) -> None:
-        """Test empty message list returns placeholder text."""
+        """Test empty message list returns gentle companion greeting (Phase 2-B)."""
         result = render_chat_messages([])
-        assert result == "还没有对话，和小云说句话吧。"
+        assert result == "小云在这里。想说什么，都可以慢慢说。"
 
     def test_single_user_message(self) -> None:
         """Test single user message renders correctly."""
