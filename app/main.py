@@ -19,6 +19,8 @@ from app.contracts.events import (
     ASR_TEXT_RECOGNIZED,
     ASSISTANT_TEXT_RECEIVED,
     CONVERSATION_CLEARED,
+    MEMORY_ADD_REQUESTED,
+    MEMORY_ADDED,
     MEMORY_CONFIRM_REQUESTED,
     MEMORY_CONFIRMED,
     MEMORY_DELETE_REQUESTED,
@@ -41,6 +43,7 @@ from app.contracts.events import (
 )
 from app.contracts.payloads import (
     AssistantTextReceivedPayload,
+    MemoryAddRequestedPayload,
     MemoryConfirmRequestedPayload,
     MemoryDeleteRequestedPayload,
     MemoryListRequestedPayload,
@@ -232,6 +235,17 @@ def main() -> None:
             )
         )
 
+    # Callback to request memory add (V8-J manual add)
+    def request_memory_add(text: str) -> None:
+        event_bus.publish(
+            BaseEvent(
+                event_type=MEMORY_ADD_REQUESTED,
+                request_id=str(uuid.uuid4()),
+                source="desktop_window",
+                payload=MemoryAddRequestedPayload(text=text).to_event_payload(),
+            )
+        )
+
     # V11-A / V11-C: Product status callback
     def _on_product_status_requested() -> None:
         view_model.toggle_product_status_visible()
@@ -285,6 +299,7 @@ def main() -> None:
         on_memory_reject_requested=request_memory_reject,
         on_memory_list_requested=request_memory_list,
         on_memory_delete_requested=request_memory_delete,
+        on_add_manual_memory_requested=request_memory_add,
         on_product_status_requested=_on_product_status_requested,
         on_hide_requested=_on_hide_requested,
         on_close_requested=_handle_close_requested,
@@ -394,6 +409,15 @@ def main() -> None:
         window.update_from_view_model()
 
     event_bus.subscribe(MEMORY_DELETED, on_memory_deleted)
+
+    # Register ViewModel subscription to memory.added (V8-J manual add)
+    def on_memory_added(event: BaseEvent) -> None:
+        view_model.handle_memory_added(event)
+        # Immediately refresh the memory list so the new record appears
+        request_memory_list()
+        window.update_from_view_model()
+
+    event_bus.subscribe(MEMORY_ADDED, on_memory_added)
 
     # Register ViewModel subscription to proactive nudge events (V9-A / V9-B / V10-C)
     def on_proactive_nudge_ready(event: BaseEvent) -> None:

@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import os
 import sys
+import tempfile
+from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -15,7 +17,11 @@ from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
-from app.contracts.events import MEMORY_ADDED, BaseEvent
+from app.brain.memory.controller import MemorySuggestionController
+from app.brain.memory.repository import LocalJsonMemoryRepository
+from app.brain.memory.runtime import create_local_memory_runtime
+from app.contracts.events import MEMORY_ADD_REQUESTED, MEMORY_ADDED, BaseEvent
+from app.core.event_bus import EventBus
 from app.ui.memory_record_view import MemoryRecordView
 from app.ui.memory_ux_view import (
     build_memory_suggestion_copy,
@@ -255,6 +261,45 @@ def main() -> int:
     else:
         print(f"memory manual input enter submit: FAIL (callback={callback_results}, input={input_widget.text()!r})")
         return 1
+
+    # Test full persistence chain: EventBus → Controller → Repository
+    with tempfile.TemporaryDirectory() as tmpdir:
+        repo = LocalJsonMemoryRepository(Path(tmpdir) / "memory.json")
+        runtime = create_local_memory_runtime(repo)
+        bus = EventBus()
+        dispatched: list[BaseEvent] = []
+
+        controller = MemorySuggestionController(
+            runtime=runtime,
+            subscribe=bus.subscribe,
+            unsubscribe=bus.unsubscribe,
+            dispatch_event=lambda e: dispatched.append(e),
+        )
+        controller.start()
+
+        # Publish MEMORY_ADD_REQUESTED directly (simulating what DesktopWindow does)
+        bus.publish(
+            BaseEvent(
+                event_type=MEMORY_ADD_REQUESTED,
+                request_id="probe-req-1",
+                source="probe",
+                payload={"text": "test memory persistence"},
+            )
+        )
+
+        added_events = [e for e in dispatched if e.event_type == MEMORY_ADDED]
+        if len(added_events) == 1 and added_events[0].payload["text"] == "test memory persistence":
+            print("memory add persistence chain: OK")
+        else:
+            print(f"memory add persistence chain: FAIL (events={[(e.event_type, e.payload) for e in dispatched]})")
+            return 1
+
+        records = repo.list_active()
+        if len(records) == 1 and records[0].text == "test memory persistence" and records[0].source == "manual_ui":
+            print("memory add repository write: OK")
+        else:
+            print(f"memory add repository write: FAIL (records={[(r.text, r.source) for r in records]})")
+            return 1
 
     # Test chat Enter shortcut with real keyboard
     submitted: list[str] = []

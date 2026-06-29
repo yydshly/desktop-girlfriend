@@ -18,9 +18,11 @@ from app.brain.memory.repository import (
     MemoryRecord,
     MemoryRepository,
     memory_record_from_confirmed,
+    new_memory_record_id,
+    utc_now,
 )
 from app.brain.memory.session_context import SessionMemoryContextBuilder
-from app.brain.memory.types import MemoryCandidate
+from app.brain.memory.types import MemoryCandidate, MemoryImportance, MemoryKind
 
 
 @dataclass(frozen=True)
@@ -86,6 +88,38 @@ class MemoryRuntimeService:
         """
         confirmed = self._confirmation_service.confirm(pending_id)
         record = memory_record_from_confirmed(confirmed)
+        self._repository.add(record)
+        return record
+
+    def add_manual_record(self, text: str) -> MemoryRecord:
+        """Add a memory record directly from manual user input (V8-J).
+
+        Does not go through the confirmation flow. Does not save evidence.
+        Does not save the full original conversation.
+
+        Args:
+            text: The memory text from the user's manual input.
+
+        Returns:
+            The newly created MemoryRecord.
+
+        Raises:
+            ValueError: If text is blank.
+        """
+        cleaned = text.strip()
+        if not cleaned:
+            raise ValueError("manual memory text must not be blank")
+
+        now = utc_now()
+        record = MemoryRecord(
+            id=new_memory_record_id(),
+            kind=MemoryKind.OTHER,
+            importance=MemoryImportance.MEDIUM,
+            text=cleaned,
+            source="manual_ui",
+            created_at=now,
+            updated_at=now,
+        )
         self._repository.add(record)
         return record
 
