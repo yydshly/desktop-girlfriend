@@ -16,6 +16,7 @@ __all__ = [
     "ASRResponse",
     "FakeASRProvider",
     "MimoASRProvider",
+    "create_asr_provider",
 ]
 
 

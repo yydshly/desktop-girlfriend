@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import sys
 import time
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -19,6 +20,26 @@ load_dotenv()
 
 from app.core.config import get_config  # noqa: E402
 from app.input.asr.providers import ASRProviderError, ASRRequest, create_asr_provider  # noqa: E402
+
+
+def infer_mime_type(audio_path: str) -> str:
+    """Infer MIME type from audio file extension.
+
+    Args:
+        audio_path: Path to the audio file.
+
+    Returns:
+        The inferred MIME type.
+
+    Raises:
+        ASRProviderError: If the file extension is not supported.
+    """
+    suffix = Path(audio_path).suffix.lower()
+    if suffix == ".wav":
+        return "audio/wav"
+    if suffix == ".mp3":
+        return "audio/mpeg"
+    raise ASRProviderError("unsupported audio file type")
 
 
 def main() -> None:
@@ -30,8 +51,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--mime-type",
-        default="audio/wav",
-        help="MIME type of the audio file. Defaults to audio/wav.",
+        default=None,
+        help="MIME type of the audio file. If omitted, inferred from extension.",
     )
     args = parser.parse_args()
 
@@ -44,8 +65,9 @@ def main() -> None:
 
     try:
         start = time.monotonic()
+        mime_type = args.mime_type or infer_mime_type(args.audio)
         response = provider.recognize(
-            ASRRequest(audio_path=args.audio, mime_type=args.mime_type)
+            ASRRequest(audio_path=args.audio, mime_type=mime_type)
         )
         latency_ms = round((time.monotonic() - start) * 1000)
         print(f"recognized_text: {response.text}")

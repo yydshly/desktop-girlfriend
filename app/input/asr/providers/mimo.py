@@ -16,6 +16,8 @@ class MimoASRProvider(ASRProvider):
     message content type.
     """
 
+    ALLOWED_LANGUAGES = {"auto", "zh", "en"}
+
     def __init__(
         self,
         api_key: str | None,
@@ -35,11 +37,17 @@ class MimoASRProvider(ASRProvider):
             timeout_seconds: Request timeout.
             client_factory: Optional callable to create the OpenAI client.
                 Defaults to the real OpenAI client. Useful for testing.
+
+        Raises:
+            ASRProviderError: If language is not one of the allowed values.
         """
         self._api_key = api_key
         self._base_url = base_url
         self._model = model
-        self._language = language
+        normalized_language = language.strip().lower()
+        if normalized_language not in self.ALLOWED_LANGUAGES:
+            raise ASRProviderError("MIMO_ASR_LANGUAGE must be one of: auto, zh, en")
+        self._language = normalized_language
         self._timeout = timeout_seconds
         self._client_factory = client_factory
 
@@ -72,6 +80,9 @@ class MimoASRProvider(ASRProvider):
             raise ASRProviderError("audio file could not be read") from exc
 
         audio_base64 = base64.b64encode(audio_bytes).decode("ascii")
+        audio_base64_size = len(audio_base64.encode("utf-8"))
+        if audio_base64_size > 10 * 1024 * 1024:
+            raise ASRProviderError("audio base64 payload exceeds 10MB limit")
         mime_type = request.mime_type or "audio/wav"
         data_url = f"data:{mime_type};base64,{audio_base64}"
 

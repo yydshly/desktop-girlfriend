@@ -10,6 +10,70 @@ from app.input.asr.providers.base import ASRProviderError, ASRRequest
 from app.input.asr.providers.mimo import MimoASRProvider
 
 
+class TestMimoASRProviderLanguageValidation:
+    """Tests for language validation."""
+
+    def test_invalid_language_raises(self):
+        with pytest.raises(ASRProviderError, match="MIMO_ASR_LANGUAGE must be one of"):
+            MimoASRProvider(
+                api_key="test-key",
+                base_url="https://api.xiaomimimo.com/v1",
+                model="mimo-v2.5-asr",
+                language="invalid",
+                timeout_seconds=30.0,
+            )
+
+    def test_language_with_spaces_normalized(self):
+        provider = MimoASRProvider(
+            api_key="test-key",
+            base_url="https://api.xiaomimimo.com/v1",
+            model="mimo-v2.5-asr",
+            language="  auto  ",
+            timeout_seconds=30.0,
+        )
+        assert provider._language == "auto"
+
+    def test_language_uppercase_normalized(self):
+        provider = MimoASRProvider(
+            api_key="test-key",
+            base_url="https://api.xiaomimimo.com/v1",
+            model="mimo-v2.5-asr",
+            language="ZH",
+            timeout_seconds=30.0,
+        )
+        assert provider._language == "zh"
+
+    def test_allowed_languages_accepted(self):
+        for lang in ("auto", "zh", "en"):
+            provider = MimoASRProvider(
+                api_key="test-key",
+                base_url="https://api.xiaomimimo.com/v1",
+                model="mimo-v2.5-asr",
+                language=lang,
+                timeout_seconds=30.0,
+            )
+            assert provider._language == lang
+
+    def test_error_message_no_key(self):
+        with pytest.raises(ASRProviderError, match="MIMO_ASR_LANGUAGE must be one of"):
+            MimoASRProvider(
+                api_key="secret-api-key",
+                base_url="https://api.xiaomimimo.com/v1",
+                model="mimo-v2.5-asr",
+                language="invalid",
+                timeout_seconds=30.0,
+            )
+        with pytest.raises(ASRProviderError) as exc_info:
+            MimoASRProvider(
+                api_key="secret-api-key",
+                base_url="https://api.xiaomimimo.com/v1",
+                model="mimo-v2.5-asr",
+                language="invalid",
+                timeout_seconds=30.0,
+            )
+        assert "secret-api-key" not in str(exc_info.value)
+
+
 class TestMimoASRProviderValidation:
     def test_missing_api_key_raises(self):
         provider = MimoASRProvider(
@@ -43,6 +107,45 @@ class TestMimoASRProviderValidation:
         )
         with pytest.raises(ASRProviderError, match="audio_path is required"):
             provider.recognize(ASRRequest())
+
+
+class TestMimoASRProviderBase64Limit:
+    def test_base64_over_10mb_raises(self, tmp_path):
+        # Create a file large enough that base64 encoding exceeds 10MB
+        # 10MB base64 = ~7.5MB raw bytes, but we need to account for encoding overhead
+        # Use 8MB of data to ensure base64 exceeds 10MB
+        large_audio = tmp_path / "large.wav"
+        large_audio.write_bytes(b"\x00" * (8 * 1024 * 1024))
+
+        provider = MimoASRProvider(
+            api_key="test-key",
+            base_url="https://api.xiaomimimo.com/v1",
+            model="mimo-v2.5-asr",
+            language="auto",
+            timeout_seconds=30.0,
+        )
+
+        with pytest.raises(ASRProviderError, match="audio base64 payload exceeds 10MB limit"):
+            provider.recognize(ASRRequest(audio_path=str(large_audio)))
+
+    def test_base64_error_message_no_base64(self, tmp_path):
+        large_audio = tmp_path / "large.wav"
+        large_audio.write_bytes(b"\x00" * (8 * 1024 * 1024))
+
+        provider = MimoASRProvider(
+            api_key="test-key",
+            base_url="https://api.xiaomimimo.com/v1",
+            model="mimo-v2.5-asr",
+            language="auto",
+            timeout_seconds=30.0,
+        )
+
+        with pytest.raises(ASRProviderError) as exc_info:
+            provider.recognize(ASRRequest(audio_path=str(large_audio)))
+        error_msg = str(exc_info.value)
+        # Error message should not contain actual base64 content
+        assert "data:audio" not in error_msg
+        assert "base64," not in error_msg
 
 
 class TestMimoASRProviderApiCall:
