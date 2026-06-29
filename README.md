@@ -133,3 +133,126 @@ python -m pytest -q
 | V6 | Avatar / 数字人表现增强 |
 | V7 | Agent 工具能力 |
 | V8 | 记忆与人格系统 |
+
+## 功能概览
+
+当前已集成的功能模块：
+
+| 能力 | 描述 | 状态 |
+|------|------|------|
+| 文本对话 | MiniMax LLM 对话 | 可用 |
+| TTS 语音合成 | MiniMax TTS，播报回复 | 可配置启用 |
+| ASR 语音输入 | 语音识别转文字 | 可配置启用 |
+| 人格 | 小云人格，可自定义姓名 | 可用 |
+| 记忆上下文 | 把确认记忆注入 LLM 会话 | 可配置启用 |
+| 记忆建议 | 检测输入中值得记忆的内容 | 可配置启用 |
+| 记忆管理 | 查看/删除已确认记忆 | 可配置启用 |
+| 主动陪伴 | 空闲时主动发消息 | 可配置启用 |
+| 主动陪伴 TTS | 主动消息走 TTS 播报 | 可配置启用 |
+| Avatar 状态反馈 | 头像显示当前状态 | 可用 |
+| 状态面板 | 查看能力开关状态 | 可用 |
+
+> **默认关闭**：记忆（上下文/建议/管理）和主动陪伴（及 TTS）默认均为 `false`，需手动在 `.env` 中启用。
+
+## Windows 本地启动
+
+```powershell
+# 1. 克隆仓库
+git clone <repo-url>
+cd desktop-girlfriend
+
+# 2. 创建虚拟环境
+python -m venv .venv
+.venv\Scripts\python.exe -m pip install -U pip
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+
+# 3. 配置环境变量
+Copy-Item .env.example .env
+# 用编辑器填写 .env 中的 API Key（可选，fake 模式无需填写）
+
+# 4. 启动应用
+.venv\Scripts\python.exe -m app.main
+```
+
+> **注意**：Windows 下推荐使用 PowerShell 或 Windows Terminal，CMD 可能存在编码问题。
+
+## 配置说明
+
+### 功能开关（`.env`）
+
+| 环境变量 | 默认值 | 说明 |
+|----------|--------|------|
+| `MEMORY_CONTEXT_ENABLED` | `false` | 是否把已确认记忆注入 LLM 会话上下文 |
+| `MEMORY_SUGGESTIONS_ENABLED` | `false` | 是否在用户输入后检测候选记忆 |
+| `MEMORY_MANAGEMENT_ENABLED` | `false` | 是否显示记忆管理面板（查看/删除） |
+| `PROACTIVE_ENABLED` | `false` | 是否启用主动陪伴（空闲时主动发消息） |
+| `PROACTIVE_TTS_ENABLED` | `false` | 主动陪伴是否走 TTS 语音播报 |
+| `PROACTIVE_QUIET_HOURS_ENABLED` | `false` | 是否启用勿扰时间（夜间不打扰） |
+
+### 记忆安全说明
+
+- 记忆必须由**用户主动确认**才会保存
+- 不会保存原始完整对话
+- 不会保存 evidence 文件
+- 记忆内容为简短摘要，不会保存长文本
+
+### 勿打扰与暂停
+
+- `PROACTIVE_QUIET_HOURS_ENABLED=true` 时，23:00–08:00 不发送主动消息
+- 用户说"别打扰"后，主动陪伴会暂停 `PROACTIVE_FEEDBACK_PAUSE_SECONDS` 秒
+
+## UI 使用说明
+
+### 状态面板（V11-A）
+
+点击标题栏右侧 **「状态」** 按钮，可查看当前能力开关状态（只读）。
+
+面板显示：
+- 对话是否启用
+- 记忆上下文/建议/管理是否开启
+- 主动陪伴及 TTS 是否开启
+- 勿扰时间是否开启
+- 当前 Avatar 状态（☁️ 👂 💭 🗣️ ✨ ⚠️）
+
+### 记忆面板（V8-J）
+
+点击底部 **「记忆」** 按钮，可查看已保存的记忆（需 `MEMORY_MANAGEMENT_ENABLED=true`）。
+
+### Avatar 状态
+
+| Emoji | 状态 | 说明 |
+|-------|------|------|
+| ☁️ | idle | 待机 |
+| 👂 | listening | 正在听 |
+| 💭 | thinking | 正在想 |
+| 🗣️ | speaking | 正在说话 |
+| ✨ | proactive | 主动陪伴中 |
+| ⚠️ | error | 出错 |
+
+## 开发验证
+
+```powershell
+# 代码检查
+.venv\Scripts\python.exe -m ruff check .
+
+# 类型检查
+.venv\Scripts\python.exe -m mypy app
+
+# 单元测试
+.venv\Scripts\python.exe -m pytest -q
+
+# 启动就绪检查
+.venv\Scripts\python.exe scripts\probe_launch_readiness.py
+```
+
+## 不要提交的内容
+
+以下文件/目录**永远不要**提交到版本控制：
+
+```
+.env              # 包含真实 API Key
+.tmp/             # 运行时生成的临时文件
+__pycache__/      # Python 缓存
+*.pyc
+.venv/            # 虚拟环境
+```
