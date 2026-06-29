@@ -69,6 +69,7 @@ class DesktopWindow(QMainWindow):
         on_memory_reject_requested: Callable[[str], None] | None = None,
         on_memory_list_requested: Callable[[], None] | None = None,
         on_memory_delete_requested: Callable[[str], None] | None = None,
+        on_product_status_requested: Callable[[], None] | None = None,
         memory_management_enabled: bool = False,
     ) -> None:
         super().__init__()
@@ -81,6 +82,7 @@ class DesktopWindow(QMainWindow):
         self._on_memory_reject_requested = on_memory_reject_requested
         self._on_memory_list_requested = on_memory_list_requested
         self._on_memory_delete_requested = on_memory_delete_requested
+        self._on_product_status_requested = on_product_status_requested
         self._memory_management_enabled = memory_management_enabled
 
         config = get_config()
@@ -125,7 +127,30 @@ class DesktopWindow(QMainWindow):
         info_layout.addWidget(self._avatar_action_label)
 
         header_layout.addWidget(info_widget, stretch=1)
+
+        # V11-A: Product status button
+        self._product_status_button = QPushButton("状态")
+        self._product_status_button.setToolTip("查看小云的能力状态")
+        self._product_status_button.clicked.connect(self._handle_product_status_clicked)
+        header_layout.addWidget(self._product_status_button)
+
         layout.addWidget(header_widget)
+
+        # V11-A: Product status panel (between header and chat history)
+        self._product_status_panel = QWidget()
+        self._product_status_panel_layout = QVBoxLayout(self._product_status_panel)
+        self._product_status_panel_layout.setContentsMargins(8, 8, 8, 8)
+        self._product_status_text = QLabel()
+        self._product_status_text.setWordWrap(True)
+        self._product_status_text.setStyleSheet("color: #333; font-size: 13px;")
+        self._product_status_panel_layout.addWidget(self._product_status_text)
+        # V11-C: Startup diagnostics details in product status panel
+        self._startup_diagnostics_text = QLabel()
+        self._startup_diagnostics_text.setWordWrap(True)
+        self._startup_diagnostics_text.setStyleSheet("font-size: 12px; color: #777; padding-top: 4px;")
+        self._product_status_panel_layout.addWidget(self._startup_diagnostics_text)
+        self._product_status_panel.setVisible(False)
+        layout.addWidget(self._product_status_panel)
 
         # Chat history display
         self._chat_history = QTextEdit()
@@ -279,6 +304,11 @@ class DesktopWindow(QMainWindow):
         if self._on_memory_delete_requested:
             self._on_memory_delete_requested(first.record_id)
 
+    def _handle_product_status_clicked(self) -> None:
+        """Handle product status button click."""
+        if self._on_product_status_requested is not None:
+            self._on_product_status_requested()
+
     def update_from_view_model(self) -> None:
         """Update UI from view model state."""
         self._name_label.setText(self._view_model.companion_name)
@@ -320,6 +350,12 @@ class DesktopWindow(QMainWindow):
                     lines.append(f"{i}. {truncated}")
                 self._memory_panel_text.setText("\n".join(lines))
             self._memory_delete_first_button.setEnabled(bool(records))
+
+        # Update product status panel (V11-A)
+        self._product_status_panel.setVisible(self._view_model.product_status_visible)
+        self._product_status_text.setText(self._view_model.product_status_text)
+        # V11-C: Startup diagnostics details
+        self._startup_diagnostics_text.setText(self._view_model.startup_diagnostics_text)
 
         is_listening = self._view_model.state == AppState.LISTENING
         is_thinking = self._view_model.state == AppState.THINKING

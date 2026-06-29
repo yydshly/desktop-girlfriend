@@ -51,6 +51,7 @@ from app.contracts.states import AppState
 from app.core.config import get_config
 from app.core.event_bus import EventBus
 from app.core.logging import setup_logging
+from app.core.startup_diagnostics import run_startup_diagnostics
 from app.core.state_controller import StateController
 from app.core.state_machine import StateMachine
 from app.expression.tts.controller import TTSController
@@ -58,7 +59,9 @@ from app.expression.tts.providers import TTSProviderError, create_tts_provider
 from app.input.asr.controller import VoiceInputController
 from app.input.asr.providers import ASRProviderError, create_asr_provider
 from app.input.audio import MicrophoneRecorder, MicrophoneRecorderLike
+from app.ui.product_status_builder import build_product_status_view
 from app.ui.qt_event_bridge import QtEventBridge
+from app.ui.startup_diagnostics_view import render_startup_diagnostics_details
 from app.ui.view_model import DesktopViewModel
 from app.ui.window import DesktopWindow
 
@@ -93,6 +96,9 @@ def main() -> None:
 
     logger.info("Starting %s", config.app_name)
 
+    # V11-C: Run startup diagnostics (non-blocking, only for display)
+    startup_diagnostics = run_startup_diagnostics(config)
+
     app = QApplication(sys.argv)
 
     # Initialize Core components
@@ -101,6 +107,10 @@ def main() -> None:
 
     # Initialize UI components
     view_model = DesktopViewModel()
+    # V11-C: Set diagnostics text for display in status panel
+    view_model.set_startup_diagnostics_text(
+        render_startup_diagnostics_details(startup_diagnostics)
+    )
 
     # Initialize session history before DesktopWindow so callback can reference it
     session_history = CurrentSessionHistory(max_turns=6)
@@ -196,6 +206,17 @@ def main() -> None:
             )
         )
 
+    # V11-A / V11-C: Product status callback
+    def _on_product_status_requested() -> None:
+        view_model.toggle_product_status_visible()
+        view_model.set_product_status_view(
+            build_product_status_view(
+                config=config,
+                avatar_action=view_model.avatar_action,
+                startup_diagnostics=startup_diagnostics,
+            )
+        )
+
     window = DesktopWindow(
         view_model,
         on_user_text_submitted=submit_user_text,
@@ -206,6 +227,7 @@ def main() -> None:
         on_memory_reject_requested=request_memory_reject,
         on_memory_list_requested=request_memory_list,
         on_memory_delete_requested=request_memory_delete,
+        on_product_status_requested=_on_product_status_requested,
         memory_management_enabled=config.memory_management_enabled,
     )
 
@@ -216,6 +238,15 @@ def main() -> None:
     def on_state_changed(event: BaseEvent) -> None:
         view_model.handle_state_changed(event)
         window.update_from_view_model()
+        # V11-A / V11-C: refresh product status panel if visible
+        if view_model.product_status_visible:
+            view_model.set_product_status_view(
+                build_product_status_view(
+                    config=config,
+                    avatar_action=view_model.avatar_action,
+                    startup_diagnostics=startup_diagnostics,
+                )
+            )
 
     event_bus.subscribe(STATE_CHANGED, on_state_changed)
 
