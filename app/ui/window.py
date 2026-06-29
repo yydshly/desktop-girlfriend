@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 from app.contracts.states import AppState
 from app.core.config import get_config
 from app.ui import window_style
+from app.ui.avatar_expression_view import build_avatar_expression_view
 from app.ui.chat_message import ChatMessage
 from app.ui.conversation_view import (
     get_input_placeholder,
@@ -122,6 +123,13 @@ class DesktopWindow(QMainWindow):
         self._avatar_label.setToolTip(self._view_model.effective_avatar_label)
         self._avatar_label.setStyleSheet(self._view_model.effective_avatar_style)
         header_layout.addWidget(self._avatar_label)
+
+        # Avatar expression label (Phase 2-H)
+        self._avatar_expression_label = QLabel()
+        self._avatar_expression_label.setStyleSheet(
+            window_style.AVATAR_EXPRESSION_LABEL_STYLE
+        )
+        header_layout.addWidget(self._avatar_expression_label)
 
         info_widget = QWidget()
         info_layout = QVBoxLayout(info_widget)
@@ -455,6 +463,9 @@ class DesktopWindow(QMainWindow):
         self._avatar_label.setText(self._view_model.effective_avatar_text)
         self._avatar_label.setToolTip(self._view_model.effective_avatar_label)
         self._avatar_label.setStyleSheet(self._view_model.effective_avatar_style)
+        # Phase 2-H: Update avatar expression label
+        expr = build_avatar_expression_view(self._view_model.avatar_action)
+        self._avatar_expression_label.setText(expr.label)
         # Phase 2-A: Update companion status text
         self._companion_status_label.setText(self._view_model.companion_status_text)
         version_text = f"{self._view_model.companion_version_text} · {self._view_model.companion_release_stage_text}"

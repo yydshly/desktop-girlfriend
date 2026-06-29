@@ -9,6 +9,11 @@ from __future__ import annotations
 # Subtle card background for the top header area
 HEADER_CARD_STYLE = "background-color: #f5f7ff; border-radius: 8px; padding: 4px;"
 
+# Avatar expression label — small, below emoji
+AVATAR_EXPRESSION_LABEL_STYLE = (
+    "font-size: 11px; color: #888; qproperty-alignment: AlignCenter;"
+)
+
 # Companion name — prominent and bold
 NAME_LABEL_STYLE = "font-size: 20px; font-weight: 700; color: #2c3e50;"
 
