@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, cast
 
 from app.brain.persona import DEFAULT_XIAOYUN_PERSONA, PersonaPromptBuilder
 from app.brain.persona.probe import DEFAULT_PERSONA_PROBE_CASES
+from app.brain.persona.probe.cases import PersonaProbeCase
 from app.brain.persona.probe.runner import PersonaProbeProvider, PersonaProbeRunner
 from app.brain.prompts.registry import PromptRegistry
 from app.brain.providers.base import ChatProvider
@@ -64,6 +65,16 @@ def create_fake_probe_provider() -> PersonaProbeProvider:
     return FakePersonaProbeProvider()
 
 
+def filter_cases(
+    case_id: str, cases: tuple[PersonaProbeCase, ...] = ()
+) -> tuple[PersonaProbeCase, ...]:
+    """Filter probe cases by case_id. Returns empty tuple if no match."""
+    if not cases:
+        from app.brain.persona.probe import DEFAULT_PERSONA_PROBE_CASES
+        cases = DEFAULT_PERSONA_PROBE_CASES
+    return tuple(c for c in cases if c.case_id == case_id)
+
+
 def create_real_probe_provider(
     config: AppConfig, registry: PromptRegistry
 ) -> PersonaProbeProvider:
@@ -81,9 +92,26 @@ def main() -> None:
         action="store_true",
         help="Use real chat provider instead of fake.",
     )
+    parser.add_argument(
+        "--case-id",
+        type=str,
+        default=None,
+        help="Run only the specified case (e.g. romantic_boundary). "
+             "Without this flag, all DEFAULT_PERSONA_PROBE_CASES are run.",
+    )
     args = parser.parse_args()
 
     mode = "real" if args.real else "fake"
+
+    if args.case_id is not None:
+        cases = filter_cases(args.case_id)
+        if not cases:
+            available = [c.case_id for c in DEFAULT_PERSONA_PROBE_CASES]
+            print(f"Error: no case with id {args.case_id!r}", file=__import__("sys").stderr)
+            print(f"Available case_ids: {', '.join(available)}", file=__import__("sys").stderr)
+            __import__("sys").exit(1)
+    else:
+        cases = DEFAULT_PERSONA_PROBE_CASES
 
     if args.real:
         from dataclasses import replace
@@ -104,7 +132,7 @@ def main() -> None:
         provider = create_fake_probe_provider()
 
     runner = PersonaProbeRunner(provider)
-    report = runner.run(DEFAULT_PERSONA_PROBE_CASES)
+    report = runner.run(cases)
 
     print("Persona Behavior Probe")
     print(f"mode: {mode}")

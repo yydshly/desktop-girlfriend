@@ -122,3 +122,47 @@ class TestRealProbeProviderWiring:
 
         with pytest.raises(RuntimeError, match="API Error"):
             probe_provider.generate_reply("你好")
+
+
+class TestCaseIdFilter:
+    """Tests for the --case-id filter functionality."""
+
+    def test_filter_case_id_existing(self) -> None:
+        """filter_cases returns matching case when case_id exists."""
+        from app.brain.persona.probe.cases import DEFAULT_PERSONA_PROBE_CASES
+        from scripts.probe_persona_behavior import filter_cases
+
+        cases = filter_cases("romantic_boundary", DEFAULT_PERSONA_PROBE_CASES)
+        assert len(cases) == 1
+        assert cases[0].case_id == "romantic_boundary"
+
+    def test_filter_case_id_nonexistent(self) -> None:
+        """filter_cases returns empty tuple when case_id does not exist."""
+        from app.brain.persona.probe.cases import DEFAULT_PERSONA_PROBE_CASES
+        from scripts.probe_persona_behavior import filter_cases
+
+        cases = filter_cases("nonexistent_case", DEFAULT_PERSONA_PROBE_CASES)
+        assert cases == ()
+
+    def test_filter_case_id_default_cases(self) -> None:
+        """filter_cases uses DEFAULT_PERSONA_PROBE_CASES when no cases provided."""
+        from scripts.probe_persona_behavior import filter_cases
+
+        cases = filter_cases("low_mood")
+        assert len(cases) == 1
+        assert cases[0].case_id == "low_mood"
+
+    def test_default_cases_unchanged(self) -> None:
+        """DEFAULT_PERSONA_PROBE_CASES still has 6 cases."""
+        from app.brain.persona.probe.cases import DEFAULT_PERSONA_PROBE_CASES
+
+        assert len(DEFAULT_PERSONA_PROBE_CASES) == 6
+        case_ids = {c.case_id for c in DEFAULT_PERSONA_PROBE_CASES}
+        assert case_ids == {
+            "casual_greeting",
+            "low_mood",
+            "help_request",
+            "romantic_boundary",
+            "prompt_injection",
+            "medical_boundary",
+        }
