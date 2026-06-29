@@ -20,7 +20,11 @@ from app.contracts.events import (
     CONVERSATION_CLEARED,
     MEMORY_CONFIRM_REQUESTED,
     MEMORY_CONFIRMED,
+    MEMORY_DELETE_REQUESTED,
+    MEMORY_DELETED,
     MEMORY_ERROR,
+    MEMORY_LIST_REQUESTED,
+    MEMORY_LISTED,
     MEMORY_REJECT_REQUESTED,
     MEMORY_REJECTED,
     MEMORY_SUGGESTIONS_DETECTED,
@@ -35,6 +39,8 @@ from app.contracts.events import (
 )
 from app.contracts.payloads import (
     MemoryConfirmRequestedPayload,
+    MemoryDeleteRequestedPayload,
+    MemoryListRequestedPayload,
     MemoryRejectRequestedPayload,
     UserTextSubmittedPayload,
 )
@@ -164,6 +170,28 @@ def main() -> None:
             )
         )
 
+    # Callback to request memory list (V8-J)
+    def request_memory_list() -> None:
+        event_bus.publish(
+            BaseEvent(
+                event_type=MEMORY_LIST_REQUESTED,
+                request_id=str(uuid.uuid4()),
+                source="desktop_window",
+                payload=MemoryListRequestedPayload().to_event_payload(),
+            )
+        )
+
+    # Callback to request memory delete (V8-J)
+    def request_memory_delete(record_id: str) -> None:
+        event_bus.publish(
+            BaseEvent(
+                event_type=MEMORY_DELETE_REQUESTED,
+                request_id=str(uuid.uuid4()),
+                source="desktop_window",
+                payload=MemoryDeleteRequestedPayload(record_id=record_id).to_event_payload(),
+            )
+        )
+
     window = DesktopWindow(
         view_model,
         on_user_text_submitted=submit_user_text,
@@ -172,6 +200,8 @@ def main() -> None:
         on_voice_input_requested=request_voice_input,
         on_memory_confirm_requested=request_memory_confirm,
         on_memory_reject_requested=request_memory_reject,
+        on_memory_list_requested=request_memory_list,
+        on_memory_delete_requested=request_memory_delete,
     )
 
     # Initialize StateController and wire EventBus + StateMachine
@@ -247,6 +277,19 @@ def main() -> None:
         window.update_from_view_model()
 
     event_bus.subscribe(MEMORY_ERROR, on_memory_error)
+
+    # Register ViewModel subscription to memory management events (V8-J)
+    def on_memory_listed(event: BaseEvent) -> None:
+        view_model.handle_memory_listed(event)
+        window.update_from_view_model()
+
+    event_bus.subscribe(MEMORY_LISTED, on_memory_listed)
+
+    def on_memory_deleted(event: BaseEvent) -> None:
+        view_model.handle_memory_deleted(event)
+        window.update_from_view_model()
+
+    event_bus.subscribe(MEMORY_DELETED, on_memory_deleted)
 
     # Initialize Dialogue components
     persona_profile = replace(

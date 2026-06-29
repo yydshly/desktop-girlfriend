@@ -28,6 +28,12 @@ MEMORY_CONFIRMED = "memory.confirmed"
 MEMORY_REJECTED = "memory.rejected"
 MEMORY_ERROR = "memory.error"
 
+# Memory management events (V8-J)
+MEMORY_LIST_REQUESTED = "memory.list_requested"
+MEMORY_LISTED = "memory.listed"
+MEMORY_DELETE_REQUESTED = "memory.delete_requested"
+MEMORY_DELETED = "memory.deleted"
+
 
 @dataclass
 class BaseEvent:

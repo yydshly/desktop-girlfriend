@@ -23,13 +23,13 @@ from app.brain.memory.controller import MemorySuggestionController
 from app.brain.memory.repository import LocalJsonMemoryRepository
 from app.brain.memory.runtime import create_local_memory_runtime
 from app.contracts.events import (
-    BaseEvent,
     MEMORY_CONFIRM_REQUESTED,
     MEMORY_CONFIRMED,
     MEMORY_REJECT_REQUESTED,
     MEMORY_REJECTED,
     MEMORY_SUGGESTIONS_DETECTED,
     USER_TEXT_SUBMITTED,
+    BaseEvent,
 )
 
 

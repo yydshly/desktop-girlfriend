@@ -12,6 +12,7 @@ V8-H: Memory suggestion event flow.
 Memory candidates are surfaced for inspection but not automatically persisted.
 """
 
+from app.brain.memory.cli import run_memory_cli
 from app.brain.memory.confirmation import (
     ConfirmedMemory,
     InMemoryMemoryConfirmationStore,
@@ -20,7 +21,12 @@ from app.brain.memory.confirmation import (
     PendingMemory,
     RejectedMemory,
 )
+from app.brain.memory.controller import MemorySuggestionController
 from app.brain.memory.extractor import DeterministicMemoryExtractor
+from app.brain.memory.integration import (
+    create_memory_context_provider_from_config,
+    create_readonly_memory_context_provider,
+)
 from app.brain.memory.probe_cases import DEFAULT_MEMORY_PROBE_CASES, MemoryProbeCase
 from app.brain.memory.repository import (
     LocalJsonMemoryRepository,
@@ -33,12 +39,6 @@ from app.brain.memory.runtime import (
     MemoryRuntimeService,
     MemoryRuntimeSnapshot,
     create_local_memory_runtime,
-)
-from app.brain.memory.cli import run_memory_cli
-from app.brain.memory.controller import MemorySuggestionController
-from app.brain.memory.integration import (
-    create_memory_context_provider_from_config,
-    create_readonly_memory_context_provider,
 )
 from app.brain.memory.session_context import (
     SessionMemoryContextBuilder,

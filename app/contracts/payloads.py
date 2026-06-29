@@ -159,3 +159,75 @@ class MemoryErrorPayload:
     def to_event_payload(self) -> Payload:
         """Convert the payload to an event-safe dictionary."""
         return {"message": self.message}
+
+
+# Memory management payloads (V8-J)
+
+
+@dataclass
+class MemoryRecordPayload:
+    """Single memory record payload."""
+
+    record_id: str
+    kind: str
+    importance: str
+    text: str
+    created_at: str
+    updated_at: str
+
+    def to_event_payload(self) -> Payload:
+        """Convert the payload to an event-safe dictionary."""
+        return {
+            "record_id": self.record_id,
+            "kind": self.kind,
+            "importance": self.importance,
+            "text": self.text,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
+
+
+@dataclass
+class MemoryListedPayload:
+    """Payload for memory.listed events."""
+
+    records: list[MemoryRecordPayload]
+
+    def to_event_payload(self) -> Payload:
+        """Convert the payload to an event-safe dictionary."""
+        return {
+            "records": [
+                record.to_event_payload() for record in self.records
+            ]
+        }
+
+
+@dataclass
+class MemoryListRequestedPayload:
+    """Payload for memory.list_requested events."""
+
+    def to_event_payload(self) -> Payload:
+        """Convert the payload to an event-safe dictionary."""
+        return {}
+
+
+@dataclass
+class MemoryDeleteRequestedPayload:
+    """Payload for memory.delete_requested events."""
+
+    record_id: str
+
+    def to_event_payload(self) -> Payload:
+        """Convert the payload to an event-safe dictionary."""
+        return {"record_id": self.record_id}
+
+
+@dataclass
+class MemoryDeletedPayload:
+    """Payload for memory.deleted events."""
+
+    record_id: str
+
+    def to_event_payload(self) -> Payload:
+        """Convert the payload to an event-safe dictionary."""
+        return {"record_id": self.record_id}

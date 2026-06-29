@@ -42,7 +42,7 @@ class TestMemorySuggestionView:
             text="用户喜欢简短回复",
         )
         with pytest.raises(AttributeError):
-            view.pending_id = "changed"  # type: ignore[assignment]
+            view.pending_id = "changed"  # type: ignore[misc]
 
     def test_excludes_evidence(self) -> None:
         """Test MemorySuggestionView does not have evidence field."""

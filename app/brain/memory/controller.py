@@ -23,7 +23,11 @@ from app.brain.memory.runtime import MemoryRuntimeService
 from app.contracts.events import (
     MEMORY_CONFIRM_REQUESTED,
     MEMORY_CONFIRMED,
+    MEMORY_DELETE_REQUESTED,
+    MEMORY_DELETED,
     MEMORY_ERROR,
+    MEMORY_LIST_REQUESTED,
+    MEMORY_LISTED,
     MEMORY_REJECT_REQUESTED,
     MEMORY_REJECTED,
     MEMORY_SUGGESTIONS_DETECTED,
@@ -32,7 +36,10 @@ from app.contracts.events import (
 )
 from app.contracts.payloads import (
     MemoryConfirmedPayload,
+    MemoryDeletedPayload,
     MemoryErrorPayload,
+    MemoryListedPayload,
+    MemoryRecordPayload,
     MemoryRejectedPayload,
     MemorySuggestionPayload,
     MemorySuggestionsDetectedPayload,
@@ -73,6 +80,8 @@ class MemorySuggestionController:
         self._subscribe(USER_TEXT_SUBMITTED, self._on_user_text_submitted)
         self._subscribe(MEMORY_CONFIRM_REQUESTED, self._on_memory_confirm_requested)
         self._subscribe(MEMORY_REJECT_REQUESTED, self._on_memory_reject_requested)
+        self._subscribe(MEMORY_LIST_REQUESTED, self._on_memory_list_requested)
+        self._subscribe(MEMORY_DELETE_REQUESTED, self._on_memory_delete_requested)
 
     def stop(self) -> None:
         """Stop the controller by unsubscribing from events.
@@ -85,6 +94,8 @@ class MemorySuggestionController:
         self._unsubscribe(USER_TEXT_SUBMITTED, self._on_user_text_submitted)
         self._unsubscribe(MEMORY_CONFIRM_REQUESTED, self._on_memory_confirm_requested)
         self._unsubscribe(MEMORY_REJECT_REQUESTED, self._on_memory_reject_requested)
+        self._unsubscribe(MEMORY_LIST_REQUESTED, self._on_memory_list_requested)
+        self._unsubscribe(MEMORY_DELETE_REQUESTED, self._on_memory_delete_requested)
 
     def _dispatch_memory_error(self, message: str) -> None:
         """Dispatch a memory error event."""
@@ -205,6 +216,69 @@ class MemorySuggestionController:
                     rejected_id=rejected.id,
                     kind=rejected.candidate.kind.value,
                     reason=rejected.reason,
+                ).to_event_payload(),
+            )
+        )
+
+    def _on_memory_list_requested(self, event: BaseEvent) -> None:
+        """Handle list request by returning all active memory records.
+
+        Only returns active (non-deleted) records.
+        """
+        try:
+            records = self._runtime.list_active_records()
+        except Exception:
+            logger.exception("Memory list failed")
+            self._dispatch_memory_error("Memory list failed")
+            return
+
+        payload_records = [
+            MemoryRecordPayload(
+                record_id=r.id,
+                kind=r.kind.value,
+                importance=r.importance.value,
+                text=r.text,
+                created_at=r.created_at.isoformat(),
+                updated_at=r.updated_at.isoformat(),
+            )
+            for r in records
+        ]
+
+        self._dispatch_event(
+            BaseEvent(
+                event_type=MEMORY_LISTED,
+                request_id=event.request_id or str(uuid.uuid4()),
+                source="memory_suggestion_controller",
+                payload=MemoryListedPayload(
+                    records=payload_records
+                ).to_event_payload(),
+            )
+        )
+
+    def _on_memory_delete_requested(self, event: BaseEvent) -> None:
+        """Handle delete request by soft-deleting a memory record."""
+        record_id = event.payload.get("record_id")
+        if not isinstance(record_id, str) or not record_id.strip():
+            self._dispatch_memory_error("Invalid record_id")
+            return
+
+        try:
+            deleted = self._runtime.delete_record(record_id)
+        except KeyError:
+            self._dispatch_memory_error("Memory record not found")
+            return
+        except Exception:
+            logger.exception("Memory delete failed")
+            self._dispatch_memory_error("Memory delete failed")
+            return
+
+        self._dispatch_event(
+            BaseEvent(
+                event_type=MEMORY_DELETED,
+                request_id=event.request_id or str(uuid.uuid4()),
+                source="memory_suggestion_controller",
+                payload=MemoryDeletedPayload(
+                    record_id=deleted.id
                 ).to_event_payload(),
             )
         )
