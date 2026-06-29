@@ -210,6 +210,15 @@ def main() -> None:
     # Create Qt event bridge for thread-safe event dispatch
     event_bridge = QtEventBridge(event_bus.publish)
 
+    # V8-G: Create read-only memory context provider if enabled
+    session_memory_context_provider = None
+    if config.memory_context_enabled:
+        from app.brain.memory.integration import (
+            create_memory_context_provider_from_config,
+        )
+
+        session_memory_context_provider = create_memory_context_provider_from_config(config)
+
     dialogue_controller = AsyncDialogueController(
         event_bus=event_bus,
         provider=provider,
@@ -217,6 +226,7 @@ def main() -> None:
         dispatch_event=event_bridge.event_ready.emit,
         session_history=session_history,
         complete_state_after_assistant_response=False,
+        session_memory_context_provider=session_memory_context_provider,
     )
 
     # Initialize TTS components

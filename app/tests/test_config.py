@@ -555,3 +555,90 @@ def test_persona_user_address_empty_string_falls_back_to_default(
     monkeypatch.setenv("PERSONA_USER_ADDRESS", "")
     config = AppConfig()
     assert config.persona_user_address == "你"
+
+
+# Memory config tests (V8-G)
+
+
+def test_default_memory_context_enabled_is_false(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test default memory_context_enabled is False."""
+    clear_config_env(monkeypatch)
+    config = AppConfig()
+    assert config.memory_context_enabled is False
+
+
+def test_memory_context_enabled_true(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_CONTEXT_ENABLED=true parses to True."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_CONTEXT_ENABLED", "true")
+    config = AppConfig()
+    assert config.memory_context_enabled is True
+
+
+def test_memory_context_enabled_false(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_CONTEXT_ENABLED=false parses to False."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_CONTEXT_ENABLED", "false")
+    config = AppConfig()
+    assert config.memory_context_enabled is False
+
+
+def test_memory_context_enabled_yes(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_CONTEXT_ENABLED=yes parses to True."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_CONTEXT_ENABLED", "yes")
+    config = AppConfig()
+    assert config.memory_context_enabled is True
+
+
+def test_memory_context_enabled_1(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_CONTEXT_ENABLED=1 parses to True."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_CONTEXT_ENABLED", "1")
+    config = AppConfig()
+    assert config.memory_context_enabled is True
+
+
+def test_memory_context_enabled_on(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_CONTEXT_ENABLED=on parses to True."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_CONTEXT_ENABLED", "on")
+    config = AppConfig()
+    assert config.memory_context_enabled is True
+
+
+def test_memory_context_enabled_0(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_CONTEXT_ENABLED=0 parses to False."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_CONTEXT_ENABLED", "0")
+    config = AppConfig()
+    assert config.memory_context_enabled is False
+
+
+def test_memory_context_enabled_invalid_raises(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test invalid MEMORY_CONTEXT_ENABLED value raises ValueError."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_CONTEXT_ENABLED", "maybe")
+    with pytest.raises(ValueError, match="MEMORY_CONTEXT_ENABLED must be a boolean"):
+        AppConfig()
+
+
+def test_default_memory_store_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test default memory_store_path is .tmp/memory.json."""
+    clear_config_env(monkeypatch)
+    config = AppConfig()
+    assert config.memory_store_path == ".tmp/memory.json"
+
+
+def test_memory_store_path_override(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_STORE_PATH env var overrides default."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_STORE_PATH", "/custom/path/memory.json")
+    config = AppConfig()
+    assert config.memory_store_path == "/custom/path/memory.json"

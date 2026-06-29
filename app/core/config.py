@@ -42,6 +42,16 @@ def _env_int_or_default(name: str, default: str) -> int:
         raise ValueError(f"{name} must be an integer") from exc
 
 
+def _env_bool_or_default(name: str, default: str) -> bool:
+    """Return an environment boolean or raise a clear configuration error."""
+    value = _env_or_default(name, default).strip().lower()
+    if value in ("1", "true", "yes", "on"):
+        return True
+    if value in ("0", "false", "no", "off"):
+        return False
+    raise ValueError(f"{name} must be a boolean (true/false/yes/no/on/off)")
+
+
 class AppConfig:
     """Application configuration."""
 
@@ -112,6 +122,16 @@ class AppConfig:
         # Persona configuration (V7-A)
         self.persona_name: str = _env_or_default("PERSONA_NAME", "小云")
         self.persona_user_address: str = _env_or_default("PERSONA_USER_ADDRESS", "你")
+
+        # Memory configuration (V8-G)
+        # Note: MEMORY_CONTEXT_ENABLED defaults to False (read-only memory context disabled)
+        # When disabled, no memory file is read and no memory context is injected.
+        self.memory_context_enabled: bool = _env_bool_or_default(
+            "MEMORY_CONTEXT_ENABLED", "false"
+        )
+        self.memory_store_path: str = _env_or_default(
+            "MEMORY_STORE_PATH", ".tmp/memory.json"
+        )
 
         # ASR recording configuration (V6-B1)
         self.asr_recording_output_dir: str = _env_or_default(
