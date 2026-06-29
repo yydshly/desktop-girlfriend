@@ -87,6 +87,9 @@ class DesktopViewModel:
         # Settings panel state (Phase 2-E)
         self.settings_visible: bool = False
         self.settings_text: str = ""
+        # System tray state (Phase 2-F)
+        self.tray_available: bool = False
+        self.hidden_to_tray: bool = False
 
     def handle_state_changed(self, event: BaseEvent) -> None:
         """Handle state.changed event and update display text.
@@ -428,6 +431,22 @@ class DesktopViewModel:
             text: The rendered settings text.
         """
         self.settings_text = text
+
+    def set_tray_available(self, available: bool) -> None:
+        """Set whether the system tray is available.
+
+        Args:
+            available: Whether the system tray is available on this platform.
+        """
+        self.tray_available = available
+
+    def set_hidden_to_tray(self, hidden: bool) -> None:
+        """Set whether the window is hidden to tray.
+
+        Args:
+            hidden: Whether the window is currently hidden to tray.
+        """
+        self.hidden_to_tray = hidden
 
     def set_product_status_view(self, view: ProductStatusView) -> None:
         """Set the product status view and update rendered text.
