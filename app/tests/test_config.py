@@ -327,3 +327,104 @@ def test_invalid_mimo_asr_timeout_raises_value_error(
 
     with pytest.raises(ValueError, match="MIMO_ASR_TIMEOUT_SECONDS must be a number"):
         AppConfig()
+
+
+# ASR recording config tests (V6-B1)
+
+
+def test_default_asr_recording_output_dir(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test default ASR recording output dir is .tmp/asr."""
+    clear_config_env(monkeypatch)
+    config = AppConfig()
+    assert config.asr_recording_output_dir == ".tmp/asr"
+
+
+def test_default_asr_recording_sample_rate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test default ASR recording sample rate is 16000."""
+    clear_config_env(monkeypatch)
+    config = AppConfig()
+    assert config.asr_recording_sample_rate == 16000
+
+
+def test_default_asr_recording_channels(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test default ASR recording channels is 1."""
+    clear_config_env(monkeypatch)
+    config = AppConfig()
+    assert config.asr_recording_channels == 1
+
+
+def test_default_asr_recording_max_seconds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test default ASR recording max seconds is 10.0."""
+    clear_config_env(monkeypatch)
+    config = AppConfig()
+    assert config.asr_recording_max_seconds == 10.0
+
+
+def test_env_vars_override_asr_recording_output_dir(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test ASR_RECORDING_OUTPUT_DIR env var is used."""
+    reset_config()
+    monkeypatch.setenv("ASR_RECORDING_OUTPUT_DIR", "/custom/recordings")
+    config = AppConfig()
+    assert config.asr_recording_output_dir == "/custom/recordings"
+
+
+def test_env_vars_override_asr_recording_sample_rate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test ASR_RECORDING_SAMPLE_RATE env var is used."""
+    reset_config()
+    monkeypatch.setenv("ASR_RECORDING_SAMPLE_RATE", "44100")
+    config = AppConfig()
+    assert config.asr_recording_sample_rate == 44100
+
+
+def test_env_vars_override_asr_recording_channels(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test ASR_RECORDING_CHANNELS env var is used."""
+    reset_config()
+    monkeypatch.setenv("ASR_RECORDING_CHANNELS", "2")
+    config = AppConfig()
+    assert config.asr_recording_channels == 2
+
+
+def test_env_vars_override_asr_recording_max_seconds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test ASR_RECORDING_MAX_SECONDS env var is used."""
+    reset_config()
+    monkeypatch.setenv("ASR_RECORDING_MAX_SECONDS", "30.0")
+    config = AppConfig()
+    assert config.asr_recording_max_seconds == 30.0
+
+
+def test_invalid_asr_recording_sample_rate_raises_value_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test invalid ASR_RECORDING_SAMPLE_RATE raises ValueError."""
+    reset_config()
+    monkeypatch.setenv("ASR_RECORDING_SAMPLE_RATE", "not-an-int")
+
+    with pytest.raises(ValueError, match="ASR_RECORDING_SAMPLE_RATE must be an integer"):
+        AppConfig()
+
+
+def test_invalid_asr_recording_channels_raises_value_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test invalid ASR_RECORDING_CHANNELS raises ValueError."""
+    reset_config()
+    monkeypatch.setenv("ASR_RECORDING_CHANNELS", "not-an-int")
+
+    with pytest.raises(ValueError, match="ASR_RECORDING_CHANNELS must be an integer"):
+        AppConfig()

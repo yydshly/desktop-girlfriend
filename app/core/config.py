@@ -33,6 +33,15 @@ def _env_float_or_default(name: str, default: str) -> float:
         raise ValueError(f"{name} must be a number") from exc
 
 
+def _env_int_or_default(name: str, default: str) -> int:
+    """Return an environment integer or raise a clear configuration error."""
+    value = _env_or_default(name, default)
+    try:
+        return int(value)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be an integer") from exc
+
+
 class AppConfig:
     """Application configuration."""
 
@@ -98,6 +107,20 @@ class AppConfig:
         self.mimo_asr_language: str = _env_or_default("MIMO_ASR_LANGUAGE", "auto")
         self.mimo_asr_timeout_seconds: float = _env_float_or_default(
             "MIMO_ASR_TIMEOUT_SECONDS", "30.0"
+        )
+
+        # ASR recording configuration (V6-B1)
+        self.asr_recording_output_dir: str = _env_or_default(
+            "ASR_RECORDING_OUTPUT_DIR", ".tmp/asr"
+        )
+        self.asr_recording_sample_rate: int = _env_int_or_default(
+            "ASR_RECORDING_SAMPLE_RATE", "16000"
+        )
+        self.asr_recording_channels: int = _env_int_or_default(
+            "ASR_RECORDING_CHANNELS", "1"
+        )
+        self.asr_recording_max_seconds: float = _env_float_or_default(
+            "ASR_RECORDING_MAX_SECONDS", "10.0"
         )
 
 
