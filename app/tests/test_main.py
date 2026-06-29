@@ -246,3 +246,15 @@ class TestPersonaWiring:
         registry = PromptRegistry(persona_prompt_builder=builder)
         # The system prompt should come from the builder
         assert len(registry.default_system_prompt) > 100
+
+    def test_persona_user_address_override_in_wiring(self) -> None:
+        """Test that PERSONA_USER_ADDRESS override appears in the system prompt."""
+        from dataclasses import replace
+
+        from app.brain.persona import DEFAULT_XIAOYUN_PERSONA, PersonaPromptBuilder
+        from app.brain.prompts.registry import PromptRegistry
+
+        custom = replace(DEFAULT_XIAOYUN_PERSONA, name="小云", user_address="大大")
+        registry = PromptRegistry(persona_prompt_builder=PersonaPromptBuilder(custom))
+        assert "大大" in registry.default_system_prompt
+        assert "你通常称呼用户为「大大」" in registry.default_system_prompt

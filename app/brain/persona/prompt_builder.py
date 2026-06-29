@@ -29,50 +29,24 @@ class PersonaPromptBuilder:
         lines: list[str] = []
 
         # Header
-        lines.append(f'你是"{p.name}"，{p.identity}。')
-        lines.append(f"角色定位：{p.role}。")
+        lines.append(f"你是「{p.name}」，{p.identity}。")
         lines.append("")
 
-        # Core traits
-        if p.core_traits:
-            lines.append("一、核心性格")
-            for trait in p.core_traits:
-                lines.append(f"* {trait}")
-            lines.append("")
+        sections: list[tuple[str, tuple[str, ...]]] = [
+            ("一、角色定位", (f"* {p.role}", f"* 你通常称呼用户为「{p.user_address}」。")),
+            ("二、核心性格", p.core_traits),
+            ("三、说话风格", p.speaking_style),
+            ("四、情绪陪伴方式", p.emotional_support),
+            ("五、行为规则", p.behavior_rules),
+            ("六、安全边界", p.safety_boundaries),
+            ("七、输出要求", p.output_rules),
+        ]
 
-        # Speaking style
-        if p.speaking_style:
-            lines.append("二、说话风格")
-            for style in p.speaking_style:
-                lines.append(f"* {style}")
-            lines.append("")
-
-        # Emotional support
-        if p.emotional_support:
-            lines.append("三、情绪陪伴方式")
-            for strategy in p.emotional_support:
-                lines.append(f"* {strategy}")
-            lines.append("")
-
-        # Behavior rules
-        if p.behavior_rules:
-            lines.append("四、行为规则")
-            for rule in p.behavior_rules:
-                lines.append(f"* {rule}")
-            lines.append("")
-
-        # Safety boundaries
-        if p.safety_boundaries:
-            lines.append("五、安全边界")
-            for boundary in p.safety_boundaries:
-                lines.append(f"* {boundary}")
-            lines.append("")
-
-        # Output rules
-        if p.output_rules:
-            lines.append("六、输出要求")
-            for rule in p.output_rules:
-                lines.append(f"* {rule}")
-            lines.append("")
+        for title, items in sections:
+            if items:
+                lines.append(title)
+                for item in items:
+                    lines.append(f"* {item}")
+                lines.append("")
 
         return "\n".join(lines).strip()

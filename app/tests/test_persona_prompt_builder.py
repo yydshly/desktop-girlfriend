@@ -126,3 +126,36 @@ class TestPersonaPromptBuilder:
         assert "不说谎" in prompt
         assert "不做坏事" in prompt
         assert "简短回复" in prompt
+
+    def test_user_address_appears_in_correct_format(self) -> None:
+        """Test user_address appears in the prompt in the expected format."""
+        prompt = self._make_builder().build_system_prompt()
+        assert "你通常称呼用户为「你」" in prompt
+
+    def test_custom_user_address_in_prompt(self) -> None:
+        """Test custom user_address appears in the generated prompt."""
+        custom = PersonaProfile(
+            name="小爱",
+            identity="一个测试AI",
+            role="测试角色",
+            user_address="大大",
+            core_traits=(),
+            speaking_style=(),
+            emotional_support=(),
+            behavior_rules=(),
+            safety_boundaries=(),
+            output_rules=(),
+        )
+        prompt = PersonaPromptBuilder(custom).build_system_prompt()
+        assert "大大" in prompt
+        assert "你通常称呼用户为「大大」" in prompt
+
+    def test_section_one_identity_present(self) -> None:
+        """Test that section 一、角色定位 is present in the prompt."""
+        prompt = self._make_builder().build_system_prompt()
+        assert "一、角色定位" in prompt
+
+    def test_section_seven_output_rules_present(self) -> None:
+        """Test that section 七、输出要求 is present in the prompt."""
+        prompt = self._make_builder().build_system_prompt()
+        assert "七、输出要求" in prompt
