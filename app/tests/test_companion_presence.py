@@ -43,7 +43,7 @@ class TestRenderCompanionStatusText:
 
     def test_proactive(self) -> None:
         """PROACTIVE returns proactive companion status text."""
-        assert render_companion_status_text(AvatarAction.PROACTIVE) == "我刚刚主动出现了一下。"
+        assert render_companion_status_text(AvatarAction.PROACTIVE) == "我看到你安静了一会儿，就来陪你一下。"
 
     def test_error(self) -> None:
         """ERROR returns error companion status text."""
@@ -128,7 +128,7 @@ class TestViewModelCompanionPresence:
             payload={"text": "我在这儿。"},
         )
         vm.handle_proactive_nudge_ready(event)
-        assert vm.companion_status_text == "我刚刚主动出现了一下。"
+        assert vm.companion_status_text == "我看到你安静了一会儿，就来陪你一下。"
 
     def test_conversation_cleared_resets_companion_status_text_to_idle(self) -> None:
         """conversation.cleared resets companion_status_text to idle text."""

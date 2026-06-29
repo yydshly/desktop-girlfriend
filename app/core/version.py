@@ -11,9 +11,9 @@ class AppVersion:
     release_stage: str
 
 
-_DEFAULT_VERSION = "0.1.0-rc.3"
-_RELEASE_NAME = "Desktop Girlfriend RC v0"
-_RELEASE_STAGE = "release-candidate"
+_DEFAULT_VERSION = "0.2.0-alpha.1"
+_RELEASE_NAME = "Desktop Girlfriend Alpha"
+_RELEASE_STAGE = "alpha"
 
 
 def read_version(version_file: Path | None = None) -> str:

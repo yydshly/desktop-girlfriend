@@ -21,7 +21,7 @@ class TestVersionFile:
     @staticmethod
     def test_version_content() -> None:
         content = (REPO_ROOT / "VERSION").read_text(encoding="utf-8").strip()
-        assert content == "0.1.0-rc.3"
+        assert content == "0.2.0-alpha.1"
 
 
 class TestReadVersion:
@@ -40,7 +40,7 @@ class TestReadVersion:
 
     @staticmethod
     def test_read_version_missing_file() -> None:
-        assert read_version(Path("/nonexistent/version/file")) == "0.1.0-rc.3"
+        assert read_version(Path("/nonexistent/version/file")) == "0.2.0-alpha.1"
 
 
 class TestGetAppVersion:
@@ -52,12 +52,12 @@ class TestGetAppVersion:
     @staticmethod
     def test_get_app_version_version() -> None:
         ver = get_app_version()
-        assert ver.version == "0.1.0-rc.3"
+        assert ver.version == "0.2.0-alpha.1"
 
     @staticmethod
     def test_get_app_version_release_stage() -> None:
         ver = get_app_version()
-        assert ver.release_stage == "release-candidate"
+        assert ver.release_stage == "alpha"
 
 
 class TestProductStatusBuilder:
@@ -79,7 +79,7 @@ class TestProductStatusBuilder:
         labels = [item.label for item in view.items]
         details = [item.detail for item in view.items]
         assert "版本" in labels
-        assert "0.1.0-rc.3" in details
+        assert "0.2.0-alpha.1" in details
 
     @staticmethod
     def test_build_with_app_version_includes_release_stage() -> None:
@@ -92,7 +92,7 @@ class TestProductStatusBuilder:
         labels = [item.label for item in view.items]
         details = [item.detail for item in view.items]
         assert "发布阶段" in labels
-        assert "release-candidate" in details
+        assert "alpha" in details
 
 
 class TestRcDocContent:
