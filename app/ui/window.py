@@ -97,7 +97,8 @@ class DesktopWindow(QMainWindow):
         header_layout = QHBoxLayout(header_widget)
         header_layout.setContentsMargins(10, 10, 10, 10)
 
-        self._avatar_label = QLabel(self._view_model.companion_avatar_text)
+        self._avatar_label = QLabel(self._view_model.effective_avatar_text)
+        self._avatar_label.setToolTip(self._view_model.effective_avatar_label)
         self._avatar_label.setStyleSheet(
             "font-size: 28px; min-width: 48px; max-width: 48px; "
             "min-height: 48px; max-height: 48px; "
@@ -281,7 +282,8 @@ class DesktopWindow(QMainWindow):
         """Update UI from view model state."""
         self._name_label.setText(self._view_model.companion_name)
         self._subtitle_label.setText(self._view_model.companion_subtitle)
-        self._avatar_label.setText(self._view_model.companion_avatar_text)
+        self._avatar_label.setText(self._view_model.effective_avatar_text)
+        self._avatar_label.setToolTip(self._view_model.effective_avatar_label)
         self._state_label.setText(self._view_model.effective_display_text)
         self._chat_history.setPlainText(
             render_chat_messages(self._view_model.chat_messages)
