@@ -406,6 +406,9 @@ class DesktopViewModel:
     def toggle_product_status_visible(self) -> None:
         """Toggle the product status panel visibility."""
         self.product_status_visible = not self.product_status_visible
+        # Mutual exclusivity: opening product status closes settings
+        if self.product_status_visible:
+            self.settings_visible = False
 
     def toggle_always_on_top(self) -> None:
         """Toggle the always-on-top window flag (Phase 2-D)."""

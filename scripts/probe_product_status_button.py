@@ -101,6 +101,60 @@ def main() -> int:
         print("toggle off: FAIL")
         return 1
 
+    # Test mutual exclusivity: product status and settings cannot both be visible
+    from app.core.config import AppConfig
+    from app.ui.settings_view import build_settings_view, render_settings_view_text
+
+    config = AppConfig()
+    settings_view = build_settings_view(config)
+    settings_text = render_settings_view_text(settings_view)
+    view_model.set_settings_text(settings_text)
+
+    def on_settings_clicked() -> None:
+        view_model.toggle_settings_visible()
+        window.update_from_view_model()
+
+    # Create new window with settings callback
+    window2 = DesktopWindow(
+        view_model=view_model,
+        on_user_text_submitted=lambda text: None,
+        on_conversation_cleared=lambda: None,
+        on_product_status_requested=on_status_requested,
+    )
+    window2._settings_button.clicked.connect(on_settings_clicked)
+    window2.show()
+    window2.update_from_view_model()
+
+    # Open settings first - call handler directly to avoid double-toggle
+    # (window already has _handle_settings_clicked connected to _settings_button.clicked)
+    window2._handle_settings_clicked()
+    QApplication.instance().processEvents()
+    if not view_model.settings_visible:
+        print("Product Status Button Probe")
+        print("mutual exclusion: FAIL (settings not opened)")
+        return 1
+    if view_model.product_status_visible:
+        print("Product Status Button Probe")
+        print("mutual exclusion: FAIL (product status visible after opening settings)")
+        return 1
+    print("Product Status Button Probe")
+    print("mutual exclusion: OK (settings opens, product status closed)")
+
+    # Open product status - should close settings
+    # Call handler directly (window already has _handle_product_status_clicked connected)
+    window2._handle_product_status_clicked()
+    QApplication.instance().processEvents()
+    if view_model.settings_visible:
+        print("Product Status Button Probe")
+        print("mutual exclusion: FAIL (settings still visible after opening status)")
+        return 1
+    if not view_model.product_status_visible:
+        print("Product Status Button Probe")
+        print("mutual exclusion: FAIL (product status not opened)")
+        return 1
+    print("Product Status Button Probe")
+    print("mutual exclusion: OK (status opens, settings closed)")
+
     print("Product Status Button Probe")
     print("button wiring: OK")
     print("panel visible: OK")

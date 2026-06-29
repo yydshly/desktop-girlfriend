@@ -405,11 +405,7 @@ class DesktopWindow(QMainWindow):
         Mutual exclusivity: opening settings closes product status.
         """
         self._view_model.toggle_settings_visible()
-        self._settings_panel.setVisible(self._view_model.settings_visible)
-        # Sync status panel visibility (should already be false due to mutual exclusion)
-        if self._view_model.settings_visible and self._view_model.product_status_visible:
-            self._view_model.product_status_visible = False
-            self._product_status_panel.setVisible(False)
+        self.update_from_view_model()
 
     def _on_hide_clicked(self) -> None:
         """Handle hide button click (Phase 2-F)."""

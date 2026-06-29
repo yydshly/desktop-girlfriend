@@ -115,6 +115,52 @@ class TestViewModelSettingsMethods:
         assert vm.settings_visible is True
         assert vm.product_status_visible is False
 
+    def test_enter_product_status_closes_settings(self) -> None:
+        """Opening product status closes settings panel."""
+        vm = DesktopViewModel()
+        vm.set_settings_text("test settings")
+        vm.toggle_settings_visible()
+        assert vm.settings_visible is True
+        vm.toggle_product_status_visible()
+        assert vm.product_status_visible is True
+        assert vm.settings_visible is False
+
+    def test_toggle_settings_does_not_affect_memory_panel(self) -> None:
+        """Toggling settings does not affect memory panel visibility."""
+        vm = DesktopViewModel()
+        vm.toggle_memory_panel()
+        assert vm.memory_panel_visible is True
+        vm.toggle_settings_visible()
+        assert vm.settings_visible is True
+        assert vm.memory_panel_visible is True  # memory panel unaffected
+
+    def test_toggle_product_status_does_not_affect_memory_panel(self) -> None:
+        """Toggling product status does not affect memory panel visibility."""
+        vm = DesktopViewModel()
+        vm.toggle_memory_panel()
+        assert vm.memory_panel_visible is True
+        vm.toggle_product_status_visible()
+        assert vm.product_status_visible is True
+        assert vm.memory_panel_visible is True  # memory panel unaffected
+
+    def test_compact_mode_closes_settings(self) -> None:
+        """Entering compact mode closes settings panel."""
+        vm = DesktopViewModel()
+        vm.toggle_settings_visible()
+        assert vm.settings_visible is True
+        vm.toggle_compact_mode()
+        assert vm.compact_mode is True
+        assert vm.settings_visible is False
+
+    def test_compact_mode_closes_product_status(self) -> None:
+        """Entering compact mode closes product status panel."""
+        vm = DesktopViewModel()
+        vm.toggle_product_status_visible()
+        assert vm.product_status_visible is True
+        vm.toggle_compact_mode()
+        assert vm.compact_mode is True
+        assert vm.product_status_visible is False
+
     def test_set_settings_text(self) -> None:
         """set_settings_text updates settings_text."""
         vm = DesktopViewModel()
@@ -248,6 +294,102 @@ class TestWindowSettingsPanel:
         window._product_status_button.pressed.emit()
         qapp.processEvents()
         assert vm.product_status_visible is True
+
+    @staticmethod
+    def test_settings_status_mutual_exclusion_settings_first(qapp: QApplication) -> None:
+        """Settings and product status panels are mutually exclusive - settings opens first."""
+        vm = DesktopViewModel()
+        vm.set_settings_text("test settings")
+        vm.set_product_status_view(
+            ProductStatusView(items=(ProductStatusItem("对话", True, "已启用"),))
+        )
+
+        def on_status() -> None:
+            vm.toggle_product_status_visible()
+            vm.set_product_status_view(
+                ProductStatusView(items=(ProductStatusItem("对话", True, "已启用"),))
+            )
+            window.update_from_view_model()
+
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_product_status_requested=on_status,
+        )
+        window.show()
+
+        # Open settings
+        window._settings_button.clicked.emit()
+        qapp.processEvents()
+        assert vm.settings_visible is True
+        assert vm.product_status_visible is False
+        assert window._settings_panel.isVisible() is True
+        assert window._product_status_panel.isVisible() is False
+
+        # Click status - settings should close, status should open
+        window._product_status_button.pressed.emit()
+        qapp.processEvents()
+        assert vm.settings_visible is False
+        assert vm.product_status_visible is True
+        assert window._settings_panel.isVisible() is False
+        assert window._product_status_panel.isVisible() is True
+
+        # Click settings - status should close, settings should open
+        window._settings_button.clicked.emit()
+        qapp.processEvents()
+        assert vm.settings_visible is True
+        assert vm.product_status_visible is False
+        assert window._settings_panel.isVisible() is True
+        assert window._product_status_panel.isVisible() is False
+
+    @staticmethod
+    def test_settings_status_mutual_exclusion_status_first(qapp: QApplication) -> None:
+        """Settings and product status panels are mutually exclusive - status opens first."""
+        vm = DesktopViewModel()
+        vm.set_settings_text("test settings")
+        vm.set_product_status_view(
+            ProductStatusView(items=(ProductStatusItem("对话", True, "已启用"),))
+        )
+
+        def on_status() -> None:
+            vm.toggle_product_status_visible()
+            vm.set_product_status_view(
+                ProductStatusView(items=(ProductStatusItem("对话", True, "已启用"),))
+            )
+            window.update_from_view_model()
+
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_product_status_requested=on_status,
+        )
+        window.show()
+
+        # Open status first
+        window._product_status_button.pressed.emit()
+        qapp.processEvents()
+        assert vm.product_status_visible is True
+        assert vm.settings_visible is False
+        assert window._product_status_panel.isVisible() is True
+        assert window._settings_panel.isVisible() is False
+
+        # Click settings - status should close, settings should open
+        window._settings_button.clicked.emit()
+        qapp.processEvents()
+        assert vm.settings_visible is True
+        assert vm.product_status_visible is False
+        assert window._settings_panel.isVisible() is True
+        assert window._product_status_panel.isVisible() is False
+
+        # Click status again - settings should close, status should open
+        window._product_status_button.pressed.emit()
+        qapp.processEvents()
+        assert vm.product_status_visible is True
+        assert vm.settings_visible is False
+        assert window._product_status_panel.isVisible() is True
+        assert window._settings_panel.isVisible() is False
 
     @staticmethod
     def test_compact_mode_hides_settings_button(qapp: QApplication) -> None:
