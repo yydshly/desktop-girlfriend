@@ -231,3 +231,17 @@ class MemoryDeletedPayload:
     def to_event_payload(self) -> Payload:
         """Convert the payload to an event-safe dictionary."""
         return {"record_id": self.record_id}
+
+
+# Proactive nudge payloads (V9-A)
+
+
+@dataclass
+class ProactiveNudgeReadyPayload:
+    """Payload for proactive.nudge_ready events."""
+
+    text: str
+
+    def to_event_payload(self) -> Payload:
+        """Convert the payload to an event-safe dictionary."""
+        return {"text": self.text}

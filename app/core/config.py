@@ -147,6 +147,21 @@ class AppConfig:
             "MEMORY_MANAGEMENT_ENABLED", "false"
         )
 
+        # Proactive nudge configuration (V9-A)
+        # Note: PROACTIVE_ENABLED defaults to False.
+        self.proactive_enabled: bool = _env_bool_or_default(
+            "PROACTIVE_ENABLED", "false"
+        )
+        self.proactive_idle_seconds: int = _env_int_or_default(
+            "PROACTIVE_IDLE_SECONDS", "300"
+        )
+        self.proactive_cooldown_seconds: int = _env_int_or_default(
+            "PROACTIVE_COOLDOWN_SECONDS", "1800"
+        )
+        self.proactive_max_per_session: int = _env_int_or_default(
+            "PROACTIVE_MAX_PER_SESSION", "3"
+        )
+
         # ASR recording configuration (V6-B1)
         self.asr_recording_output_dir: str = _env_or_default(
             "ASR_RECORDING_OUTPUT_DIR", ".tmp/asr"
