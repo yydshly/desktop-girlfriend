@@ -119,6 +119,16 @@ def main() -> None:
     # Initialize session history before DesktopWindow so callback can reference it
     session_history = CurrentSessionHistory(max_turns=6)
 
+    # V12-rc2: Pre-build product status view so first button click works immediately
+    view_model.set_product_status_view(
+        build_product_status_view(
+            config=config,
+            avatar_action=view_model.avatar_action,
+            startup_diagnostics=startup_diagnostics,
+            app_version=app_version,
+        )
+    )
+
     # Callback to submit user text via EventBus
     def submit_user_text(text: str) -> None:
         event_bus.publish(
@@ -221,6 +231,8 @@ def main() -> None:
                 app_version=app_version,
             )
         )
+        # V12-rc2: update UI immediately so first click works before any events
+        window.update_from_view_model()
 
     window = DesktopWindow(
         view_model,
