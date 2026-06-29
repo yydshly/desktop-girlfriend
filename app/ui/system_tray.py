@@ -22,6 +22,7 @@ class DesktopSystemTrayController:
         self,
         window: Any,
         on_quit: Callable[[], None],
+        on_restore: Callable[[], None] | None = None,
         tray_view: TrayView | None = None,
     ) -> None:
         """Initialize the system tray controller.
@@ -29,10 +30,12 @@ class DesktopSystemTrayController:
         Args:
             window: The main application window to show/hide.
             on_quit: Callback invoked when the user selects quit from tray menu.
+            on_restore: Optional callback invoked when the window is restored.
             tray_view: Optional TrayView for menu text; defaults to build_tray_view().
         """
         self._window = window
         self._on_quit = on_quit
+        self._on_restore = on_restore
         self._tray_view = tray_view or build_tray_view()
         self._tray: QSystemTrayIcon | None = None
         self._menu: QMenu | None = None
@@ -115,6 +118,8 @@ class DesktopSystemTrayController:
             self._window.show()
             self._window.raise_()
             self._window.activateWindow()
+        if self._on_restore is not None:
+            self._on_restore()
 
     def _handle_quit(self) -> None:
         """Handle quit action from tray menu."""

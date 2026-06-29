@@ -21,6 +21,8 @@ from collections.abc import Callable
 
 from app.brain.memory.runtime import MemoryRuntimeService
 from app.contracts.events import (
+    MEMORY_ADD_REQUESTED,
+    MEMORY_ADDED,
     MEMORY_CONFIRM_REQUESTED,
     MEMORY_CONFIRMED,
     MEMORY_DELETE_REQUESTED,
@@ -35,6 +37,7 @@ from app.contracts.events import (
     BaseEvent,
 )
 from app.contracts.payloads import (
+    MemoryAddedPayload,
     MemoryConfirmedPayload,
     MemoryDeletedPayload,
     MemoryErrorPayload,
@@ -80,6 +83,7 @@ class MemorySuggestionController:
         self._subscribe(USER_TEXT_SUBMITTED, self._on_user_text_submitted)
         self._subscribe(MEMORY_CONFIRM_REQUESTED, self._on_memory_confirm_requested)
         self._subscribe(MEMORY_REJECT_REQUESTED, self._on_memory_reject_requested)
+        self._subscribe(MEMORY_ADD_REQUESTED, self._on_memory_add_requested)
         self._subscribe(MEMORY_LIST_REQUESTED, self._on_memory_list_requested)
         self._subscribe(MEMORY_DELETE_REQUESTED, self._on_memory_delete_requested)
 
@@ -94,6 +98,7 @@ class MemorySuggestionController:
         self._unsubscribe(USER_TEXT_SUBMITTED, self._on_user_text_submitted)
         self._unsubscribe(MEMORY_CONFIRM_REQUESTED, self._on_memory_confirm_requested)
         self._unsubscribe(MEMORY_REJECT_REQUESTED, self._on_memory_reject_requested)
+        self._unsubscribe(MEMORY_ADD_REQUESTED, self._on_memory_add_requested)
         self._unsubscribe(MEMORY_LIST_REQUESTED, self._on_memory_list_requested)
         self._unsubscribe(MEMORY_DELETE_REQUESTED, self._on_memory_delete_requested)
 
@@ -216,6 +221,34 @@ class MemorySuggestionController:
                     rejected_id=rejected.id,
                     kind=rejected.candidate.kind.value,
                     reason=rejected.reason,
+                ).to_event_payload(),
+            )
+        )
+
+    def _on_memory_add_requested(self, event: BaseEvent) -> None:
+        """Handle manual memory add request by persisting a record."""
+        text = event.payload.get("text")
+        if not isinstance(text, str) or not text.strip():
+            self._dispatch_memory_error("Manual memory text cannot be blank")
+            return
+
+        try:
+            record = self._runtime.add_manual_record(text)
+        except Exception:
+            logger.exception("Manual memory add failed")
+            self._dispatch_memory_error("Manual memory add failed")
+            return
+
+        self._dispatch_event(
+            BaseEvent(
+                event_type=MEMORY_ADDED,
+                request_id=event.request_id or str(uuid.uuid4()),
+                source="memory_suggestion_controller",
+                payload=MemoryAddedPayload(
+                    record_id=record.id,
+                    kind=record.kind.value,
+                    importance=record.importance.value,
+                    text=record.text,
                 ).to_event_payload(),
             )
         )

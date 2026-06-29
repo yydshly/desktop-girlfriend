@@ -12,6 +12,12 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication
 
+from app.contracts.events import STATE_CHANGED, BaseEvent
+from app.contracts.states import AppState
+from app.core.config import AppConfig
+from app.core.startup_diagnostics import StartupDiagnostics
+from app.core.version import AppVersion
+from app.main import refresh_product_status_view
 from app.ui.product_status import ProductStatusItem, ProductStatusView
 from app.ui.view_model import DesktopViewModel
 from app.ui.window import DesktopWindow
@@ -174,3 +180,36 @@ class TestProductStatusButton:
         window._product_status_button.pressed.emit()
         qapp.processEvents()
         assert call_count[0] == 1, "callback should be called once per press"
+
+
+class TestProductStatusRefresh:
+    """Tests for refreshing product status before visible panel updates."""
+
+    @staticmethod
+    def test_refresh_product_status_view_uses_latest_avatar_state() -> None:
+        """Refreshing the status view reflects the latest avatar action."""
+        view_model = DesktopViewModel()
+        view_model.handle_state_changed(
+            BaseEvent(
+                event_type=STATE_CHANGED,
+                request_id="req",
+                source="test",
+                payload={
+                    "previous_state": AppState.IDLE.value,
+                    "current_state": AppState.THINKING.value,
+                },
+            )
+        )
+
+        refresh_product_status_view(
+            view_model=view_model,
+            config=AppConfig(),
+            startup_diagnostics=StartupDiagnostics(issues=()),
+            app_version=AppVersion(
+                version="test",
+                release_name="test",
+                release_stage="test",
+            ),
+        )
+
+        assert "thinking" in view_model.product_status_text

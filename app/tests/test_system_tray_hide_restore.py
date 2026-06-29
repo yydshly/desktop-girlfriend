@@ -120,6 +120,31 @@ class TestViewModelTrayFields:
         assert vm.settings_visible is False
 
 
+class TestSystemTrayControllerCallbacks:
+    """Tests for tray controller state callbacks."""
+
+    @staticmethod
+    def test_restore_window_calls_restore_callback(qapp: QApplication) -> None:
+        """Restoring from tray notifies app state."""
+        from app.ui.system_tray import DesktopSystemTrayController
+
+        restored = False
+
+        def on_restore() -> None:
+            nonlocal restored
+            restored = True
+
+        controller = DesktopSystemTrayController(
+            window=None,
+            on_quit=lambda: None,
+            on_restore=on_restore,
+        )
+
+        controller.restore_window()
+
+        assert restored is True
+
+
 class TestWindowHideButton:
     """Tests for DesktopWindow hide button."""
 
@@ -167,6 +192,7 @@ class TestWindowHideButton:
     def test_hide_button_triggers_callback(qapp: QApplication) -> None:
         """Clicking hide button triggers on_hide_requested callback."""
         vm = DesktopViewModel()
+        vm.set_tray_available(True)
         hide_called = False
 
         def on_hide() -> None:
@@ -180,11 +206,28 @@ class TestWindowHideButton:
             on_hide_requested=on_hide,
         )
         window.show()
+        window.update_from_view_model()
 
         window._hide_button.clicked.emit()
         qapp.processEvents()
 
         assert hide_called is True
+
+    @staticmethod
+    def test_hide_button_disabled_when_tray_unavailable(qapp: QApplication) -> None:
+        """Hide button is disabled when the system tray is unavailable."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_hide_requested=lambda: None,
+        )
+        window.show()
+        window.update_from_view_model()
+
+        assert window._hide_button.isEnabled() is False
+        assert "托盘不可用" in window._hide_button.toolTip()
 
     @staticmethod
     def test_status_button_still_works(qapp: QApplication) -> None:

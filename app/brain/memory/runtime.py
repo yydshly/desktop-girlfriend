@@ -18,9 +18,11 @@ from app.brain.memory.repository import (
     MemoryRecord,
     MemoryRepository,
     memory_record_from_confirmed,
+    new_memory_record_id,
+    utc_now,
 )
 from app.brain.memory.session_context import SessionMemoryContextBuilder
-from app.brain.memory.types import MemoryCandidate
+from app.brain.memory.types import MemoryCandidate, MemoryImportance, MemoryKind
 
 
 @dataclass(frozen=True)
@@ -109,6 +111,25 @@ class MemoryRuntimeService:
     def list_active_records(self) -> tuple[MemoryRecord, ...]:
         """List all active (non-deleted) memory records."""
         return self._repository.list_active()
+
+    def add_manual_record(self, text: str) -> MemoryRecord:
+        """Persist a memory record manually entered by the user."""
+        cleaned = text.strip()
+        if not cleaned:
+            raise ValueError("manual memory text must not be blank")
+
+        now = utc_now()
+        record = MemoryRecord(
+            id=new_memory_record_id(),
+            kind=MemoryKind.OTHER,
+            importance=MemoryImportance.MEDIUM,
+            text=cleaned,
+            source="manual_ui",
+            created_at=now,
+            updated_at=now,
+        )
+        self._repository.add(record)
+        return record
 
     def list_all_records(self) -> tuple[MemoryRecord, ...]:
         """List all memory records including deleted."""

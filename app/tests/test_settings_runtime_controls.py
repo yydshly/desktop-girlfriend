@@ -125,23 +125,37 @@ class TestViewModelSettingsMethods:
         assert vm.product_status_visible is True
         assert vm.settings_visible is False
 
-    def test_toggle_settings_does_not_affect_memory_panel(self) -> None:
-        """Toggling settings does not affect memory panel visibility."""
+    def test_enter_settings_closes_memory_panel(self) -> None:
+        """Opening settings closes memory panel."""
         vm = DesktopViewModel()
         vm.toggle_memory_panel()
         assert vm.memory_panel_visible is True
         vm.toggle_settings_visible()
         assert vm.settings_visible is True
-        assert vm.memory_panel_visible is True  # memory panel unaffected
+        assert vm.memory_panel_visible is False
 
-    def test_toggle_product_status_does_not_affect_memory_panel(self) -> None:
-        """Toggling product status does not affect memory panel visibility."""
+    def test_enter_product_status_closes_memory_panel(self) -> None:
+        """Opening product status closes memory panel."""
         vm = DesktopViewModel()
         vm.toggle_memory_panel()
         assert vm.memory_panel_visible is True
         vm.toggle_product_status_visible()
         assert vm.product_status_visible is True
-        assert vm.memory_panel_visible is True  # memory panel unaffected
+        assert vm.memory_panel_visible is False
+
+    def test_enter_memory_panel_closes_settings_and_product_status(self) -> None:
+        """Opening memory panel closes settings and product status panels."""
+        vm = DesktopViewModel()
+        vm.toggle_settings_visible()
+        vm.toggle_product_status_visible()
+        assert vm.product_status_visible is True
+        assert vm.settings_visible is False
+
+        vm.toggle_memory_panel()
+
+        assert vm.memory_panel_visible is True
+        assert vm.settings_visible is False
+        assert vm.product_status_visible is False
 
     def test_compact_mode_closes_settings(self) -> None:
         """Entering compact mode closes settings panel."""
@@ -160,6 +174,15 @@ class TestViewModelSettingsMethods:
         vm.toggle_compact_mode()
         assert vm.compact_mode is True
         assert vm.product_status_visible is False
+
+    def test_compact_mode_closes_memory_panel(self) -> None:
+        """Entering compact mode closes memory panel."""
+        vm = DesktopViewModel()
+        vm.toggle_memory_panel()
+        assert vm.memory_panel_visible is True
+        vm.toggle_compact_mode()
+        assert vm.compact_mode is True
+        assert vm.memory_panel_visible is False
 
     def test_set_settings_text(self) -> None:
         """set_settings_text updates settings_text."""

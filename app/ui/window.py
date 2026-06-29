@@ -243,6 +243,11 @@ class DesktopWindow(QMainWindow):
         self._settings_panel_layout.setContentsMargins(10, 8, 10, 8)
         self._settings_scroll = QScrollArea()
         self._settings_scroll.setWidgetResizable(True)
+        self._settings_scroll.setMinimumHeight(180)
+        self._settings_scroll.setMaximumHeight(260)
+        self._settings_scroll.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
         self._settings_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
         self._settings_scroll.setStyleSheet("background: transparent; border: none;")
         self._settings_text = QLabel()
@@ -319,6 +324,12 @@ class DesktopWindow(QMainWindow):
         self._memory_panel_title.setStyleSheet(window_style.MEMORY_PANEL_TITLE_STYLE)
         self._memory_panel_layout.addWidget(self._memory_panel_title)
 
+        self._memory_panel_status = QLabel("")
+        self._memory_panel_status.setWordWrap(True)
+        self._memory_panel_status.setStyleSheet(window_style.MEMORY_PANEL_PRIVACY_STYLE)
+        self._memory_panel_status.setVisible(False)
+        self._memory_panel_layout.addWidget(self._memory_panel_status)
+
         self._memory_panel_privacy = QLabel("")
         self._memory_panel_privacy.setWordWrap(True)
         self._memory_panel_privacy.setStyleSheet(window_style.MEMORY_PANEL_PRIVACY_STYLE)
@@ -329,15 +340,25 @@ class DesktopWindow(QMainWindow):
         self._memory_panel_text.setStyleSheet(window_style.MEMORY_PANEL_TEXT_STYLE)
         self._memory_panel_layout.addWidget(self._memory_panel_text)
 
-        self._memory_delete_first_button = QPushButton("删除这条记忆")
-        self._memory_delete_first_button.setStyleSheet(window_style.DESTRUCTIVE_BUTTON_STYLE)
-        self._memory_delete_first_button.clicked.connect(self._on_memory_delete_first_clicked)
-        self._memory_panel_layout.addWidget(self._memory_delete_first_button)
+        self._memory_delete_record_buttons: list[QPushButton] = []
+        for index in range(5):
+            button = QPushButton(f"删除第 {index + 1} 条记忆")
+            button.setStyleSheet(window_style.DESTRUCTIVE_BUTTON_STYLE)
+            button.clicked.connect(
+                lambda _checked=False, record_index=index: self._on_memory_delete_clicked(
+                    record_index
+                )
+            )
+            button.setVisible(False)
+            self._memory_delete_record_buttons.append(button)
+            self._memory_panel_layout.addWidget(button)
+        self._memory_delete_first_button = self._memory_delete_record_buttons[0]
 
         # Phase 3-C: Manual memory add input row
         self._memory_manual_input = QLineEdit()
         self._memory_manual_input.setPlaceholderText("想让小云记住什么...")
         self._memory_manual_input.setStyleSheet("padding: 4px; font-size: 13px;")
+        self._memory_manual_input.returnPressed.connect(self._on_memory_add_manual_clicked)
         self._memory_panel_layout.addWidget(self._memory_manual_input)
 
         memory_add_button_row = QWidget()
@@ -357,6 +378,7 @@ class DesktopWindow(QMainWindow):
         # Input field (Phase 2-B)
         self._input_field = QLineEdit()
         self._input_field.setPlaceholderText(get_input_placeholder())
+        self._input_field.returnPressed.connect(self._on_send_clicked)
         layout.addWidget(self._input_field)
 
         # Phase 2-D: Auxiliary button row — hidden in compact mode
@@ -397,6 +419,7 @@ class DesktopWindow(QMainWindow):
         self._hide_button.setStyleSheet(window_style.SECONDARY_BUTTON_STYLE)
         self._hide_button.clicked.connect(self._on_hide_clicked)
         self._hide_button.setVisible(on_hide_requested is not None)
+        self._hide_button.setEnabled(self._view_model.tray_available)
         aux_button_layout.addWidget(self._hide_button)
 
         aux_button_layout.addStretch()
@@ -459,21 +482,22 @@ class DesktopWindow(QMainWindow):
             self._on_memory_list_requested()
         self.update_from_view_model()
 
-    def _on_memory_delete_first_clicked(self) -> None:
-        """Handle delete first memory record button click."""
-        if not self._view_model.memory_records:
+    def _on_memory_delete_clicked(self, index: int) -> None:
+        """Handle delete memory record button click."""
+        if index < 0 or index >= len(self._view_model.memory_records):
             return
-        first = self._view_model.memory_records[0]
+        record = self._view_model.memory_records[index]
         if self._on_memory_delete_requested:
-            self._on_memory_delete_requested(first.record_id)
+            self._on_memory_delete_requested(record.record_id)
 
     def _on_memory_add_manual_clicked(self) -> None:
         """Handle manual memory add button click (Phase 3-C)."""
         text = self._memory_manual_input.text().strip()
         if not text:
             return
-        if self._on_add_manual_memory_requested:
-            self._on_add_manual_memory_requested(text)
+        if self._on_add_manual_memory_requested is None:
+            return
+        self._on_add_manual_memory_requested(text)
         self._memory_manual_input.clear()
         # Refresh memory list if panel is open
         if self._view_model.memory_panel_visible and self._on_memory_list_requested:
@@ -562,6 +586,11 @@ class DesktopWindow(QMainWindow):
         # Phase 2-D: Sync presence shell button texts
         self._pin_button.setText(render_pin_button_text(self._view_model.always_on_top))
         self._compact_button.setText(render_compact_button_text(self._view_model.compact_mode))
+        self._hide_button.setEnabled(self._view_model.tray_available)
+        if self._view_model.tray_available:
+            self._hide_button.setToolTip("隐藏到系统托盘")
+        else:
+            self._hide_button.setToolTip("托盘不可用，无法隐藏")
         # Phase 2-D: Sync compact mode layout
         self._aux_button_row.setVisible(not self._view_model.compact_mode)
 
@@ -598,6 +627,12 @@ class DesktopWindow(QMainWindow):
                 f"「{render_memory_suggestion_text(suggestion.text, max_chars=80)}」\n\n{suggestion_copy.body}"
             )
             self._memory_suggestion_privacy.setText(suggestion_copy.privacy_hint)
+            self._memory_confirm_button.setEnabled(
+                self._on_memory_confirm_requested is not None
+            )
+            self._memory_reject_button.setEnabled(
+                self._on_memory_reject_requested is not None
+            )
 
         # Update memory panel widget (V8-J / Phase 3-C)
         if not self._view_model.memory_panel_visible:
@@ -616,7 +651,17 @@ class DesktopWindow(QMainWindow):
                     lines.append(f"{i}. {truncated}")
                 self._memory_panel_text.setText("\n".join(lines))
             self._memory_panel_privacy.setText(panel_copy.privacy_body)
-            self._memory_delete_first_button.setEnabled(bool(records))
+            self._memory_panel_status.setText(self._view_model.memory_status_text)
+            self._memory_panel_status.setVisible(bool(self._view_model.memory_status_text))
+            self._memory_add_button.setEnabled(
+                self._on_add_manual_memory_requested is not None
+            )
+            for i, button in enumerate(self._memory_delete_record_buttons):
+                visible = i < len(records[:5])
+                button.setVisible(visible)
+                button.setEnabled(
+                    visible and self._on_memory_delete_requested is not None
+                )
 
         # Update product status panel (V11-A)
         self._product_status_panel.setVisible(self._view_model.product_status_visible)
@@ -635,8 +680,12 @@ class DesktopWindow(QMainWindow):
         self._send_button.setEnabled(not busy)
         self._input_field.setEnabled(not busy)
         self._new_conversation_button.setEnabled(not busy)
-        self._voice_input_button.setEnabled(not busy)
-        self._stop_speaking_button.setEnabled(is_speaking)
+        self._voice_input_button.setEnabled(
+            not busy and self._on_voice_input_requested is not None
+        )
+        self._stop_speaking_button.setEnabled(
+            is_speaking and self._on_tts_stop_requested is not None
+        )
 
     def closeEvent(self, event) -> None:  # noqa: N802 (Qt override)
         """Handle window close event (Phase 3-A).

@@ -281,6 +281,19 @@ class TestDesktopWindowStopSpeaking:
         # Should not raise
         window._stop_speaking_button.click()
 
+    def test_stop_button_disabled_when_callback_missing(self) -> None:
+        """Stop button is disabled when no stop callback is wired."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=MagicMock(),
+            on_conversation_cleared=MagicMock(),
+            on_tts_stop_requested=None,
+        )
+        vm.state = AppState.SPEAKING
+        window.update_from_view_model()
+        assert not window._stop_speaking_button.isEnabled()
+
 
 class TestDesktopWindowVoiceInput:
     """Tests for DesktopWindow voice input button."""
@@ -308,9 +321,22 @@ class TestDesktopWindowVoiceInput:
             vm,
             on_user_text_submitted=MagicMock(),
             on_conversation_cleared=MagicMock(),
+            on_voice_input_requested=MagicMock(),
         )
         window.update_from_view_model()
         assert window._voice_input_button.isEnabled()
+
+    def test_voice_input_button_disabled_when_callback_missing(self) -> None:
+        """Voice input button is disabled when no voice callback is wired."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=MagicMock(),
+            on_conversation_cleared=MagicMock(),
+            on_voice_input_requested=None,
+        )
+        window.update_from_view_model()
+        assert not window._voice_input_button.isEnabled()
 
     def test_voice_input_button_disabled_when_listening(self) -> None:
         """Test voice input button is disabled when LISTENING."""

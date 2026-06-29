@@ -5,6 +5,7 @@ from app.contracts.events import (
     ASR_TEXT_RECOGNIZED,
     ASSISTANT_TEXT_RECEIVED,
     CONVERSATION_CLEARED,
+    MEMORY_ADDED,
     MEMORY_CONFIRMED,
     MEMORY_DELETED,
     MEMORY_ERROR,
@@ -276,6 +277,13 @@ class DesktopViewModel:
         self.memory_suggestion = None
         self.memory_status_text = "已记住"
 
+    def handle_memory_added(self, event: BaseEvent) -> None:
+        """Handle memory.added event and update memory status text."""
+        if event.event_type != MEMORY_ADDED:
+            return
+
+        self.memory_status_text = "已添加记忆"
+
     def handle_memory_rejected(self, event: BaseEvent) -> None:
         """Handle memory.rejected event and clear suggestion.
 
@@ -316,7 +324,8 @@ class DesktopViewModel:
         if not isinstance(records, list):
             self.memory_records = []
             self.memory_panel_visible = True
-            self.memory_status_text = "已加载记忆"
+            if self.memory_status_text != "已添加记忆":
+                self.memory_status_text = "已加载记忆"
             return
 
         self.memory_records = []
@@ -350,7 +359,8 @@ class DesktopViewModel:
                 )
 
         self.memory_panel_visible = True
-        self.memory_status_text = "已加载记忆"
+        if self.memory_status_text != "已添加记忆":
+            self.memory_status_text = "已加载记忆"
 
     def handle_memory_deleted(self, event: BaseEvent) -> None:
         """Handle memory.deleted event and remove the deleted record.
@@ -406,14 +416,21 @@ class DesktopViewModel:
 
     def toggle_memory_panel(self) -> None:
         """Toggle the memory panel visibility."""
+        was_visible = self.memory_panel_visible
         self.memory_panel_visible = not self.memory_panel_visible
+        if self.memory_panel_visible:
+            if not was_visible and self.memory_status_text == "已添加记忆":
+                self.memory_status_text = ""
+            self.product_status_visible = False
+            self.settings_visible = False
 
     def toggle_product_status_visible(self) -> None:
         """Toggle the product status panel visibility."""
         self.product_status_visible = not self.product_status_visible
-        # Mutual exclusivity: opening product status closes settings
+        # Mutual exclusivity: opening product status closes other panels
         if self.product_status_visible:
             self.settings_visible = False
+            self.memory_panel_visible = False
 
     def toggle_always_on_top(self) -> None:
         """Toggle the always-on-top window flag (Phase 2-D)."""
@@ -426,14 +443,16 @@ class DesktopViewModel:
         if self.compact_mode:
             self.product_status_visible = False
             self.settings_visible = False
+            self.memory_panel_visible = False
             self.onboarding_visible = False
 
     def toggle_settings_visible(self) -> None:
         """Toggle the settings panel visibility (Phase 2-E)."""
         self.settings_visible = not self.settings_visible
-        # Mutual exclusivity: opening settings closes product status
+        # Mutual exclusivity: opening settings closes other panels
         if self.settings_visible:
             self.product_status_visible = False
+            self.memory_panel_visible = False
 
     def set_settings_text(self, text: str) -> None:
         """Set the settings panel display text.
@@ -488,6 +507,7 @@ class DesktopViewModel:
         self.onboarding_visible = False
         self.settings_visible = True
         self.product_status_visible = False
+        self.memory_panel_visible = False
 
     def set_product_status_view(self, view: ProductStatusView) -> None:
         """Set the product status view and update rendered text.

@@ -78,12 +78,15 @@ class TestViewModelOnboarding:
     def test_open_settings_from_onboarding(self) -> None:
         """open_settings_from_onboarding closes onboarding and opens settings."""
         vm = DesktopViewModel()
+        vm.toggle_memory_panel()
         assert vm.onboarding_visible is True
         assert vm.settings_visible is False
+        assert vm.memory_panel_visible is True
         vm.open_settings_from_onboarding()
         assert vm.onboarding_visible is False
         assert vm.settings_visible is True
         assert vm.product_status_visible is False
+        assert vm.memory_panel_visible is False
 
     def test_compact_mode_closes_onboarding(self) -> None:
         """Entering compact mode closes onboarding."""

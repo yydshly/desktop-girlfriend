@@ -444,6 +444,43 @@ class TestMemoryManagementWindowButton:
         # Should not raise
         window._memory_panel_button.click()
 
+    def test_second_memory_delete_button_deletes_second_record(self) -> None:
+        """Clicking the second delete button requests deletion of the second record."""
+        vm = DesktopViewModel()
+        vm.memory_panel_visible = True
+        vm.memory_records = [
+            MemoryRecordView(
+                record_id="record-1",
+                kind="preference",
+                importance="medium",
+                text="第一条记忆",
+                created_at="2024-01-01T00:00:00",
+                updated_at="2024-01-01T00:00:00",
+            ),
+            MemoryRecordView(
+                record_id="record-2",
+                kind="preference",
+                importance="medium",
+                text="第二条记忆",
+                created_at="2024-01-01T00:00:00",
+                updated_at="2024-01-01T00:00:00",
+            ),
+        ]
+        on_delete = MagicMock()
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=MagicMock(),
+            on_conversation_cleared=MagicMock(),
+            on_memory_delete_requested=on_delete,
+            memory_management_enabled=True,
+        )
+        window.show()
+        window.update_from_view_model()
+
+        window._memory_delete_record_buttons[1].click()
+
+        on_delete.assert_called_once_with("record-2")
+
 
 def _qt_available() -> bool:
     """Check if Qt is available."""

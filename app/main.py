@@ -19,6 +19,8 @@ from app.contracts.events import (
     ASR_TEXT_RECOGNIZED,
     ASSISTANT_TEXT_RECEIVED,
     CONVERSATION_CLEARED,
+    MEMORY_ADD_REQUESTED,
+    MEMORY_ADDED,
     MEMORY_CONFIRM_REQUESTED,
     MEMORY_CONFIRMED,
     MEMORY_DELETE_REQUESTED,
@@ -41,6 +43,7 @@ from app.contracts.events import (
 )
 from app.contracts.payloads import (
     AssistantTextReceivedPayload,
+    MemoryAddRequestedPayload,
     MemoryConfirmRequestedPayload,
     MemoryDeleteRequestedPayload,
     MemoryListRequestedPayload,
@@ -48,13 +51,13 @@ from app.contracts.payloads import (
     UserTextSubmittedPayload,
 )
 from app.contracts.states import AppState
-from app.core.config import get_config
+from app.core.config import AppConfig, get_config
 from app.core.event_bus import EventBus
 from app.core.logging import setup_logging
-from app.core.startup_diagnostics import run_startup_diagnostics
+from app.core.startup_diagnostics import StartupDiagnostics, run_startup_diagnostics
 from app.core.state_controller import StateController
 from app.core.state_machine import StateMachine
-from app.core.version import get_app_version
+from app.core.version import AppVersion, get_app_version
 from app.expression.tts.controller import TTSController
 from app.expression.tts.providers import TTSProviderError, create_tts_provider
 from app.input.asr.controller import VoiceInputController
@@ -94,6 +97,24 @@ def _wire_shutdown(
             signal.connect(stop_components)
 
 
+def refresh_product_status_view(
+    *,
+    view_model: DesktopViewModel,
+    config: AppConfig,
+    startup_diagnostics: StartupDiagnostics,
+    app_version: AppVersion,
+) -> None:
+    """Refresh product status text from the latest UI/runtime state."""
+    view_model.set_product_status_view(
+        build_product_status_view(
+            config=config,
+            avatar_action=view_model.avatar_action,
+            startup_diagnostics=startup_diagnostics,
+            app_version=app_version,
+        )
+    )
+
+
 def main() -> None:
     """Main application entry point."""
     config = get_config()
@@ -123,14 +144,11 @@ def main() -> None:
     # Initialize session history before DesktopWindow so callback can reference it
     session_history = CurrentSessionHistory(max_turns=6)
 
-    # V12-rc2: Pre-build product status view so first button click works immediately
-    view_model.set_product_status_view(
-        build_product_status_view(
-            config=config,
-            avatar_action=view_model.avatar_action,
-            startup_diagnostics=startup_diagnostics,
-            app_version=app_version,
-        )
+    refresh_product_status_view(
+        view_model=view_model,
+        config=config,
+        startup_diagnostics=startup_diagnostics,
+        app_version=app_version,
     )
     # Phase 2-E: Pre-build settings view text
     view_model.set_settings_text(
@@ -232,16 +250,25 @@ def main() -> None:
             )
         )
 
+    # Callback to add a manual memory (Phase 3-C)
+    def request_memory_add(text: str) -> None:
+        event_bus.publish(
+            BaseEvent(
+                event_type=MEMORY_ADD_REQUESTED,
+                request_id=str(uuid.uuid4()),
+                source="desktop_window",
+                payload=MemoryAddRequestedPayload(text=text).to_event_payload(),
+            )
+        )
+
     # V11-A / V11-C: Product status callback
     def _on_product_status_requested() -> None:
         view_model.toggle_product_status_visible()
-        view_model.set_product_status_view(
-            build_product_status_view(
-                config=config,
-                avatar_action=view_model.avatar_action,
-                startup_diagnostics=startup_diagnostics,
-                app_version=app_version,
-            )
+        refresh_product_status_view(
+            view_model=view_model,
+            config=config,
+            startup_diagnostics=startup_diagnostics,
+            app_version=app_version,
         )
         # V12-rc2: update UI immediately so first click works before any events
         window.update_from_view_model()
@@ -259,6 +286,11 @@ def main() -> None:
         """Handle quit from tray menu (Phase 3-A)."""
         view_model.request_force_quit()
         app.quit()
+
+    def _on_restore_from_tray() -> None:
+        """Handle restoring the window from the tray."""
+        view_model.set_hidden_to_tray(False)
+        window.update_from_view_model()
 
     def _handle_close_requested() -> bool:
         """Handle window close event (Phase 3-A).
@@ -285,6 +317,7 @@ def main() -> None:
         on_memory_reject_requested=request_memory_reject,
         on_memory_list_requested=request_memory_list,
         on_memory_delete_requested=request_memory_delete,
+        on_add_manual_memory_requested=request_memory_add,
         on_product_status_requested=_on_product_status_requested,
         on_hide_requested=_on_hide_requested,
         on_close_requested=_handle_close_requested,
@@ -295,8 +328,10 @@ def main() -> None:
     tray_controller = DesktopSystemTrayController(
         window=window,
         on_quit=_on_quit_from_tray,
+        on_restore=_on_restore_from_tray,
     )
     view_model.set_tray_available(tray_controller.available)
+    window.update_from_view_model()
 
     # Initialize StateController and wire EventBus + StateMachine
     state_controller = StateController(event_bus, state_machine)
@@ -304,17 +339,15 @@ def main() -> None:
     # Register ViewModel subscription to state.changed events
     def on_state_changed(event: BaseEvent) -> None:
         view_model.handle_state_changed(event)
-        window.update_from_view_model()
         # V11-A / V11-C: refresh product status panel if visible
         if view_model.product_status_visible:
-            view_model.set_product_status_view(
-                build_product_status_view(
-                    config=config,
-                    avatar_action=view_model.avatar_action,
-                    startup_diagnostics=startup_diagnostics,
-                    app_version=app_version,
-                )
+            refresh_product_status_view(
+                view_model=view_model,
+                config=config,
+                startup_diagnostics=startup_diagnostics,
+                app_version=app_version,
             )
+        window.update_from_view_model()
 
     event_bus.subscribe(STATE_CHANGED, on_state_changed)
 
@@ -369,6 +402,12 @@ def main() -> None:
         window.update_from_view_model()
 
     event_bus.subscribe(MEMORY_CONFIRMED, on_memory_confirmed)
+
+    def on_memory_added(event: BaseEvent) -> None:
+        view_model.handle_memory_added(event)
+        window.update_from_view_model()
+
+    event_bus.subscribe(MEMORY_ADDED, on_memory_added)
 
     def on_memory_rejected(event: BaseEvent) -> None:
         view_model.handle_memory_rejected(event)

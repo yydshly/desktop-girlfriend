@@ -6,8 +6,11 @@ import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
 
+from app.contracts.events import MEMORY_ADDED, MEMORY_LISTED, BaseEvent
+from app.ui.memory_suggestion import MemorySuggestionView
 from app.ui.memory_ux_view import (
     build_memory_panel_copy,
     build_memory_suggestion_copy,
@@ -177,6 +180,32 @@ class TestWindowMemoryUx:
         assert not window._memory_suggestion_widget.isVisible()
 
     @staticmethod
+    def test_memory_suggestion_buttons_disabled_without_callbacks(
+        qapp: QApplication,
+    ) -> None:
+        """Memory suggestion actions are disabled when callbacks are missing."""
+        vm = DesktopViewModel()
+        vm.memory_suggestion = MemorySuggestionView(
+            pending_id="pending-1",
+            kind="preference",
+            importance="medium",
+            text="我喜欢简短回复",
+        )
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_memory_confirm_requested=None,
+            on_memory_reject_requested=None,
+        )
+        window.show()
+        window.update_from_view_model()
+
+        assert window._memory_suggestion_widget.isVisible()
+        assert not window._memory_confirm_button.isEnabled()
+        assert not window._memory_reject_button.isEnabled()
+
+    @staticmethod
     def test_memory_panel_shows_privacy_hint(qapp: QApplication) -> None:
         """Memory panel shows privacy hint when opened."""
         vm = DesktopViewModel()
@@ -317,8 +346,66 @@ class TestMemoryPanelManualAdd:
         assert window._memory_add_button.text() == "添加记忆"
 
     @staticmethod
-    def test_delete_button_text_is_improved(qapp: QApplication) -> None:
-        """Delete button text is '删除这条记忆' not '删除第一条'."""
+    def test_memory_panel_shows_memory_status_text(qapp: QApplication) -> None:
+        """Memory panel displays memory status feedback."""
+        vm = DesktopViewModel()
+        vm.memory_panel_visible = True
+        vm.memory_status_text = "已添加记忆"
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+        )
+        window.show()
+        window.update_from_view_model()
+
+        assert window._memory_panel_status.text() == "已添加记忆"
+        assert window._memory_panel_status.isVisible()
+
+    @staticmethod
+    def test_memory_added_status_survives_followup_list_refresh() -> None:
+        """List refresh after manual add does not hide the added feedback."""
+        vm = DesktopViewModel()
+        vm.handle_memory_added(
+            BaseEvent(
+                event_type=MEMORY_ADDED,
+                request_id="req",
+                source="test",
+                payload={
+                    "record_id": "record-1",
+                    "kind": "other",
+                    "importance": "medium",
+                    "text": "我喜欢短回复",
+                },
+            )
+        )
+        vm.handle_memory_listed(
+            BaseEvent(
+                event_type=MEMORY_LISTED,
+                request_id="req",
+                source="test",
+                payload={"records": []},
+            )
+        )
+
+        assert vm.memory_status_text == "已添加记忆"
+
+    @staticmethod
+    def test_reopening_memory_panel_clears_stale_added_status() -> None:
+        """Reopening memory panel clears stale manual-add feedback."""
+        vm = DesktopViewModel()
+        vm.memory_panel_visible = True
+        vm.memory_status_text = "已添加记忆"
+
+        vm.toggle_memory_panel()
+        vm.toggle_memory_panel()
+
+        assert vm.memory_panel_visible is True
+        assert vm.memory_status_text == ""
+
+    @staticmethod
+    def test_delete_button_text_is_record_specific(qapp: QApplication) -> None:
+        """Delete button text names the target record number."""
         vm = DesktopViewModel()
         window = DesktopWindow(
             view_model=vm,
@@ -326,7 +413,7 @@ class TestMemoryPanelManualAdd:
             on_conversation_cleared=lambda: None,
         )
         window.show()
-        assert "删除这条记忆" in window._memory_delete_first_button.text()
+        assert "删除第 1 条记忆" in window._memory_delete_first_button.text()
 
     @staticmethod
     def test_add_manual_memory_calls_callback(qapp: QApplication) -> None:
@@ -349,4 +436,105 @@ class TestMemoryPanelManualAdd:
         qapp.processEvents()
         assert len(callback_results) == 1
         assert callback_results[0] == "我喜欢你回复短一点"
+
+    @staticmethod
+    def test_manual_memory_return_adds_memory(qapp: QApplication) -> None:
+        """Pressing Enter in manual memory input adds the memory."""
+        vm = DesktopViewModel()
+        callback_results = []
+
+        def on_add(text: str) -> None:
+            callback_results.append(text)
+
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_add_manual_memory_requested=on_add,
+        )
+        window.show()
+        window._on_memory_panel_clicked()
+        qapp.processEvents()
+        window._memory_manual_input.setText("我喜欢你回复短一点")
+        window._memory_manual_input.returnPressed.emit()
+        qapp.processEvents()
+
+        assert callback_results == ["我喜欢你回复短一点"]
+        assert window._memory_manual_input.text() == ""
+
+    @staticmethod
+    def test_manual_memory_without_callback_keeps_text(qapp: QApplication) -> None:
+        """Manual memory text is not cleared when no add callback is wired."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_add_manual_memory_requested=None,
+        )
+        window.show()
+        window._on_memory_panel_clicked()
+        qapp.processEvents()
+        window._memory_manual_input.setText("我喜欢简短回复")
+        window._memory_manual_input.returnPressed.emit()
+        qapp.processEvents()
+
+        assert window._memory_manual_input.text() == "我喜欢简短回复"
+
+    @staticmethod
+    def test_input_return_submits_message(qapp: QApplication) -> None:
+        """Pressing Enter in the input field submits the message."""
+        vm = DesktopViewModel()
+        submitted = []
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=submitted.append,
+            on_conversation_cleared=lambda: None,
+        )
+        window.show()
+        window._input_field.setText("你好")
+        window._input_field.returnPressed.emit()
+        qapp.processEvents()
+
+        assert submitted == ["你好"]
+        assert window._input_field.text() == ""
+
+    @staticmethod
+    def test_settings_scroll_area_has_usable_minimum_height(qapp: QApplication) -> None:
+        """Settings scroll area keeps enough height to read long settings text."""
+        from app.core.config import AppConfig
+        from app.ui.settings_view import render_settings_view_text
+
+        vm = DesktopViewModel()
+        vm.set_settings_text(render_settings_view_text(build_settings_view(AppConfig())))
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+        )
+        window.show()
+        window._settings_button.clicked.emit()
+        qapp.processEvents()
+
+        assert window._settings_scroll.minimumHeight() >= 180
+
+    @staticmethod
+    def test_settings_scroll_area_constrains_long_content(qapp: QApplication) -> None:
+        """Settings scroll area constrains long content so scrolling can work."""
+        vm = DesktopViewModel()
+        vm.set_settings_text("\n".join(f"设置项 {i}" for i in range(60)))
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+        )
+        window.show()
+        window._settings_button.clicked.emit()
+        qapp.processEvents()
+
+        assert window._settings_scroll.maximumHeight() <= 260
+        assert (
+            window._settings_scroll.verticalScrollBarPolicy()
+            == Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
 

@@ -12,6 +12,8 @@ from app.brain.memory.repository import LocalJsonMemoryRepository, MemoryRecord,
 from app.brain.memory.runtime import create_local_memory_runtime
 from app.brain.memory.types import MemoryImportance, MemoryKind
 from app.contracts.events import (
+    MEMORY_ADD_REQUESTED,
+    MEMORY_ADDED,
     MEMORY_CONFIRM_REQUESTED,
     MEMORY_CONFIRMED,
     MEMORY_ERROR,
@@ -90,6 +92,18 @@ class TestStartStop:
         controller.start()
         subscribe.assert_any_call(MEMORY_REJECT_REQUESTED, controller._on_memory_reject_requested)
 
+    def test_start_subscribes_add_requested(self) -> None:
+        """start() subscribes to MEMORY_ADD_REQUESTED."""
+        subscribe = MagicMock()
+        controller = MemorySuggestionController(
+            runtime=MagicMock(),
+            subscribe=subscribe,
+            unsubscribe=MagicMock(),
+            dispatch_event=MagicMock(),
+        )
+        controller.start()
+        subscribe.assert_any_call(MEMORY_ADD_REQUESTED, controller._on_memory_add_requested)
+
     def test_start_is_idempotent(self) -> None:
         """Calling start() twice does not double subscribe."""
         subscribe = MagicMock()
@@ -122,6 +136,7 @@ class TestStartStop:
         unsubscribe.assert_any_call(USER_TEXT_SUBMITTED, controller._on_user_text_submitted)
         unsubscribe.assert_any_call(MEMORY_CONFIRM_REQUESTED, controller._on_memory_confirm_requested)
         unsubscribe.assert_any_call(MEMORY_REJECT_REQUESTED, controller._on_memory_reject_requested)
+        unsubscribe.assert_any_call(MEMORY_ADD_REQUESTED, controller._on_memory_add_requested)
 
     def test_stop_is_idempotent(self) -> None:
         """Calling stop() twice does not double unsubscribe."""
@@ -136,9 +151,62 @@ class TestStartStop:
         controller.stop()
         controller.stop()
         # Each event should only be unsubscribed once
-        for event_type in [USER_TEXT_SUBMITTED, MEMORY_CONFIRM_REQUESTED, MEMORY_REJECT_REQUESTED]:
+        for event_type in [
+            USER_TEXT_SUBMITTED,
+            MEMORY_CONFIRM_REQUESTED,
+            MEMORY_REJECT_REQUESTED,
+            MEMORY_ADD_REQUESTED,
+        ]:
             handler_calls = [args for args in unsubscribe.call_args_list if args[0][0] == event_type]
             assert len(handler_calls) == 1
+
+
+class TestManualMemoryAdd:
+    """Tests for manually adding memory from the UI panel."""
+
+    def test_add_requested_persists_record_and_dispatches_added(self, tmp_path: Path) -> None:
+        """MEMORY_ADD_REQUESTED persists a manual memory record."""
+        repository = LocalJsonMemoryRepository(tmp_path / "memory.json")
+        runtime = create_local_memory_runtime(repository)
+        dispatch = MagicMock()
+        controller = MemorySuggestionController(
+            runtime=runtime,
+            subscribe=MagicMock(),
+            unsubscribe=MagicMock(),
+            dispatch_event=dispatch,
+        )
+
+        controller._on_memory_add_requested(
+            _make_event(MEMORY_ADD_REQUESTED, {"text": "我喜欢你回复短一点"})
+        )
+
+        records = repository.list_active()
+        assert len(records) == 1
+        assert records[0].text == "我喜欢你回复短一点"
+        assert records[0].source == "manual_ui"
+        dispatched = dispatch.call_args.args[0]
+        assert dispatched.event_type == MEMORY_ADDED
+        assert dispatched.payload["text"] == "我喜欢你回复短一点"
+
+    def test_add_requested_rejects_blank_text(self, tmp_path: Path) -> None:
+        """Blank manual memory text dispatches an error and does not persist."""
+        repository = LocalJsonMemoryRepository(tmp_path / "memory.json")
+        runtime = create_local_memory_runtime(repository)
+        dispatch = MagicMock()
+        controller = MemorySuggestionController(
+            runtime=runtime,
+            subscribe=MagicMock(),
+            unsubscribe=MagicMock(),
+            dispatch_event=dispatch,
+        )
+
+        controller._on_memory_add_requested(
+            _make_event(MEMORY_ADD_REQUESTED, {"text": "   "})
+        )
+
+        assert repository.list_active() == ()
+        dispatched = dispatch.call_args.args[0]
+        assert dispatched.event_type == MEMORY_ERROR
 
 
 class TestUserTextSubmitted:
