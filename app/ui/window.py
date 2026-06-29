@@ -17,6 +17,10 @@ from PySide6.QtWidgets import (
 from app.contracts.states import AppState
 from app.core.config import get_config
 from app.ui.chat_message import ChatMessage
+from app.ui.conversation_view import (
+    get_input_placeholder,
+    render_empty_conversation_text,
+)
 from app.ui.memory_record_view import render_memory_record_text
 from app.ui.memory_suggestion import render_memory_suggestion_text
 from app.ui.view_model import DesktopViewModel
@@ -37,7 +41,7 @@ def render_chat_messages(messages: list[ChatMessage]) -> str:
         Plain text suitable for QTextEdit.setPlainText().
     """
     if not messages:
-        return "还没有对话，和小云说句话吧。"
+        return render_empty_conversation_text()
 
     lines: list[str] = []
     for msg in messages:
@@ -48,8 +52,9 @@ def render_chat_messages(messages: list[ChatMessage]) -> str:
             lines.append("小云：")
             lines.append(msg.text)
         lines.append("")  # blank line between messages
+        lines.append("")  # extra spacing for readability (Phase 2-B)
 
-    # Remove trailing blank line
+    # Remove trailing blank lines
     while lines and lines[-1] == "":
         lines.pop()
     return "\n".join(lines)
@@ -159,7 +164,7 @@ class DesktopWindow(QMainWindow):
         # Chat history display
         self._chat_history = QTextEdit()
         self._chat_history.setReadOnly(True)
-        self._chat_history.setStyleSheet("padding: 10px; background-color: #f0f0f0;")
+        self._chat_history.setStyleSheet("padding: 12px; background-color: #fafafa;")
         self._chat_history.setPlainText(render_chat_messages(self._view_model.chat_messages))
         layout.addWidget(self._chat_history, stretch=1)
 
@@ -221,9 +226,9 @@ class DesktopWindow(QMainWindow):
         self._memory_panel_widget.setVisible(False)
         layout.addWidget(self._memory_panel_widget)
 
-        # Input field
+        # Input field (Phase 2-B)
         self._input_field = QLineEdit()
-        self._input_field.setPlaceholderText("输入文字后点击发送...")
+        self._input_field.setPlaceholderText(get_input_placeholder())
         layout.addWidget(self._input_field)
 
         # Button row
