@@ -1,4 +1,4 @@
-"""v0.2.0-alpha.1 Readiness Probe.
+"""v0.2.0-alpha.2 Readiness Probe.
 
 No Qt, no network, no real LLM/TTS/ASR, no memory access, no file writes.
 """
@@ -17,7 +17,7 @@ def _check_version() -> bool:
         print("VERSION: missing")
         return False
     content = version_file.read_text(encoding="utf-8").strip()
-    if content != "0.2.0-alpha.1":
+    if content != "0.2.0-alpha.2":
         print(f"VERSION: unexpected '{content}'")
         return False
     print("VERSION: OK")
@@ -87,7 +87,7 @@ def _check_settings_safety() -> bool:
 
 
 def main() -> int:
-    print("v0.2.0-alpha.1 Readiness Probe\n")
+    print("v0.2.0-alpha.2 Readiness Probe\n")
 
     checks = {
         "version": _check_version(),

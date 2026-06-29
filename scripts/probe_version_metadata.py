@@ -17,7 +17,7 @@ def _check_version_file() -> bool:
         print("VERSION: missing")
         return False
     content = version_file.read_text(encoding="utf-8").strip()
-    if content != "0.2.0-alpha.1":
+    if content != "0.2.0-alpha.2":
         print(f"VERSION: unexpected content '{content}'")
         return False
     print("VERSION: OK")
@@ -28,7 +28,7 @@ def _check_app_version() -> bool:
     from app.core.version import get_app_version
 
     ver = get_app_version()
-    if ver.version != "0.2.0-alpha.1":
+    if ver.version != "0.2.0-alpha.2":
         print(f"app version: unexpected '{ver.version}'")
         return False
     if ver.release_stage != "alpha":
@@ -71,7 +71,7 @@ def _check_product_status() -> bool:
     )
     labels = [item.label for item in view.items]
 
-    has_version = any(item.detail == "0.2.0-alpha.1" for item in view.items)
+    has_version = any(item.detail == "0.2.0-alpha.2" for item in view.items)
     has_stage = any(item.detail == "alpha" for item in view.items)
     has_version_label = "版本" in labels
     has_stage_label = "发布阶段" in labels
