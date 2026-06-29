@@ -400,4 +400,4 @@ class TestHandleProactiveAvatarHint:
         )
         vm.handle_proactive_avatar_hint(event)
         assert vm.avatar_action_label != initial_label
-        assert "主动" in vm.avatar_action_label or "proactive" in vm.avatar_action_label.lower()
+        assert "来陪" in vm.avatar_action_label or "proactive" in vm.avatar_action_label.lower()
