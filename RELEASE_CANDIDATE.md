@@ -1,5 +1,25 @@
 # Desktop Girlfriend Release Candidate v0
 
+Version: `0.1.0-rc.0`
+
+Stage: `release-candidate`
+
+Main capabilities:
+- V8 Memory Runtime v0
+- V9 Proactive Companionship v0
+- V10 Avatar Action v0
+- V11 Product Experience v0
+- V12 Release Candidate Smoke Pack v0
+
+## Tag plan
+
+After merging this branch into `main`, create the release candidate tag:
+
+```powershell
+git tag v0.1.0-rc.0
+git push origin v0.1.0-rc.0
+```
+
 ## 当前版本能力
 
 ### V8 Memory Runtime v0

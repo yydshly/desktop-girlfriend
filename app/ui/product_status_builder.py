@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from app.core.config import AppConfig
 from app.core.startup_diagnostics import StartupDiagnostics
+from app.core.version import AppVersion
 from app.ui.avatar_action import AvatarAction
 from app.ui.product_status import ProductStatusItem, ProductStatusView
 from app.ui.startup_diagnostics_view import render_startup_diagnostics_summary
@@ -14,6 +15,7 @@ def build_product_status_view(
     config: AppConfig,
     avatar_action: AvatarAction,
     startup_diagnostics: StartupDiagnostics | None = None,
+    app_version: AppVersion | None = None,
 ) -> ProductStatusView:
     """Build a product status view from app configuration.
 
@@ -21,6 +23,7 @@ def build_product_status_view(
         config: The application configuration.
         avatar_action: The current avatar action state.
         startup_diagnostics: Optional startup diagnostics to display.
+        app_version: Optional app version to display.
 
     Returns:
         A ProductStatusView describing all enabled/disabled features.
@@ -44,5 +47,9 @@ def build_product_status_view(
                 render_startup_diagnostics_summary(startup_diagnostics),
             )
         )
+
+    if app_version is not None:
+        items.append(ProductStatusItem("版本", True, app_version.version))
+        items.append(ProductStatusItem("发布阶段", True, app_version.release_stage))
 
     return ProductStatusView(items=tuple(items))
