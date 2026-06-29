@@ -29,6 +29,8 @@ MEMORY_REJECTED = "memory.rejected"
 MEMORY_ERROR = "memory.error"
 
 # Memory management events (V8-J)
+MEMORY_ADD_REQUESTED = "memory.add_requested"
+MEMORY_ADDED = "memory.added"
 MEMORY_LIST_REQUESTED = "memory.list_requested"
 MEMORY_LISTED = "memory.listed"
 MEMORY_DELETE_REQUESTED = "memory.delete_requested"

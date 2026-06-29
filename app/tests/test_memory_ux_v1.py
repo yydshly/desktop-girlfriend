@@ -6,8 +6,12 @@ import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import Qt
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
+from app.contracts.events import MEMORY_ADDED, MEMORY_LISTED, BaseEvent
+from app.ui.memory_record_view import MemoryRecordView
 from app.ui.memory_ux_view import (
     build_memory_panel_copy,
     build_memory_suggestion_copy,
@@ -317,8 +321,8 @@ class TestMemoryPanelManualAdd:
         assert window._memory_add_button.text() == "添加记忆"
 
     @staticmethod
-    def test_delete_button_text_is_improved(qapp: QApplication) -> None:
-        """Delete button text is '删除这条记忆' not '删除第一条'."""
+    def test_delete_button_text_is_record_specific(qapp: QApplication) -> None:
+        """Delete button text names the target record number."""
         vm = DesktopViewModel()
         window = DesktopWindow(
             view_model=vm,
@@ -326,7 +330,7 @@ class TestMemoryPanelManualAdd:
             on_conversation_cleared=lambda: None,
         )
         window.show()
-        assert "删除这条记忆" in window._memory_delete_first_button.text()
+        assert "删除第 1 条记忆" in window._memory_delete_first_button.text()
 
     @staticmethod
     def test_add_manual_memory_calls_callback(qapp: QApplication) -> None:
@@ -349,4 +353,705 @@ class TestMemoryPanelManualAdd:
         qapp.processEvents()
         assert len(callback_results) == 1
         assert callback_results[0] == "我喜欢你回复短一点"
+
+
+class TestMemoryDeletePerRecord:
+    """Tests for per-record memory delete buttons."""
+
+    @staticmethod
+    def _make_record(record_id: str) -> MemoryRecordView:
+        return MemoryRecordView(
+            record_id=record_id,
+            kind="preference",
+            importance="medium",
+            text="我喜欢短回复",
+            created_at="2024-01-01T00:00:00",
+            updated_at="2024-01-01T00:00:00",
+        )
+
+    @staticmethod
+    def test_per_record_delete_buttons_exist(qapp: QApplication) -> None:
+        """Window has multiple per-record delete buttons."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+        )
+        window.show()
+        assert hasattr(window, "_memory_delete_record_buttons")
+        assert len(window._memory_delete_record_buttons) == 5
+
+    @staticmethod
+    def test_delete_button_1_calls_first_record(qapp: QApplication) -> None:
+        """Clicking first delete button calls callback with first record_id."""
+        vm = DesktopViewModel()
+        vm.memory_records = [
+            TestMemoryDeletePerRecord._make_record("record-1"),
+            TestMemoryDeletePerRecord._make_record("record-2"),
+            TestMemoryDeletePerRecord._make_record("record-3"),
+        ]
+        vm.memory_panel_visible = True
+        deleted: list[str] = []
+
+        def on_delete(record_id: str) -> None:
+            deleted.append(record_id)
+
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_memory_delete_requested=on_delete,
+        )
+        window.show()
+        window.update_from_view_model()
+        qapp.processEvents()
+
+        window._memory_delete_record_buttons[0].click()
+        qapp.processEvents()
+        assert deleted == ["record-1"]
+
+    @staticmethod
+    def test_delete_button_2_calls_second_record(qapp: QApplication) -> None:
+        """Clicking second delete button calls callback with second record_id."""
+        vm = DesktopViewModel()
+        vm.memory_records = [
+            TestMemoryDeletePerRecord._make_record("record-1"),
+            TestMemoryDeletePerRecord._make_record("record-2"),
+            TestMemoryDeletePerRecord._make_record("record-3"),
+        ]
+        vm.memory_panel_visible = True
+        deleted: list[str] = []
+
+        def on_delete(record_id: str) -> None:
+            deleted.append(record_id)
+
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_memory_delete_requested=on_delete,
+        )
+        window.show()
+        window.update_from_view_model()
+        qapp.processEvents()
+
+        window._memory_delete_record_buttons[1].click()
+        qapp.processEvents()
+        assert deleted == ["record-2"]
+
+    @staticmethod
+    def test_delete_button_3_calls_third_record(qapp: QApplication) -> None:
+        """Clicking third delete button calls callback with third record_id."""
+        vm = DesktopViewModel()
+        vm.memory_records = [
+            TestMemoryDeletePerRecord._make_record("record-1"),
+            TestMemoryDeletePerRecord._make_record("record-2"),
+            TestMemoryDeletePerRecord._make_record("record-3"),
+        ]
+        vm.memory_panel_visible = True
+        deleted: list[str] = []
+
+        def on_delete(record_id: str) -> None:
+            deleted.append(record_id)
+
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_memory_delete_requested=on_delete,
+        )
+        window.show()
+        window.update_from_view_model()
+        qapp.processEvents()
+
+        window._memory_delete_record_buttons[2].click()
+        qapp.processEvents()
+        assert deleted == ["record-3"]
+
+    @staticmethod
+    def test_delete_index_out_of_bounds_does_not_crash(qapp: QApplication) -> None:
+        """Deleting with invalid index does not crash or call callback."""
+        vm = DesktopViewModel()
+        vm.memory_records = [TestMemoryDeletePerRecord._make_record("record-1")]
+        vm.memory_panel_visible = True
+        deleted: list[str] = []
+
+        def on_delete(record_id: str) -> None:
+            deleted.append(record_id)
+
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_memory_delete_requested=on_delete,
+        )
+        window.show()
+        window.update_from_view_model()
+        qapp.processEvents()
+
+        # Call the handler directly with out-of-bounds index
+        window._on_memory_delete_clicked(99)
+        qapp.processEvents()
+        assert deleted == []
+
+    @staticmethod
+    def test_only_existing_records_have_visible_buttons(qapp: QApplication) -> None:
+        """With 1 record, only first delete button is visible."""
+        vm = DesktopViewModel()
+        vm.memory_records = [TestMemoryDeletePerRecord._make_record("record-1")]
+        vm.memory_panel_visible = True
+
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+        )
+        window.show()
+        window.update_from_view_model()
+        qapp.processEvents()
+
+        assert window._memory_delete_record_buttons[0].isVisible()
+        assert not window._memory_delete_record_buttons[1].isVisible()
+        assert not window._memory_delete_record_buttons[2].isVisible()
+
+    @staticmethod
+    def test_three_records_show_three_buttons(qapp: QApplication) -> None:
+        """With 3 records, first 3 delete buttons are visible."""
+        vm = DesktopViewModel()
+        vm.memory_records = [
+            TestMemoryDeletePerRecord._make_record("record-1"),
+            TestMemoryDeletePerRecord._make_record("record-2"),
+            TestMemoryDeletePerRecord._make_record("record-3"),
+        ]
+        vm.memory_panel_visible = True
+
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+        )
+        window.show()
+        window.update_from_view_model()
+        qapp.processEvents()
+
+        assert window._memory_delete_record_buttons[0].isVisible()
+        assert window._memory_delete_record_buttons[1].isVisible()
+        assert window._memory_delete_record_buttons[2].isVisible()
+        assert not window._memory_delete_record_buttons[3].isVisible()
+
+    @staticmethod
+    def test_no_records_hides_all_delete_buttons(qapp: QApplication) -> None:
+        """With 0 records, no delete buttons are visible."""
+        vm = DesktopViewModel()
+        vm.memory_records = []
+        vm.memory_panel_visible = True
+
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+        )
+        window.show()
+        window.update_from_view_model()
+        qapp.processEvents()
+
+        for btn in window._memory_delete_record_buttons:
+            assert not btn.isVisible()
+
+
+class TestManualMemoryEnterShortcut:
+    """Tests for manual memory input Enter shortcut."""
+
+    @staticmethod
+    def test_manual_memory_enter_adds_memory(qapp: QApplication) -> None:
+        """Pressing Enter in manual memory input adds the memory."""
+        vm = DesktopViewModel()
+        callback_results: list[str] = []
+
+        def on_add(text: str) -> None:
+            callback_results.append(text)
+
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_add_manual_memory_requested=on_add,
+        )
+        window.show()
+        window._on_memory_panel_clicked()
+        qapp.processEvents()
+        window._memory_manual_input.setText("我喜欢你回复短一点")
+        window._memory_manual_input.returnPressed.emit()
+        qapp.processEvents()
+
+        assert callback_results == ["我喜欢你回复短一点"]
+        assert window._memory_manual_input.text() == ""
+
+    @staticmethod
+    def test_manual_memory_empty_enter_does_not_call_callback(qapp: QApplication) -> None:
+        """Empty text Enter does not call callback."""
+        vm = DesktopViewModel()
+        callback_results: list[str] = []
+
+        def on_add(text: str) -> None:
+            callback_results.append(text)
+
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_add_manual_memory_requested=on_add,
+        )
+        window.show()
+        window._on_memory_panel_clicked()
+        qapp.processEvents()
+        window._memory_manual_input.setText("")
+        window._memory_manual_input.returnPressed.emit()
+        qapp.processEvents()
+
+        assert callback_results == []
+
+    @staticmethod
+    def test_manual_memory_without_callback_keeps_text(qapp: QApplication) -> None:
+        """Manual memory text is not cleared when no add callback is wired."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_add_manual_memory_requested=None,
+        )
+        window.show()
+        window._on_memory_panel_clicked()
+        qapp.processEvents()
+        window._memory_manual_input.setText("我喜欢简短回复")
+        window._memory_manual_input.returnPressed.emit()
+        qapp.processEvents()
+
+        assert window._memory_manual_input.text() == "我喜欢简短回复"
+
+
+class TestChatEnterShortcut:
+    """Tests for chat input Enter shortcut."""
+
+    @staticmethod
+    def test_input_return_submits_message(qapp: QApplication) -> None:
+        """Pressing Enter in the input field submits the message."""
+        vm = DesktopViewModel()
+        submitted: list[str] = []
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=submitted.append,
+            on_conversation_cleared=lambda: None,
+        )
+        window.show()
+        window._input_field.setText("你好")
+        window._input_field.returnPressed.emit()
+        qapp.processEvents()
+
+        assert submitted == ["你好"]
+        assert window._input_field.text() == ""
+
+    @staticmethod
+    def test_input_empty_return_does_not_submit(qapp: QApplication) -> None:
+        """Empty input Enter does not submit."""
+        vm = DesktopViewModel()
+        submitted: list[str] = []
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=submitted.append,
+            on_conversation_cleared=lambda: None,
+        )
+        window.show()
+        window._input_field.setText("")
+        window._input_field.returnPressed.emit()
+        qapp.processEvents()
+
+        assert submitted == []
+
+
+class TestMemoryStatusFeedback:
+    """Tests for memory status text feedback."""
+
+    @staticmethod
+    def test_memory_panel_shows_memory_status_text(qapp: QApplication) -> None:
+        """Memory panel displays memory status feedback."""
+        vm = DesktopViewModel()
+        vm.memory_panel_visible = True
+        vm.memory_status_text = "已添加记忆"
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+        )
+        window.show()
+        window.update_from_view_model()
+
+        assert window._memory_panel_status.text() == "已添加记忆"
+        assert window._memory_panel_status.isVisible()
+
+    @staticmethod
+    def test_memory_added_status_survives_followup_list_refresh() -> None:
+        """List refresh after manual add does not hide the added feedback."""
+        vm = DesktopViewModel()
+        vm.handle_memory_added(
+            BaseEvent(
+                event_type=MEMORY_ADDED,
+                request_id="req",
+                source="test",
+                payload={
+                    "record_id": "record-1",
+                    "kind": "other",
+                    "importance": "medium",
+                    "text": "我喜欢短回复",
+                },
+            )
+        )
+        vm.handle_memory_listed(
+            BaseEvent(
+                event_type=MEMORY_LISTED,
+                request_id="req",
+                source="test",
+                payload={"records": []},
+            )
+        )
+
+        assert vm.memory_status_text == "已添加记忆"
+
+    @staticmethod
+    def test_reopening_memory_panel_clears_stale_added_status() -> None:
+        """Reopening memory panel clears stale manual-add feedback."""
+        vm = DesktopViewModel()
+        vm.memory_panel_visible = True
+        vm.memory_status_text = "已添加记忆"
+
+        vm.toggle_memory_panel()
+        vm.toggle_memory_panel()
+
+        assert vm.memory_panel_visible is True
+        assert vm.memory_status_text == ""
+
+    @staticmethod
+    def test_delete_status_shows_deleted(qapp: QApplication) -> None:
+        """Memory status shows '已删除记忆' after deletion."""
+        vm = DesktopViewModel()
+        vm.memory_panel_visible = True
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+        )
+        window.show()
+
+        from app.contracts.events import MEMORY_DELETED
+        vm.handle_memory_deleted(
+            BaseEvent(
+                event_type=MEMORY_DELETED,
+                request_id="req",
+                source="test",
+                payload={"record_id": "record-1"},
+            )
+        )
+        window.update_from_view_model()
+
+        assert vm.memory_status_text == "已删除记忆"
+
+
+class TestHideButtonTrayAvailable:
+    """Tests for hide button tray_available enabled state."""
+
+    @staticmethod
+    def test_hide_button_disabled_when_tray_unavailable(qapp: QApplication) -> None:
+        """Hide button is disabled when tray_available is False."""
+        vm = DesktopViewModel()
+        vm.tray_available = False
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_hide_requested=lambda: None,
+        )
+        window.show()
+        window.update_from_view_model()
+        qapp.processEvents()
+
+        assert not window._hide_button.isEnabled()
+
+    @staticmethod
+    def test_hide_button_enabled_when_tray_available(qapp: QApplication) -> None:
+        """Hide button is enabled when tray_available is True."""
+        vm = DesktopViewModel()
+        vm.tray_available = True
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_hide_requested=lambda: None,
+        )
+        window.show()
+        window.update_from_view_model()
+        qapp.processEvents()
+
+        assert window._hide_button.isEnabled()
+
+    @staticmethod
+    def test_hide_button_tooltip_when_tray_unavailable(qapp: QApplication) -> None:
+        """Hide button shows unavailable tooltip when tray is unavailable."""
+        vm = DesktopViewModel()
+        vm.tray_available = False
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_hide_requested=lambda: None,
+        )
+        window.show()
+        window.update_from_view_model()
+        qapp.processEvents()
+
+        assert "不可用" in window._hide_button.toolTip()
+
+    @staticmethod
+    def test_hide_button_tooltip_when_tray_available(qapp: QApplication) -> None:
+        """Hide button shows tray tooltip when tray is available."""
+        vm = DesktopViewModel()
+        vm.tray_available = True
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_hide_requested=lambda: None,
+        )
+        window.show()
+        window.update_from_view_model()
+        qapp.processEvents()
+
+        assert "托盘" in window._hide_button.toolTip()
+
+
+class TestMemoryManualInputRealKeyboard:
+    """Real keyboard interaction tests for memory manual input.
+
+    These tests use actual Qt keyboard simulation to verify the input
+    is focusable, accepts keystrokes, and submits on Enter.
+    """
+
+    @staticmethod
+    def test_memory_manual_input_accepts_real_keyboard_text(qapp: QApplication) -> None:
+        """Memory input accepts real keyboard text via QTest.keyClicks."""
+        added: list[str] = []
+
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_add_manual_memory_requested=added.append,
+        )
+        window.show()
+        window._on_memory_panel_clicked()
+        qapp.processEvents()
+
+        input_widget = window._memory_manual_input
+        assert input_widget.isVisible(), "Memory input should be visible"
+        assert input_widget.isEnabled(), "Memory input should be enabled"
+        assert not input_widget.isReadOnly(), "Memory input should not be read-only"
+
+        # Click to focus the input
+        QTest.mouseClick(input_widget, Qt.MouseButton.LeftButton)
+        qapp.processEvents()
+
+        assert QApplication.focusWidget() is input_widget, "Memory input should have focus after click"
+
+        # Type using real keyboard simulation
+        QTest.keyClicks(input_widget, "test idol")
+        qapp.processEvents()
+
+        assert input_widget.text() == "test idol", f"Expected 'test idol', got '{input_widget.text()}'"
+
+    @staticmethod
+    def test_memory_manual_input_enter_calls_add_callback(qapp: QApplication) -> None:
+        """Pressing Enter in memory input calls the add callback with correct text."""
+        added: list[str] = []
+
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_add_manual_memory_requested=added.append,
+        )
+        window.show()
+        window._on_memory_panel_clicked()
+        qapp.processEvents()
+
+        input_widget = window._memory_manual_input
+        QTest.mouseClick(input_widget, Qt.MouseButton.LeftButton)
+        qapp.processEvents()
+        assert QApplication.focusWidget() is input_widget
+
+        QTest.keyClicks(input_widget, "test idol")
+        qapp.processEvents()
+        assert input_widget.text() == "test idol"
+
+        # Press Enter
+        QTest.keyClick(input_widget, Qt.Key.Key_Return)
+        qapp.processEvents()
+
+        assert added == ["test idol"], f"Expected ['test idol'], got {added}"
+        assert input_widget.text() == "", f"Input should be cleared, got '{input_widget.text()}'"
+
+    @staticmethod
+    def test_memory_manual_input_empty_enter_does_not_call_callback(qapp: QApplication) -> None:
+        """Empty input Enter does not call callback."""
+        added: list[str] = []
+
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_add_manual_memory_requested=added.append,
+        )
+        window.show()
+        window._on_memory_panel_clicked()
+        qapp.processEvents()
+
+        input_widget = window._memory_manual_input
+        QTest.mouseClick(input_widget, Qt.MouseButton.LeftButton)
+        qapp.processEvents()
+
+        # Press Enter without typing anything
+        QTest.keyClick(input_widget, Qt.Key.Key_Return)
+        qapp.processEvents()
+
+        assert added == [], f"Expected [], got {added}"
+        assert input_widget.text() == ""
+
+    @staticmethod
+    def test_memory_manual_input_without_callback_keeps_text(qapp: QApplication) -> None:
+        """Manual memory text is not cleared when no add callback is wired."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_add_manual_memory_requested=None,
+        )
+        window.show()
+        window._on_memory_panel_clicked()
+        qapp.processEvents()
+
+        input_widget = window._memory_manual_input
+        QTest.mouseClick(input_widget, Qt.MouseButton.LeftButton)
+        qapp.processEvents()
+
+        QTest.keyClicks(input_widget, "I like short replies")
+        qapp.processEvents()
+
+        QTest.keyClick(input_widget, Qt.Key.Key_Return)
+        qapp.processEvents()
+
+        assert input_widget.text() == "I like short replies"
+
+    @staticmethod
+    def test_memory_manual_input_gets_focus_when_panel_opens(qapp: QApplication) -> None:
+        """Opening memory panel gives focus to the manual input."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+        )
+        window.show()
+        # Ensure window is visible and active first
+        window.activateWindow()
+        window.raise_()
+        qapp.processEvents()
+
+        # Panel is closed initially
+        assert not vm.memory_panel_visible
+
+        # Click memory button to open panel
+        window._on_memory_panel_clicked()
+        qapp.processEvents()
+
+        assert vm.memory_panel_visible
+        assert QApplication.focusWidget() is window._memory_manual_input
+
+    @staticmethod
+    def test_chat_input_enter_still_submits_message(qapp: QApplication) -> None:
+        """Chat input Enter submits message correctly with real keyboard interaction."""
+        submitted: list[str] = []
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=submitted.append,
+            on_conversation_cleared=lambda: None,
+        )
+        window.show()
+        window.activateWindow()
+        window.raise_()
+        qapp.processEvents()
+
+        input_field = window._input_field
+        QTest.mouseClick(input_field, Qt.MouseButton.LeftButton)
+        qapp.processEvents()
+        assert QApplication.focusWidget() is input_field
+
+        QTest.keyClicks(input_field, "hello")
+        qapp.processEvents()
+        assert input_field.text() == "hello"
+
+        QTest.keyClick(input_field, Qt.Key.Key_Return)
+        qapp.processEvents()
+
+        assert submitted == ["hello"], f"Expected ['hello'], got {submitted}"
+        assert input_field.text() == ""
+
+    @staticmethod
+    def test_memory_delete_second_record_calls_second_record_id(qapp: QApplication) -> None:
+        """Clicking second delete button calls callback with second record's id."""
+        vm = DesktopViewModel()
+        vm.memory_records = [
+            MemoryRecordView(
+                record_id="record-1", kind="preference", importance="medium",
+                text="Reply short", created_at="2024-01-01T00:00:00", updated_at="2024-01-01T00:00:00",
+            ),
+            MemoryRecordView(
+                record_id="record-2", kind="preference", importance="medium",
+                text="Reply long", created_at="2024-01-01T00:00:00", updated_at="2024-01-01T00:00:00",
+            ),
+            MemoryRecordView(
+                record_id="record-3", kind="preference", importance="medium",
+                text="Use emoji", created_at="2024-01-01T00:00:00", updated_at="2024-01-01T00:00:00",
+            ),
+        ]
+        vm.memory_panel_visible = True
+        deleted: list[str] = []
+
+        def on_delete(record_id: str) -> None:
+            deleted.append(record_id)
+
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_memory_delete_requested=on_delete,
+        )
+        window.show()
+        window.update_from_view_model()
+        qapp.processEvents()
+
+        # Verify first 3 buttons are visible
+        assert window._memory_delete_record_buttons[0].isVisible()
+        assert window._memory_delete_record_buttons[1].isVisible()
+        assert window._memory_delete_record_buttons[2].isVisible()
+
+        # Click second delete button using real mouse click
+        QTest.mouseClick(window._memory_delete_record_buttons[1], Qt.MouseButton.LeftButton)
+        qapp.processEvents()
+
+        assert deleted == ["record-2"], f"Expected ['record-2'], got {deleted}"
 

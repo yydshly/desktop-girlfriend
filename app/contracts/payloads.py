@@ -165,6 +165,36 @@ class MemoryErrorPayload:
 
 
 @dataclass
+class MemoryAddRequestedPayload:
+    """Payload for memory.add_requested events (V8-J manual add)."""
+
+    text: str
+
+    def to_event_payload(self) -> Payload:
+        """Convert the payload to an event-safe dictionary."""
+        return {"text": self.text}
+
+
+@dataclass
+class MemoryAddedPayload:
+    """Payload for memory.added events (V8-J manual add)."""
+
+    record_id: str
+    kind: str
+    importance: str
+    text: str
+
+    def to_event_payload(self) -> Payload:
+        """Convert the payload to an event-safe dictionary."""
+        return {
+            "record_id": self.record_id,
+            "kind": self.kind,
+            "importance": self.importance,
+            "text": self.text,
+        }
+
+
+@dataclass
 class MemoryRecordPayload:
     """Single memory record payload."""
 
