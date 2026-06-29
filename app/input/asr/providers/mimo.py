@@ -16,6 +16,8 @@ class MimoASRProvider(ASRProvider):
     message content type.
     """
 
+    requires_audio_path = True
+
     ALLOWED_LANGUAGES = {"auto", "zh", "en"}
 
     def __init__(

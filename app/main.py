@@ -31,6 +31,7 @@ from app.expression.tts.controller import TTSController
 from app.expression.tts.providers import TTSProviderError, create_tts_provider
 from app.input.asr.controller import VoiceInputController
 from app.input.asr.providers import ASRProviderError, create_asr_provider
+from app.input.audio import MicrophoneRecorder, MicrophoneRecorderLike
 from app.ui.qt_event_bridge import QtEventBridge
 from app.ui.view_model import DesktopViewModel
 from app.ui.window import DesktopWindow
@@ -225,10 +226,20 @@ def main() -> None:
 
         asr_provider = FakeASRProvider()
 
+    # Inject microphone recorder only when the ASR provider requires audio input
+    recorder: MicrophoneRecorderLike | None = (
+        MicrophoneRecorder() if asr_provider.requires_audio_path else None
+    )
+
     voice_input_controller = VoiceInputController(
         event_bus=event_bus,
         provider=asr_provider,
         dispatch_event=event_bridge.event_ready.emit,
+        recorder=recorder,
+        recording_output_dir=config.asr_recording_output_dir,
+        recording_duration_seconds=config.asr_recording_default_seconds,
+        recording_sample_rate=config.asr_recording_sample_rate,
+        recording_channels=config.asr_recording_channels,
     )
 
     # Start components

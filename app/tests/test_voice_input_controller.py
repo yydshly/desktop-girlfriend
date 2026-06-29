@@ -36,6 +36,57 @@ class FakeASRProviderForTest(ASRProvider):
         return ASRResponse(text=self._transcript)
 
 
+class FakeAudioRequiredProvider(ASRProvider):
+    """ASR provider that requires audio_path."""
+
+    requires_audio_path = True
+
+    def __init__(self, transcript: str = "Recognized from audio", should_fail: bool = False) -> None:
+        self._transcript = transcript
+        self._should_fail = should_fail
+
+    def recognize(self, request: ASRRequest) -> ASRResponse:
+        if self._should_fail:
+            raise ASRProviderError("Audio ASR failed")
+        if request.audio_path is None:
+            raise ASRProviderError("audio_path is required")
+        return ASRResponse(text=self._transcript)
+
+
+class CapturingAudioRequiredProvider(FakeAudioRequiredProvider):
+    """Subclass that captures the ASRRequest."""
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._captured_request: ASRRequest | None = None
+
+    def recognize(self, request: ASRRequest) -> ASRResponse:
+        self._captured_request = request
+        return super().recognize(request)
+
+
+class FakeMicrophoneRecorder:
+    """Fake microphone recorder for testing."""
+
+    def __init__(self) -> None:
+        self.record_called = False
+        self.last_request = None
+        self.should_fail = False
+
+    def record(self, request):
+        self.record_called = True
+        self.last_request = request
+        if self.should_fail:
+            from app.input.audio import AudioRecordingError
+            raise AudioRecordingError("microphone recording failed")
+        return MagicMock(
+            audio_path="/tmp/fake_recording.wav",
+            duration_seconds=request.duration_seconds,
+            sample_rate=request.sample_rate,
+            channels=request.channels,
+        )
+
+
 def make_dispatch_collector() -> tuple[list[BaseEvent], Callable[[BaseEvent], None]]:
     """Create a list and a callback that appends to it."""
     events: list[BaseEvent] = []
@@ -200,3 +251,198 @@ class TestVoiceInputController:
             and e.payload.get("target_state") == "error"
         ]
         assert len(error_state_events) >= 1
+
+
+class TestVoiceInputControllerWithRecorder:
+    """Tests for VoiceInputController with microphone recording."""
+
+    def _make_event(self) -> BaseEvent:
+        return BaseEvent(
+            event_type=VOICE_INPUT_REQUESTED,
+            request_id="req-voice-rec-1",
+            source="test",
+            payload={},
+        )
+
+    def test_fake_asr_does_not_call_recorder(self) -> None:
+        """Test that fake ASR does not call the microphone recorder."""
+        event_bus = MagicMock()
+        provider = FakeASRProviderForTest()
+        fake_recorder = FakeMicrophoneRecorder()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+        controller = VoiceInputController(
+            event_bus=event_bus,
+            provider=provider,
+            dispatch_event=dispatch_event,
+            recorder=fake_recorder,
+            recording_output_dir=".tmp/asr",
+            recording_duration_seconds=4.0,
+            recording_sample_rate=16000,
+            recording_channels=1,
+        )
+        controller.start()
+
+        controller._on_voice_input_requested(self._make_event())
+        time.sleep(0.05)
+
+        assert not fake_recorder.record_called
+
+    def test_audio_required_provider_calls_recorder(self) -> None:
+        """Test that audio-required ASR provider calls the microphone recorder."""
+        event_bus = MagicMock()
+        provider = FakeAudioRequiredProvider()
+        fake_recorder = FakeMicrophoneRecorder()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+        controller = VoiceInputController(
+            event_bus=event_bus,
+            provider=provider,
+            dispatch_event=dispatch_event,
+            recorder=fake_recorder,
+            recording_output_dir=".tmp/asr",
+            recording_duration_seconds=4.0,
+            recording_sample_rate=16000,
+            recording_channels=1,
+        )
+        controller.start()
+
+        controller._on_voice_input_requested(self._make_event())
+
+        # Wait for worker thread to complete
+        for _ in range(50):
+            time.sleep(0.01)
+            if fake_recorder.record_called:
+                break
+
+        assert fake_recorder.record_called
+
+    def test_recorder_output_passed_to_asr_request(self) -> None:
+        """Test that recorder output audio_path is passed to ASRRequest."""
+        event_bus = MagicMock()
+        provider = CapturingAudioRequiredProvider()
+        fake_recorder = FakeMicrophoneRecorder()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+        controller = VoiceInputController(
+            event_bus=event_bus,
+            provider=provider,
+            dispatch_event=dispatch_event,
+            recorder=fake_recorder,
+            recording_output_dir=".tmp/asr",
+            recording_duration_seconds=4.0,
+            recording_sample_rate=16000,
+            recording_channels=1,
+        )
+        controller.start()
+
+        controller._on_voice_input_requested(self._make_event())
+
+        # Wait for worker thread to complete
+        for _ in range(50):
+            time.sleep(0.01)
+            if provider._captured_request is not None:
+                break
+
+        assert provider._captured_request is not None
+        assert provider._captured_request.audio_path == "/tmp/fake_recording.wav"
+        assert provider._captured_request.mime_type == "audio/wav"
+
+    def test_recorder_raises_audio_recording_error(self) -> None:
+        """Test that AudioRecordingError is converted to SYSTEM_ERROR."""
+        event_bus = MagicMock()
+        provider = FakeAudioRequiredProvider()
+        fake_recorder = FakeMicrophoneRecorder()
+        fake_recorder.should_fail = True
+        dispatch_events, dispatch_event = make_dispatch_collector()
+        controller = VoiceInputController(
+            event_bus=event_bus,
+            provider=provider,
+            dispatch_event=dispatch_event,
+            recorder=fake_recorder,
+            recording_output_dir=".tmp/asr",
+            recording_duration_seconds=4.0,
+            recording_sample_rate=16000,
+            recording_channels=1,
+        )
+        controller.start()
+
+        controller._on_voice_input_requested(self._make_event())
+
+        # Wait for worker thread to complete
+        for _ in range(50):
+            time.sleep(0.01)
+            error_events = [e for e in dispatch_events if e.event_type == SYSTEM_ERROR]
+            if error_events:
+                break
+
+        error_events = [e for e in dispatch_events if e.event_type == SYSTEM_ERROR]
+        assert len(error_events) >= 1
+        assert error_events[0].payload["message"] == "语音识别失败，请稍后重试。"
+        assert "microphone recording failed" not in error_events[0].payload["message"]
+
+    def test_recorder_error_dispatches_error_state(self) -> None:
+        """Test that AudioRecordingError results in ERROR state."""
+        event_bus = MagicMock()
+        provider = FakeAudioRequiredProvider()
+        fake_recorder = FakeMicrophoneRecorder()
+        fake_recorder.should_fail = True
+        dispatch_events, dispatch_event = make_dispatch_collector()
+        controller = VoiceInputController(
+            event_bus=event_bus,
+            provider=provider,
+            dispatch_event=dispatch_event,
+            recorder=fake_recorder,
+            recording_output_dir=".tmp/asr",
+            recording_duration_seconds=4.0,
+            recording_sample_rate=16000,
+            recording_channels=1,
+        )
+        controller.start()
+
+        controller._on_voice_input_requested(self._make_event())
+
+        # Wait for worker thread to complete
+        for _ in range(50):
+            time.sleep(0.01)
+            error_state_events = [
+                e for e in dispatch_events
+                if e.event_type == STATE_CHANGE_REQUESTED
+                and e.payload.get("target_state") == "error"
+            ]
+            if error_state_events:
+                break
+
+        error_state_events = [
+            e for e in dispatch_events
+            if e.event_type == STATE_CHANGE_REQUESTED
+            and e.payload.get("target_state") == "error"
+        ]
+        assert len(error_state_events) >= 1
+
+
+class TestProviderCapabilityFlags:
+    """Tests for ASR provider capability flags."""
+
+    def test_fake_asr_provider_does_not_require_audio_path(self) -> None:
+        """Test FakeASRProvider.requires_audio_path is False."""
+        from app.input.asr.providers.fake import FakeASRProvider
+
+        provider = FakeASRProvider()
+        assert provider.requires_audio_path is False
+
+    def test_mimo_asr_provider_requires_audio_path(self) -> None:
+        """Test MimoASRProvider.requires_audio_path is True."""
+        from app.input.asr.providers.mimo import MimoASRProvider
+
+        provider = MimoASRProvider(
+            api_key="test-key",
+            base_url="https://api.xiaomimimo.com/v1",
+            model="mimo-v2.5-asr",
+            language="auto",
+            timeout_seconds=30.0,
+        )
+        assert provider.requires_audio_path is True
+
+    def test_base_asr_provider_default_requires_audio_path(self) -> None:
+        """Test ASRProvider default requires_audio_path is False."""
+        from app.input.asr.providers.base import ASRProvider
+
+        assert ASRProvider.requires_audio_path is False

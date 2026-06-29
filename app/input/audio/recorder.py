@@ -7,13 +7,21 @@ import uuid
 import wave
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol
 
 import sounddevice
 
 
 class AudioRecordingError(Exception):
     """Raised when microphone recording fails."""
+
+
+class MicrophoneRecorderLike(Protocol):
+    """Protocol for microphone recorders compatible with VoiceInputController."""
+
+    def record(self, request: RecordingRequest) -> RecordingResponse:
+        """Record audio and return the response."""
+        ...
 
 
 @dataclass(frozen=True)

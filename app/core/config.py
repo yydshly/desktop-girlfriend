@@ -122,6 +122,17 @@ class AppConfig:
         self.asr_recording_max_seconds: float = _env_float_or_default(
             "ASR_RECORDING_MAX_SECONDS", "10.0"
         )
+        self.asr_recording_default_seconds: float = _env_float_or_default(
+            "ASR_RECORDING_DEFAULT_SECONDS", "4.0"
+        )
+
+        # Validate ASR recording default seconds
+        if self.asr_recording_default_seconds <= 0:
+            raise ValueError("ASR_RECORDING_DEFAULT_SECONDS must be positive")
+        if self.asr_recording_default_seconds > self.asr_recording_max_seconds:
+            raise ValueError(
+                "ASR_RECORDING_DEFAULT_SECONDS must be <= ASR_RECORDING_MAX_SECONDS"
+            )
 
 
 _config: AppConfig | None = None

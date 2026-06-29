@@ -5,6 +5,7 @@ from __future__ import annotations
 from app.input.audio.recorder import (
     AudioRecordingError,
     MicrophoneRecorder,
+    MicrophoneRecorderLike,
     RecordingRequest,
     RecordingResponse,
 )
@@ -12,6 +13,7 @@ from app.input.audio.recorder import (
 __all__ = [
     "AudioRecordingError",
     "MicrophoneRecorder",
+    "MicrophoneRecorderLike",
     "RecordingRequest",
     "RecordingResponse",
 ]

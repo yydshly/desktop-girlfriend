@@ -31,6 +31,8 @@ class ASRResponse:
 class ASRProvider(ABC):
     """Abstract base class for ASR providers."""
 
+    requires_audio_path: bool = False
+
     @abstractmethod
     def recognize(self, request: ASRRequest) -> ASRResponse:
         """Perform speech recognition on the given request.

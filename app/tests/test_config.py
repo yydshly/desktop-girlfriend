@@ -428,3 +428,69 @@ def test_invalid_asr_recording_channels_raises_value_error(
 
     with pytest.raises(ValueError, match="ASR_RECORDING_CHANNELS must be an integer"):
         AppConfig()
+
+
+def test_default_asr_recording_default_seconds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test default ASR recording default seconds is 4.0."""
+    clear_config_env(monkeypatch)
+    config = AppConfig()
+    assert config.asr_recording_default_seconds == 4.0
+
+
+def test_env_vars_override_asr_recording_default_seconds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test ASR_RECORDING_DEFAULT_SECONDS env var is used."""
+    reset_config()
+    monkeypatch.setenv("ASR_RECORDING_DEFAULT_SECONDS", "3.0")
+    config = AppConfig()
+    assert config.asr_recording_default_seconds == 3.0
+
+
+def test_invalid_asr_recording_default_seconds_non_numeric_raises(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test non-numeric ASR_RECORDING_DEFAULT_SECONDS raises ValueError."""
+    reset_config()
+    monkeypatch.setenv("ASR_RECORDING_DEFAULT_SECONDS", "not-a-number")
+
+    with pytest.raises(ValueError, match="ASR_RECORDING_DEFAULT_SECONDS must be a number"):
+        AppConfig()
+
+
+def test_asr_recording_default_seconds_zero_raises(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test ASR_RECORDING_DEFAULT_SECONDS=0 raises ValueError."""
+    reset_config()
+    monkeypatch.setenv("ASR_RECORDING_DEFAULT_SECONDS", "0")
+
+    with pytest.raises(ValueError, match="ASR_RECORDING_DEFAULT_SECONDS must be positive"):
+        AppConfig()
+
+
+def test_asr_recording_default_seconds_negative_raises(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test negative ASR_RECORDING_DEFAULT_SECONDS raises ValueError."""
+    reset_config()
+    monkeypatch.setenv("ASR_RECORDING_DEFAULT_SECONDS", "-1.0")
+
+    with pytest.raises(ValueError, match="ASR_RECORDING_DEFAULT_SECONDS must be positive"):
+        AppConfig()
+
+
+def test_asr_recording_default_seconds_exceeds_max_raises(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test ASR_RECORDING_DEFAULT_SECONDS > MAX raises ValueError."""
+    reset_config()
+    monkeypatch.setenv("ASR_RECORDING_MAX_SECONDS", "5.0")
+    monkeypatch.setenv("ASR_RECORDING_DEFAULT_SECONDS", "10.0")
+
+    with pytest.raises(
+        ValueError, match="ASR_RECORDING_DEFAULT_SECONDS must be <= ASR_RECORDING_MAX_SECONDS"
+    ):
+        AppConfig()

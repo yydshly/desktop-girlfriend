@@ -57,3 +57,52 @@ def test_wire_shutdown_stops_many_components() -> None:
 
     for comp in components:
         assert comp.stop_called is True
+
+
+class TestVoiceInputControllerInjection:
+    """Tests for VoiceInputController recorder injection in main.py.
+
+    These tests verify the recorder injection logic without requiring full app startup.
+    """
+
+    def test_mimo_provider_requires_audio_path(self) -> None:
+        """Test that MimoASRProvider requires audio_path."""
+        from app.input.asr.providers.mimo import MimoASRProvider
+
+        provider = MimoASRProvider(
+            api_key="test-key",
+            base_url="https://api.xiaomimimo.com/v1",
+            model="mimo-v2.5-asr",
+            language="auto",
+            timeout_seconds=30.0,
+        )
+        assert provider.requires_audio_path is True
+
+    def test_fake_provider_does_not_require_audio_path(self) -> None:
+        """Test that FakeASRProvider does not require audio_path."""
+        from app.input.asr.providers.fake import FakeASRProvider
+
+        provider = FakeASRProvider()
+        assert provider.requires_audio_path is False
+
+    def test_recorder_injection_logic(self) -> None:
+        """Test the recorder injection logic: mimo -> recorder, fake -> None."""
+        from app.input.asr.providers.fake import FakeASRProvider
+        from app.input.asr.providers.mimo import MimoASRProvider
+        from app.input.audio import MicrophoneRecorder
+
+        # Simulate the injection logic from main.py
+        def get_recorder(provider) -> MicrophoneRecorder | None:
+            return MicrophoneRecorder() if provider.requires_audio_path else None
+
+        mimo_provider = MimoASRProvider(
+            api_key="test-key",
+            base_url="https://api.xiaomimimo.com/v1",
+            model="mimo-v2.5-asr",
+            language="auto",
+            timeout_seconds=30.0,
+        )
+        fake_provider = FakeASRProvider()
+
+        assert get_recorder(mimo_provider) is not None
+        assert get_recorder(fake_provider) is None

@@ -1,5 +1,7 @@
 """Voice input controller — bridges ASR to the dialogue system."""
 
+from __future__ import annotations
+
 import logging
 import threading
 import uuid
@@ -19,12 +21,13 @@ from app.input.asr.providers.base import ASRProvider, ASRProviderError, ASRReque
 
 if TYPE_CHECKING:
     from app.core.event_bus import EventBus
+    from app.input.audio import MicrophoneRecorderLike
 
 logger = logging.getLogger(__name__)
 
 
 class VoiceInputController:
-    """Listens for voice input requests and drives a fake ASR pipeline.
+    """Listens for voice input requests and drives an ASR pipeline.
 
     On success, publishes ASR_TEXT_RECOGNIZED (for debugging/logging) and then
     USER_TEXT_SUBMITTED so the existing dialogue chain handles the recognized text.
@@ -34,9 +37,14 @@ class VoiceInputController:
 
     def __init__(
         self,
-        event_bus: "EventBus",
+        event_bus: EventBus,
         provider: ASRProvider,
         dispatch_event: Callable[[BaseEvent], None],
+        recorder: MicrophoneRecorderLike | None = None,
+        recording_output_dir: str = ".tmp/asr",
+        recording_duration_seconds: float = 4.0,
+        recording_sample_rate: int = 16000,
+        recording_channels: int = 1,
     ) -> None:
         """Initialize VoiceInputController.
 
@@ -44,10 +52,20 @@ class VoiceInputController:
             event_bus: Event bus for subscribing to voice.input_requested.
             provider: ASR provider (fake or real).
             dispatch_event: Callback to dispatch events to the UI thread safely.
+            recorder: Optional microphone recorder for providers that require audio.
+            recording_output_dir: Output directory for recordings.
+            recording_duration_seconds: Duration of each recording.
+            recording_sample_rate: Sample rate for recordings.
+            recording_channels: Number of audio channels.
         """
         self._event_bus = event_bus
         self._provider = provider
         self._dispatch_event = dispatch_event
+        self._recorder = recorder
+        self._recording_output_dir = recording_output_dir
+        self._recording_duration_seconds = recording_duration_seconds
+        self._recording_sample_rate = recording_sample_rate
+        self._recording_channels = recording_channels
         self._is_listening = False
         self._is_stopped = False
         self._lock = threading.Lock()
@@ -92,6 +110,38 @@ class VoiceInputController:
         )
         thread.start()
 
+    def _build_asr_request(self) -> ASRRequest:
+        """Build ASR request, recording audio if provider requires it.
+
+        Returns:
+            ASRRequest with audio_path if required.
+
+        Raises:
+            ASRProviderError: If recording is required but recorder is unavailable.
+        """
+        if not self._provider.requires_audio_path:
+            return ASRRequest()
+
+        if self._recorder is None:
+            raise ASRProviderError("audio recorder is required for this ASR provider")
+
+        # Import here to avoid circular dependency at module level
+        from app.input.audio import RecordingRequest
+
+        recording = self._recorder.record(
+            RecordingRequest(
+                duration_seconds=self._recording_duration_seconds,
+                output_dir=self._recording_output_dir,
+                sample_rate=self._recording_sample_rate,
+                channels=self._recording_channels,
+            )
+        )
+
+        return ASRRequest(
+            audio_path=recording.audio_path,
+            mime_type="audio/wav",
+        )
+
     def _recognize(self, request_id: str) -> None:
         """Worker thread: call ASR provider and dispatch result events.
 
@@ -99,7 +149,8 @@ class VoiceInputController:
             request_id: Request ID for tracking.
         """
         try:
-            response = self._provider.recognize(ASRRequest())
+            asr_request = self._build_asr_request()
+            response = self._provider.recognize(asr_request)
 
             if self._should_discard_result():
                 return
