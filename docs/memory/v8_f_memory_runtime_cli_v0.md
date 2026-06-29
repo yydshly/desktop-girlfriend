@@ -34,9 +34,9 @@ V8-F CLI 是本地调试 / probe 入口，不是用户正式 UI。
 
 V8-F CLI 命令分两类：
 
-### 持久化可跨进程命令
+### 持久化命令（persistent）
 
-这些命令操作 repository，文件持久化，跨进程有效：
+这些命令操作 repository，文件持久化，**跨进程有效**：
 
 - `list-active` — 读取 repository.list_active()
 - `list-all` — 读取 repository.list_all()
@@ -44,15 +44,28 @@ V8-F CLI 命令分两类：
 - `context` — 调用 runtime.build_session_context()
 - `clear` — 调用 repository.clear()
 
-### 单进程调试命令
+### 易失性命令（volatile / same-process only）
 
-这些命令操作 in-memory confirmation store，进程重启后丢失：
+这些命令操作 `InMemoryMemoryConfirmationStore`，**进程重启后丢失**。每次 CLI 进程启动都会创建新的 runtime 实例，pending/rejected 状态不会保留。
+
+不要期望这样工作：
+
+```powershell
+python scripts/memory_cli.py --path .tmp/memory.json submit "我喜欢你回复短一点。"
+# 进程结束，pending 丢失
+python scripts/memory_cli.py --path .tmp/memory.json confirm <pending_id>
+# 找不到，因为 pending 是上一个进程的状态
+```
+
+这些命令仅用于**单进程调试**：
 
 - `submit <text>` — 提交用户文本生成 pending
 - `list-pending` — 列出当前进程内的 pending
-- `confirm <pending_id>` — 确认单个 pending
-- `reject <pending_id>` — 拒绝单个 pending
-- `snapshot` — 打印 pending/active/rejected 数量
+- `confirm <pending_id>` — 确认单个 pending（仅在同一进程内有效）
+- `reject <pending_id>` — 拒绝单个 pending（仅在同一进程内有效）
+- `snapshot` — 打印 pending/active/rejected 数量（pending/rejected 为内存态）
+
+完整闭环验证请用 `demo` 命令。
 
 ## 为什么 pending/rejected 不跨进程
 

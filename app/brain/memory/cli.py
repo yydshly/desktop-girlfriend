@@ -43,44 +43,79 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub = parser.add_subparsers(dest="command", required=True)
 
+    volatile = "volatile; same process only — pending state is not persisted"
+    persistent = "persistent; survives across CLI invocations"
+
     # submit <text>
-    sub.add_parser("submit", help="Submit user text to extract pending memories.").add_argument(
-        "text", help="User text to process."
+    submit_parser = sub.add_parser(
+        "submit",
+        help=f"Submit user text to extract pending memories ({volatile}).",
     )
+    submit_parser.add_argument("text", help="User text to process.")
 
     # list-pending
-    sub.add_parser("list-pending", help="List all pending memories.")
+    sub.add_parser(
+        "list-pending",
+        help=f"List all pending memories ({volatile}).",
+    )
 
     # confirm <pending_id>
-    confirm_parser = sub.add_parser("confirm", help="Confirm a pending memory.")
+    confirm_parser = sub.add_parser(
+        "confirm",
+        help=f"Confirm a pending memory ({volatile}; use demo for same-process loop).",
+    )
     confirm_parser.add_argument("pending_id", help="ID of the pending memory to confirm.")
 
     # reject <pending_id> [--reason <reason>]
-    reject_parser = sub.add_parser("reject", help="Reject a pending memory.")
+    reject_parser = sub.add_parser(
+        "reject",
+        help=f"Reject a pending memory ({volatile}; use demo for same-process loop).",
+    )
     reject_parser.add_argument("pending_id", help="ID of the pending memory to reject.")
     reject_parser.add_argument("--reason", default="", help="Optional rejection reason.")
 
     # list-active
-    sub.add_parser("list-active", help="List all active memory records.")
+    sub.add_parser(
+        "list-active",
+        help=f"List all active memory records ({persistent}).",
+    )
 
     # list-all
-    sub.add_parser("list-all", help="List all memory records (active + deleted).")
+    sub.add_parser(
+        "list-all",
+        help=f"List all memory records ({persistent}).",
+    )
 
     # delete <record_id>
-    delete_parser = sub.add_parser("delete", help="Soft-delete a memory record.")
+    delete_parser = sub.add_parser(
+        "delete",
+        help=f"Soft-delete a memory record ({persistent}).",
+    )
     delete_parser.add_argument("record_id", help="ID of the record to delete.")
 
     # context
-    sub.add_parser("context", help="Build and print session memory context.")
+    sub.add_parser(
+        "context",
+        help=f"Build and print session memory context ({persistent}).",
+    )
 
     # snapshot
-    sub.add_parser("snapshot", help="Print pending/active/rejected counts.")
+    sub.add_parser(
+        "snapshot",
+        help=f"Print pending/active/rejected counts ({volatile}).",
+    )
 
     # clear
-    sub.add_parser("clear", help="Clear all records from repository.")
+    sub.add_parser(
+        "clear",
+        help=f"Clear all records from repository ({persistent}).",
+    )
 
     # demo
-    sub.add_parser("demo", help="Run full submit/confirm/reject/list/context/delete loop.")
+    sub.add_parser(
+        "demo",
+        help="Run full submit/confirm/reject/list/context/delete loop in one process.",
+    )
 
     return parser
 
@@ -97,10 +132,20 @@ def _truncate(text: str, max_chars: int = 40) -> str:
     return text[:max_chars] + "..."
 
 
+_VOLATILE_NOTE = (
+    "note: pending memories are volatile and cannot be confirmed in a later CLI process; "
+    "use demo for a full same-process loop."
+)
+
+
 def _print_pending_list(pending: tuple, runtime: MemoryRuntimeService) -> None:
     """Print pending memories in a user-friendly format."""
     if not pending:
         print("(no pending memories)")
+        print(
+            "note: pending memories are process-local; "
+            "previous submit commands do not persist pending state."
+        )
         return
     for p in pending:
         print(
@@ -109,6 +154,7 @@ def _print_pending_list(pending: tuple, runtime: MemoryRuntimeService) -> None:
             f"text={_truncate(p.candidate.text)} "
             f"created={_format_datetime(p.created_at)}"
         )
+    print(_VOLATILE_NOTE)
 
 
 def _print_active_list(records: tuple) -> None:
@@ -247,7 +293,12 @@ def run_memory_cli(argv: Sequence[str] | None = None) -> int:
                 )
                 return 0
             except KeyError:
-                print(f"Pending memory not found: {args.pending_id}", file=sys.stderr)
+                print(
+                    f"Pending memory not found: {args.pending_id}\n"
+                    "note: pending memories are process-local; "
+                    "confirm only works in the same runtime process.",
+                    file=sys.stderr,
+                )
                 return 1
 
         elif command == "reject":
@@ -256,7 +307,12 @@ def run_memory_cli(argv: Sequence[str] | None = None) -> int:
                 print(f"[{rejected.id[:8]}] rejected — kind={rejected.candidate.kind.value}")
                 return 0
             except KeyError:
-                print(f"Pending memory not found: {args.pending_id}", file=sys.stderr)
+                print(
+                    f"Pending memory not found: {args.pending_id}\n"
+                    "note: pending memories are process-local; "
+                    "reject only works in the same runtime process.",
+                    file=sys.stderr,
+                )
                 return 1
 
         elif command == "list-active":

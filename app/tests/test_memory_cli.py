@@ -110,6 +110,50 @@ class TestListAll:
         assert rc == 0
 
 
+class TestVolatileWarnings:
+    """Tests for volatile/process-local warnings in pending commands."""
+
+    def test_submit_output_includes_volatile_warning(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture
+    ) -> None:
+        """submit output includes volatile/process-local warning."""
+        json_path = tmp_path / "test.json"
+        rc = run_memory_cli(["--path", str(json_path), "submit", "我喜欢短回复。"])
+        captured = capsys.readouterr()
+        assert "volatile" in captured.out or "process-local" in captured.out
+        assert rc == 0
+
+    def test_list_pending_empty_includes_process_local_warning(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture
+    ) -> None:
+        """list-pending empty output includes process-local warning."""
+        json_path = tmp_path / "test.json"
+        rc = run_memory_cli(["--path", str(json_path), "list-pending"])
+        captured = capsys.readouterr()
+        assert "process-local" in captured.out
+        assert rc == 0
+
+    def test_confirm_unknown_id_includes_process_local_warning(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture
+    ) -> None:
+        """confirm unknown id error includes process-local warning."""
+        json_path = tmp_path / "test.json"
+        rc = run_memory_cli(["--path", str(json_path), "confirm", "fake-id-12345"])
+        captured = capsys.readouterr()
+        assert "process-local" in captured.err
+        assert rc == 1
+
+    def test_reject_unknown_id_includes_process_local_warning(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture
+    ) -> None:
+        """reject unknown id error includes process-local warning."""
+        json_path = tmp_path / "test.json"
+        rc = run_memory_cli(["--path", str(json_path), "reject", "fake-id-12345"])
+        captured = capsys.readouterr()
+        assert "process-local" in captured.err
+        assert rc == 1
+
+
 class TestContext:
     """Tests for context command."""
 
