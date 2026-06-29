@@ -109,6 +109,62 @@ def main() -> int:
         print("settings button: FAIL (panel did not close)")
         return 1
 
+    # Test mutual exclusivity: settings and product status cannot both be visible
+    from app.ui.product_status import ProductStatusItem, ProductStatusView
+    vm.set_product_status_view(
+        ProductStatusView(items=(ProductStatusItem("对话", True, "已启用"),))
+    )
+
+    def on_status() -> None:
+        vm.toggle_product_status_visible()
+        vm.set_product_status_view(
+            ProductStatusView(items=(ProductStatusItem("对话", True, "已启用"),))
+        )
+        window.update_from_view_model()
+
+    # Re-create window with status callback
+    window2 = DesktopWindow(
+        view_model=vm,
+        on_user_text_submitted=lambda t: None,
+        on_conversation_cleared=lambda: None,
+        on_product_status_requested=on_status,
+    )
+    window2.show()
+    window2.update_from_view_model()
+
+    # Open settings
+    window2._settings_button.clicked.emit()
+    QApplication.instance().processEvents()
+    if not vm.settings_visible:
+        print("mutual exclusion: FAIL (settings not opened)")
+        return 1
+    if vm.product_status_visible:
+        print("mutual exclusion: FAIL (product status visible after opening settings)")
+        return 1
+    print("mutual exclusion: OK (settings opens, product status closed)")
+
+    # Open product status - should close settings
+    window2._product_status_button.pressed.emit()
+    QApplication.instance().processEvents()
+    if vm.settings_visible:
+        print("mutual exclusion: FAIL (settings still visible after opening status)")
+        return 1
+    if not vm.product_status_visible:
+        print("mutual exclusion: FAIL (product status not opened)")
+        return 1
+    print("mutual exclusion: OK (status opens, settings closed)")
+
+    # Open settings again - should close status
+    window2._settings_button.clicked.emit()
+    QApplication.instance().processEvents()
+    if not vm.settings_visible:
+        print("mutual exclusion: FAIL (settings not reopened)")
+        return 1
+    if vm.product_status_visible:
+        print("mutual exclusion: FAIL (status still visible after opening settings)")
+        return 1
+    print("mutual exclusion: OK (settings reopens, status closed)")
+
     if not checks_passed:
         print("\nFAIL")
         return 1
