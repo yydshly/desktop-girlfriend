@@ -23,6 +23,7 @@ from app.contracts.states import AppState
 from app.ui.avatar_action import (
     AvatarAction,
     avatar_label_for_action,
+    avatar_style_for_action,
     avatar_text_for_action,
 )
 from app.ui.chat_message import ChatMessage
@@ -365,6 +366,11 @@ class DesktopViewModel:
     def effective_avatar_label(self) -> str:
         """Return the avatar label text for the current avatar action."""
         return self.avatar_action_label
+
+    @property
+    def effective_avatar_style(self) -> str:
+        """Return the stylesheet for the current avatar action."""
+        return avatar_style_for_action(self.avatar_action)
 
     @property
     def effective_display_text(self) -> str:

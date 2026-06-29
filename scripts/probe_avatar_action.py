@@ -1,14 +1,10 @@
-r"""Avatar action state probe script (V10-A).
+r"""Avatar action state probe script (V10-A / V10-B).
 
 Run locally (no Qt, no network, no LLM, no TTS, no memory):
     .venv\Scripts\python.exe scripts/probe_avatar_action.py
 """
 
 from __future__ import annotations
-
-import sys
-
-sys.stdout.reconfigure(encoding="utf-8")
 
 from app.contracts.events import (
     CONVERSATION_CLEARED,
@@ -17,16 +13,22 @@ from app.contracts.events import (
     SYSTEM_ERROR,
     BaseEvent,
 )
+from app.ui.avatar_action import AvatarAction, avatar_style_for_action
 from app.ui.view_model import DesktopViewModel
 
 
 def main() -> None:
     """Run avatar action state probe flow."""
+    import sys
+    sys.stdout.reconfigure(encoding="utf-8")
+
     vm = DesktopViewModel()
 
     # 1. Initial state
     assert vm.effective_avatar_text == "☁️", f"Expected ☁️, got {vm.effective_avatar_text}"
-    print("[OK] Initial: ☁️")
+    initial_style = vm.effective_avatar_style
+    assert len(initial_style) > 0, "Initial style should be non-empty"
+    print("[OK] Initial: ☁️ (style non-empty)")
 
     # 2. state.changed LISTENING -> 👂
     vm.handle_state_changed(
@@ -38,7 +40,10 @@ def main() -> None:
         )
     )
     assert vm.effective_avatar_text == "👂", f"Expected 👂, got {vm.effective_avatar_text}"
-    print("[OK] LISTENING: 👂")
+    listening_style = vm.effective_avatar_style
+    assert len(listening_style) > 0, "LISTENING style should be non-empty"
+    assert listening_style != initial_style, "LISTENING style should differ from IDLE"
+    print("[OK] LISTENING: 👂 (style non-empty, different from IDLE)")
 
     # 3. state.changed THINKING -> 💭
     vm.handle_state_changed(
@@ -74,7 +79,10 @@ def main() -> None:
         )
     )
     assert vm.effective_avatar_text == "✨", f"Expected ✨, got {vm.effective_avatar_text}"
-    print("[OK] PROACTIVE: ✨")
+    proactive_style = vm.effective_avatar_style
+    assert len(proactive_style) > 0, "PROACTIVE style should be non-empty"
+    assert proactive_style == avatar_style_for_action(AvatarAction.PROACTIVE)
+    print("[OK] PROACTIVE: ✨ (style non-empty)")
 
     # 6. system.error -> ⚠️
     vm.handle_system_error(
@@ -86,7 +94,10 @@ def main() -> None:
         )
     )
     assert vm.effective_avatar_text == "⚠️", f"Expected ⚠️, got {vm.effective_avatar_text}"
-    print("[OK] ERROR: ⚠️")
+    error_style = vm.effective_avatar_style
+    assert len(error_style) > 0, "ERROR style should be non-empty"
+    assert error_style == avatar_style_for_action(AvatarAction.ERROR)
+    print("[OK] ERROR: ⚠️ (style non-empty)")
 
     # 7. conversation.cleared -> ☁️
     vm.handle_conversation_cleared(

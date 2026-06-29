@@ -1,4 +1,4 @@
-"""Tests for avatar action (V10-A)."""
+"""Tests for avatar action (V10-A / V10-B)."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ from app.contracts.events import (
 from app.ui.avatar_action import (
     AvatarAction,
     avatar_label_for_action,
+    avatar_style_for_action,
     avatar_text_for_action,
 )
 from app.ui.view_model import DesktopViewModel
@@ -223,3 +224,83 @@ class TestViewModelAvatarAction:
         )
         vm.handle_state_changed(event)
         assert "听" in vm.avatar_action_label
+
+
+class TestAvatarActionStyles:
+    """Tests for avatar action styles (V10-B)."""
+
+    def test_all_actions_have_style(self) -> None:
+        """Every AvatarAction has a non-empty style."""
+        for action in AvatarAction:
+            style = avatar_style_for_action(action)
+            assert isinstance(style, str)
+            assert len(style) > 0
+
+    def test_effective_avatar_style_initial_is_idle_style(self) -> None:
+        """ViewModel effective_avatar_style is IDLE style initially."""
+        vm = DesktopViewModel()
+        assert vm.effective_avatar_style == avatar_style_for_action(AvatarAction.IDLE)
+
+    def test_listening_style_different_from_idle(self) -> None:
+        """LISTENING style differs from IDLE style."""
+        idle_style = avatar_style_for_action(AvatarAction.IDLE)
+        listening_style = avatar_style_for_action(AvatarAction.LISTENING)
+        assert idle_style != listening_style
+
+    def test_proactive_has_non_empty_style(self) -> None:
+        """PROACTIVE action has a non-empty style."""
+        style = avatar_style_for_action(AvatarAction.PROACTIVE)
+        assert len(style) > 0
+
+    def test_error_has_non_empty_style(self) -> None:
+        """ERROR action has a non-empty style."""
+        style = avatar_style_for_action(AvatarAction.ERROR)
+        assert len(style) > 0
+
+    def test_state_change_updates_effective_avatar_style(self) -> None:
+        """State change updates effective_avatar_style."""
+        vm = DesktopViewModel()
+        initial_style = vm.effective_avatar_style
+
+        event = BaseEvent(
+            event_type=STATE_CHANGED,
+            request_id="req1",
+            source="test",
+            payload={"current_state": "listening"},
+        )
+        vm.handle_state_changed(event)
+
+        assert vm.effective_avatar_style != initial_style
+        assert vm.effective_avatar_style == avatar_style_for_action(AvatarAction.LISTENING)
+
+    def test_proactive_nudge_updates_style(self) -> None:
+        """proactive.nudge_ready updates avatar style to PROACTIVE."""
+        vm = DesktopViewModel()
+        initial_style = vm.effective_avatar_style
+
+        event = BaseEvent(
+            event_type=PROACTIVE_NUDGE_READY,
+            request_id="req1",
+            source="test",
+            payload={"text": "我在这儿。"},
+        )
+        vm.handle_proactive_nudge_ready(event)
+
+        assert vm.effective_avatar_style != initial_style
+        assert vm.effective_avatar_style == avatar_style_for_action(AvatarAction.PROACTIVE)
+
+    def test_error_updates_style(self) -> None:
+        """system.error updates avatar style to ERROR."""
+        vm = DesktopViewModel()
+        initial_style = vm.effective_avatar_style
+
+        event = BaseEvent(
+            event_type=SYSTEM_ERROR,
+            request_id="req1",
+            source="test",
+            payload={"message": "Oops"},
+        )
+        vm.handle_system_error(event)
+
+        assert vm.effective_avatar_style != initial_style
+        assert vm.effective_avatar_style == avatar_style_for_action(AvatarAction.ERROR)
