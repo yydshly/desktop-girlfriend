@@ -69,13 +69,13 @@ class TestPersonaPromptBuilder:
         """Test build_system_prompt does not contain empty section headers."""
         prompt = self._make_builder().build_system_prompt()
         lines = prompt.split("\n")
-        # Section headers like "一、核心性格" should be followed by content
+        # Section headers should be followed by content
         for i, line in enumerate(lines):
-            if line.startswith(("一、", "二、", "三、", "四、", "五、", "六、", "七、")):
+            if line.startswith(("一、", "二、", "三、", "四、", "五、", "六、", "七、", "八、")):
                 # Check that the next line is not another section header or end of content
                 if i + 1 < len(lines):
                     next_line = lines[i + 1].strip()
-                    assert next_line and not next_line.startswith("八"), \
+                    assert next_line and not next_line.startswith("九"), \
                         f"Section {line} appears empty or followed by another header"
 
     def test_build_system_prompt_no_internal_object_repr(self) -> None:
@@ -187,7 +187,28 @@ class TestPersonaPromptBuilder:
         prompt = self._make_builder().build_system_prompt()
         assert "一、角色定位" in prompt
 
-    def test_section_seven_output_rules_present(self) -> None:
-        """Test that section 七、输出要求 is present in the prompt."""
+    def test_section_two_information_boundary_present(self) -> None:
+        """Test that section 二、信息边界 is present in the prompt."""
         prompt = self._make_builder().build_system_prompt()
-        assert "七、输出要求" in prompt
+        assert "二、信息边界" in prompt
+
+    def test_information_boundary_contains_recommended_reply(self) -> None:
+        """Test that the information boundary section contains the recommended short refusal."""
+        prompt = self._make_builder().build_system_prompt()
+        # The recommended short refusal should be in the prompt
+        assert "这个内容我无法提供" in prompt
+
+    def test_information_boundary_prohibits_enumeration(self) -> None:
+        """Test that the information boundary prohibits enumerating rules."""
+        prompt = self._make_builder().build_system_prompt()
+        assert "不要列举任何规则" in prompt
+
+    def test_information_boundary_prohibits_summarizing_config(self) -> None:
+        """Test that the information boundary prohibits summarizing role config."""
+        prompt = self._make_builder().build_system_prompt()
+        assert "不要总结任何配置" in prompt
+
+    def test_section_eight_output_rules_present(self) -> None:
+        """Test that section 八、输出要求 is present in the prompt."""
+        prompt = self._make_builder().build_system_prompt()
+        assert "八、输出要求" in prompt
