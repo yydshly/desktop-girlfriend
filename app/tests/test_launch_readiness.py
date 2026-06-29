@@ -100,8 +100,8 @@ class TestAppConfigDefaults:
     ) -> None:
         """MEMORY_CONTEXT_ENABLED defaults to False."""
         clear_config_env(monkeypatch)
-        from app.core.config import get_config
-        config = get_config()
+        from app.core.config import AppConfig
+        config = AppConfig()
         assert config.memory_context_enabled is False
 
     def test_memory_suggestions_enabled_default_false(
@@ -109,8 +109,8 @@ class TestAppConfigDefaults:
     ) -> None:
         """MEMORY_SUGGESTIONS_ENABLED defaults to False."""
         clear_config_env(monkeypatch)
-        from app.core.config import get_config
-        config = get_config()
+        from app.core.config import AppConfig
+        config = AppConfig()
         assert config.memory_suggestions_enabled is False
 
     def test_memory_management_enabled_default_false(
@@ -118,8 +118,8 @@ class TestAppConfigDefaults:
     ) -> None:
         """MEMORY_MANAGEMENT_ENABLED defaults to False."""
         clear_config_env(monkeypatch)
-        from app.core.config import get_config
-        config = get_config()
+        from app.core.config import AppConfig
+        config = AppConfig()
         assert config.memory_management_enabled is False
 
     def test_proactive_enabled_default_false(
@@ -127,8 +127,8 @@ class TestAppConfigDefaults:
     ) -> None:
         """PROACTIVE_ENABLED defaults to False."""
         clear_config_env(monkeypatch)
-        from app.core.config import get_config
-        config = get_config()
+        from app.core.config import AppConfig
+        config = AppConfig()
         assert config.proactive_enabled is False
 
     def test_proactive_tts_enabled_default_false(
@@ -136,6 +136,6 @@ class TestAppConfigDefaults:
     ) -> None:
         """PROACTIVE_TTS_ENABLED defaults to False."""
         clear_config_env(monkeypatch)
-        from app.core.config import get_config
-        config = get_config()
+        from app.core.config import AppConfig
+        config = AppConfig()
         assert config.proactive_tts_enabled is False

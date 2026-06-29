@@ -48,8 +48,18 @@ Windows 推荐使用 Python 3.11+ 创建虚拟环境。若本机有 `py` launche
 
 ```bash
 py -3.11 -m venv .venv
-.venv\Scripts\activate
-python -m pip install -e ".[dev]"
+.venv\Scripts\python.exe -m pip install -U pip
+.venv\Scripts\python.exe -m pip install -e ".[dev]"
+```
+
+Python >= 3.11 required. Do not create `.venv` with Python 3.10.
+If `.venv` is broken, remove it and rebuild:
+
+```powershell
+Remove-Item -Recurse -Force .venv
+py -3.11 -m venv .venv
+.venv\Scripts\python.exe -m pip install -U pip
+.venv\Scripts\python.exe -m pip install -e ".[dev]"
 ```
 
 若没有 `py` launcher，请使用已安装的 Python 3.11+ 解释器创建虚拟环境，并确认 `python --version` 满足 `>=3.11`。
@@ -162,7 +172,7 @@ git clone <repo-url>
 cd desktop-girlfriend
 
 # 2. 创建虚拟环境
-python -m venv .venv
+py -3.11 -m venv .venv
 .venv\Scripts\python.exe -m pip install -U pip
 .venv\Scripts\python.exe -m pip install -e ".[dev]"
 
@@ -247,7 +257,7 @@ Copy-Item .env.example .env
 
 ## Release Candidate
 
-Current RC version: `0.1.0-rc.2`
+Current RC version: `0.1.0-rc.3`
 
 Windows 快速启动：
 

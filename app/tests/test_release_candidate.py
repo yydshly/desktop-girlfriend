@@ -24,6 +24,10 @@ class TestRcFiles:
     def test_probe_release_candidate_exists() -> None:
         assert (REPO_ROOT / "scripts" / "probe_release_candidate.py").is_file()
 
+    @staticmethod
+    def test_probe_environment_readiness_exists() -> None:
+        assert (REPO_ROOT / "scripts" / "probe_environment_readiness.py").is_file()
+
 
 class TestRcDocContent:
     @staticmethod
@@ -50,6 +54,24 @@ class TestRcDocContent:
     def test_rc_contains_run_desktop() -> None:
         content = (REPO_ROOT / "RELEASE_CANDIDATE.md").read_text(encoding="utf-8")
         assert "run_desktop.ps1" in content
+
+    @staticmethod
+    def test_rc_contains_current_version() -> None:
+        content = (REPO_ROOT / "RELEASE_CANDIDATE.md").read_text(encoding="utf-8")
+        assert "0.1.0-rc.3" in content
+
+    @staticmethod
+    def test_rc_contains_rc3_changelog() -> None:
+        content = (REPO_ROOT / "RELEASE_CANDIDATE.md").read_text(encoding="utf-8")
+        assert "### v0.1.0-rc.3" in content
+        assert "environment readiness probe" in content
+        assert "MiniMax Chat/TTS HTTP error details with key redaction" in content
+
+    @staticmethod
+    def test_rc_tag_plan_targets_rc3() -> None:
+        content = (REPO_ROOT / "RELEASE_CANDIDATE.md").read_text(encoding="utf-8")
+        assert "git tag v0.1.0-rc.3" in content
+        assert "git push origin v0.1.0-rc.3" in content
 
     @staticmethod
     def test_rc_contains_env() -> None:

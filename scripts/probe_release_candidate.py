@@ -18,6 +18,7 @@ def _check_files() -> bool:
         "RELEASE_CANDIDATE.md",
         ".env.example",
         "scripts/run_desktop.ps1",
+        "scripts/probe_environment_readiness.py",
         "scripts/probe_launch_readiness.py",
         "scripts/probe_startup_diagnostics.py",
     ]
@@ -76,6 +77,9 @@ def _check_docs() -> bool:
         "V9 Proactive Companionship v0",
         "V10 Avatar Action v0",
         "V11 Product Experience v0",
+        "v0.1.0-rc.3",
+        "git tag v0.1.0-rc.3",
+        "environment readiness probe",
         "run_desktop.ps1",
         ".env",
     ]
