@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QTextCursor
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -21,6 +22,12 @@ from app.ui.chat_message import ChatMessage
 from app.ui.conversation_view import (
     get_input_placeholder,
     render_empty_conversation_text,
+)
+from app.ui.desktop_presence import (
+    COMPACT_MODE_HEIGHT,
+    COMPACT_MODE_WIDTH,
+    render_compact_button_text,
+    render_pin_button_text,
 )
 from app.ui.memory_record_view import render_memory_record_text
 from app.ui.memory_suggestion import render_memory_suggestion_text
@@ -94,6 +101,9 @@ class DesktopWindow(QMainWindow):
         config = get_config()
         self.setWindowTitle(config.app_name)
         self.setMinimumSize(config.window_width, config.window_height)
+        # Phase 2-D: Store normal window size for compact mode restoration
+        self._normal_window_width = config.window_width
+        self._normal_window_height = config.window_height
 
         # Central widget
         central = QWidget()
@@ -145,6 +155,17 @@ class DesktopWindow(QMainWindow):
             self._handle_product_status_clicked
         )
         header_layout.addWidget(self._product_status_button)
+
+        # Phase 2-D: Desktop presence shell — pin and compact buttons
+        self._pin_button = QPushButton(render_pin_button_text(self._view_model.always_on_top))
+        self._pin_button.setStyleSheet(window_style.STATUS_BUTTON_STYLE)
+        self._pin_button.pressed.connect(self._handle_pin_clicked)
+        header_layout.addWidget(self._pin_button)
+
+        self._compact_button = QPushButton(render_compact_button_text(self._view_model.compact_mode))
+        self._compact_button.setStyleSheet(window_style.STATUS_BUTTON_STYLE)
+        self._compact_button.pressed.connect(self._handle_compact_clicked)
+        header_layout.addWidget(self._compact_button)
 
         layout.addWidget(header_widget)
 
@@ -246,41 +267,47 @@ class DesktopWindow(QMainWindow):
         self._input_field.setPlaceholderText(get_input_placeholder())
         layout.addWidget(self._input_field)
 
-        # Button row — primary (send) vs secondary (auxiliary) distinction (Phase 2-C)
-        button_row = QWidget()
-        button_layout = QHBoxLayout(button_row)
-        button_layout.setContentsMargins(0, 0, 0, 0)
+        # Phase 2-D: Auxiliary button row — hidden in compact mode
+        self._aux_button_row = QWidget()
+        aux_button_layout = QHBoxLayout(self._aux_button_row)
+        aux_button_layout.setContentsMargins(0, 0, 0, 0)
 
         self._new_conversation_button = QPushButton("新对话")
         self._new_conversation_button.setStyleSheet(window_style.SECONDARY_BUTTON_STYLE)
         self._new_conversation_button.clicked.connect(self._on_new_conversation_clicked)
-        button_layout.addWidget(self._new_conversation_button)
+        aux_button_layout.addWidget(self._new_conversation_button)
 
         self._voice_input_button = QPushButton("语音输入")
         self._voice_input_button.setStyleSheet(window_style.SECONDARY_BUTTON_STYLE)
         self._voice_input_button.clicked.connect(self._on_voice_input_clicked)
-        button_layout.addWidget(self._voice_input_button)
+        aux_button_layout.addWidget(self._voice_input_button)
 
         self._memory_panel_button = QPushButton("记忆")
         self._memory_panel_button.setStyleSheet(window_style.SECONDARY_BUTTON_STYLE)
         self._memory_panel_button.clicked.connect(self._on_memory_panel_clicked)
         self._memory_panel_button.setVisible(memory_management_enabled)
-        button_layout.addWidget(self._memory_panel_button)
+        aux_button_layout.addWidget(self._memory_panel_button)
 
         self._stop_speaking_button = QPushButton("停止说话")
         self._stop_speaking_button.setStyleSheet(window_style.SECONDARY_BUTTON_STYLE)
         self._stop_speaking_button.clicked.connect(self._on_tts_stop_clicked)
         self._stop_speaking_button.setEnabled(False)
-        button_layout.addWidget(self._stop_speaking_button)
+        aux_button_layout.addWidget(self._stop_speaking_button)
 
-        button_layout.addStretch()  # Push send button to the right
+        aux_button_layout.addStretch()
+        layout.addWidget(self._aux_button_row)
+
+        # Phase 2-D: Send button row — always visible even in compact mode
+        self._send_button_row = QWidget()
+        send_button_layout = QHBoxLayout(self._send_button_row)
+        send_button_layout.setContentsMargins(0, 0, 0, 0)
+        send_button_layout.addStretch()
 
         self._send_button = QPushButton("发送")
         self._send_button.setStyleSheet(window_style.PRIMARY_BUTTON_STYLE)
         self._send_button.clicked.connect(self._on_send_clicked)
-        button_layout.addWidget(self._send_button)
-
-        layout.addWidget(button_row)
+        send_button_layout.addWidget(self._send_button)
+        layout.addWidget(self._send_button_row)
 
     def _on_send_clicked(self) -> None:
         """Handle send button click."""
@@ -336,9 +363,44 @@ class DesktopWindow(QMainWindow):
             self._on_memory_delete_requested(first.record_id)
 
     def _handle_product_status_clicked(self) -> None:
-        """Handle product status button click."""
+        """Handle product status button click (Phase 2-D).
+
+        If in compact mode, exit compact mode first per spec requirement.
+        """
+        if self._view_model.compact_mode:
+            self._handle_compact_clicked()
         if self._on_product_status_requested is not None:
             self._on_product_status_requested()
+
+    def _handle_pin_clicked(self) -> None:
+        """Handle pin button click: toggle always-on-top flag."""
+        self._view_model.toggle_always_on_top()
+        self._pin_button.setText(render_pin_button_text(self._view_model.always_on_top))
+        self.setWindowFlag(
+            Qt.WindowType.WindowStaysOnTopHint, self._view_model.always_on_top
+        )
+        self.show()
+
+    def _handle_compact_clicked(self) -> None:
+        """Handle compact button click: toggle compact mode."""
+        self._view_model.toggle_compact_mode()
+        self._compact_button.setText(
+            render_compact_button_text(self._view_model.compact_mode)
+        )
+        if self._view_model.compact_mode:
+            # Enter compact mode: save size, shrink, hide aux buttons
+            self._normal_window_width = self.width()
+            self._normal_window_height = self.height()
+            self.resize(COMPACT_MODE_WIDTH, COMPACT_MODE_HEIGHT)
+            self._aux_button_row.setVisible(False)
+            # Ensure status panel is hidden in compact mode
+            if self._view_model.product_status_visible:
+                self._view_model.product_status_visible = False
+                self._product_status_panel.setVisible(False)
+        else:
+            # Exit compact mode: restore size, show aux buttons
+            self.resize(self._normal_window_width, self._normal_window_height)
+            self._aux_button_row.setVisible(True)
 
     def update_from_view_model(self) -> None:
         """Update UI from view model state."""
@@ -351,6 +413,11 @@ class DesktopWindow(QMainWindow):
         self._companion_status_label.setText(self._view_model.companion_status_text)
         version_text = f"{self._view_model.companion_version_text} · {self._view_model.companion_release_stage_text}"
         self._version_label.setText(version_text)
+        # Phase 2-D: Sync presence shell button texts
+        self._pin_button.setText(render_pin_button_text(self._view_model.always_on_top))
+        self._compact_button.setText(render_compact_button_text(self._view_model.compact_mode))
+        # Phase 2-D: Sync compact mode layout
+        self._aux_button_row.setVisible(not self._view_model.compact_mode)
         self._chat_history.setPlainText(
             render_chat_messages(self._view_model.chat_messages)
         )
