@@ -66,9 +66,27 @@ py -3.11 -m venv .venv
 
 ### 运行
 
+#### Windows 快速启动（推荐）
+
+```powershell
+# 首次：创建虚拟环境并安装
+python -m venv .venv
+.venv\Scripts\python.exe -m pip install -e .
+
+# 复制配置模板（fake 模式无需真实 API key）
+copy .env.example .env
+
+# 启动应用
+.\scripts\run_desktop.ps1
+```
+
+#### Linux / macOS / 其他
+
 ```bash
 python -m app.main
 ```
+
+> **注意**：默认使用 fake provider，不需要配置任何 API key。真实模型、TTS、ASR 需要在 `.env` 中填写对应 key。
 
 ### 测试
 
