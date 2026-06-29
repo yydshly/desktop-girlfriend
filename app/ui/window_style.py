@@ -23,6 +23,9 @@ SUBTITLE_LABEL_STYLE = "font-size: 12px; color: #7f8c8d;"
 # Natural-language companion status text
 STATUS_LABEL_STYLE = "font-size: 14px; color: #555; padding-top: 2px;"
 
+# Phase 3-D: Proactive status hint text (compact, subdued)
+PROACTIVE_STATUS_LABEL_STYLE = "font-size: 12px; color: #94a3b8; padding-top: 2px;"
+
 # Version and release stage — subtle
 VERSION_LABEL_STYLE = "font-size: 11px; color: #aaa;"
 

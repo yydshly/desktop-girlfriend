@@ -97,6 +97,8 @@ class DesktopViewModel:
         # Phase 3-B: Onboarding state (session-level, not persisted)
         self.onboarding_visible: bool = True
         self.onboarding_text: str = ""
+        # Phase 3-D: Proactive status hint (e.g., "小云会安静一会儿。")
+        self.proactive_status_text: str = ""
 
     def handle_state_changed(self, event: BaseEvent) -> None:
         """Handle state.changed event and update display text.
@@ -166,6 +168,32 @@ class DesktopViewModel:
         text = event.payload.get("text")
         if type(text) is str and text.strip():
             self.chat_messages.append(ChatMessage(role="user", text=text.strip()))
+            # Phase 3-D: detect proactive suppress phrases and set hint
+            self._maybe_set_proactive_suppress_hint(text)
+
+    # Phase 3-D: suppress phrases for proactive control UX
+    _PROACTIVE_SUPPRESS_PHRASES: tuple[str, ...] = (
+        "别打扰",
+        "不要主动",
+        "别主动",
+        "安静一会",
+        "安静一下",
+        "先别说",
+        "别说话",
+        "不用提醒",
+        "先不用",
+    )
+
+    def _maybe_set_proactive_suppress_hint(self, text: str) -> None:
+        """Check text for suppress phrases and set proactive status hint.
+
+        Args:
+            text: The user's message text.
+        """
+        for phrase in self._PROACTIVE_SUPPRESS_PHRASES:
+            if phrase in text:
+                self.proactive_status_text = "小云会安静一会儿。"
+                return
 
     def handle_system_error(self, event: BaseEvent) -> None:
         """Handle system.error event and update error text.
@@ -474,6 +502,18 @@ class DesktopViewModel:
             text: The rendered onboarding text.
         """
         self.onboarding_text = text
+
+    def set_proactive_status_text(self, text: str) -> None:
+        """Set the proactive status hint text (Phase 3-D).
+
+        Args:
+            text: The proactive status hint, e.g. "小云会安静一会儿。"
+        """
+        self.proactive_status_text = text
+
+    def clear_proactive_status_text(self) -> None:
+        """Clear the proactive status hint text (Phase 3-D)."""
+        self.proactive_status_text = ""
 
     def dismiss_onboarding(self) -> None:
         """Dismiss the onboarding card (Phase 3-B)."""

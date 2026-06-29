@@ -6,6 +6,7 @@ from app.core.config import AppConfig
 from app.core.startup_diagnostics import StartupDiagnostics
 from app.core.version import AppVersion
 from app.ui.avatar_action import AvatarAction
+from app.ui.proactive_real_ux_view import render_proactive_control_status
 from app.ui.product_status import ProductStatusItem, ProductStatusView
 from app.ui.startup_diagnostics_view import render_startup_diagnostics_summary
 
@@ -36,6 +37,8 @@ def build_product_status_view(
         ProductStatusItem("主动陪伴", config.proactive_enabled),
         ProductStatusItem("主动陪伴 TTS", config.proactive_tts_enabled),
         ProductStatusItem("勿扰时间", config.proactive_quiet_hours_enabled),
+        # Phase 3-D: compact proactive control hint
+        ProductStatusItem("主动控制", config.proactive_enabled, render_proactive_control_status()),
         ProductStatusItem("当前角色状态", True, avatar_action.value),
     ]
 

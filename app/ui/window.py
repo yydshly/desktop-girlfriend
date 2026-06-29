@@ -154,6 +154,11 @@ class DesktopWindow(QMainWindow):
         self._companion_status_label.setStyleSheet(window_style.STATUS_LABEL_STYLE)
         info_layout.addWidget(self._companion_status_label)
 
+        # Phase 3-D: Proactive status hint (e.g., "小云会安静一会儿。")
+        self._proactive_status_label = QLabel(self._view_model.proactive_status_text)
+        self._proactive_status_label.setStyleSheet(window_style.PROACTIVE_STATUS_LABEL_STYLE)
+        info_layout.addWidget(self._proactive_status_label)
+
         # Phase 2-A: Version and release stage
         version_text = f"{self._view_model.companion_version_text} · {self._view_model.companion_release_stage_text}"
         self._version_label = QLabel(version_text)
@@ -557,6 +562,8 @@ class DesktopWindow(QMainWindow):
         self._avatar_expression_label.setText(expr.label)
         # Phase 2-A: Update companion status text
         self._companion_status_label.setText(self._view_model.companion_status_text)
+        # Phase 3-D: Update proactive status hint
+        self._proactive_status_label.setText(self._view_model.proactive_status_text)
         version_text = f"{self._view_model.companion_version_text} · {self._view_model.companion_release_stage_text}"
         self._version_label.setText(version_text)
         # Phase 2-D: Sync presence shell button texts

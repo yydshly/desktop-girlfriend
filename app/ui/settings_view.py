@@ -142,23 +142,20 @@ def build_settings_view(
         mem_copy.privacy_hint,
     ]
 
-    # Section 5: Proactive settings
+    # Section 5: Proactive settings (Phase 3-D enhanced)
+    from app.ui.proactive_real_ux_view import build_proactive_real_ux_copy
+    proactive_copy = build_proactive_real_ux_copy()
     proactive_lines = [
-        f"主动陪伴：{render_enabled(config.proactive_enabled)}",
-        f"空闲触发秒数：{config.proactive_idle_seconds}",
-        f"冷却时间秒数：{config.proactive_cooldown_seconds}",
-        f"单次会话最大次数：{config.proactive_max_per_session}",
-        f"勿扰时间：{render_enabled(config.proactive_quiet_hours_enabled)}",
-        f"勿扰开始：{config.proactive_quiet_start_hour}:00",
-        f"勿扰结束：{config.proactive_quiet_end_hour}:00",
-        f"拒绝后暂停秒数：{config.proactive_feedback_pause_seconds}",
+        f"主动陪伴：{render_enabled(config.proactive_enabled)} — {proactive_copy.enabled_body if config.proactive_enabled else proactive_copy.disabled_body}",
+        f"空闲时间：{config.proactive_idle_seconds} 秒 — {proactive_copy.idle_explanation}",
+        f"冷却时间：{config.proactive_cooldown_seconds} 秒 — {proactive_copy.cooldown_explanation}",
+        f"最多次数：{config.proactive_max_per_session} 次 — {proactive_copy.max_per_session_explanation}",
+        f"勿扰时间：{render_enabled(config.proactive_quiet_hours_enabled)} — {proactive_copy.quiet_hours_explanation}",
     ]
-    if config.proactive_enabled:
-        proactive_lines.append("")
-        proactive_lines.append("小云会在你空闲一段时间后主动出现。")
-        proactive_lines.append("冷却时间用于防止小云频繁打扰。")
-        proactive_lines.append("勿扰时间开启后，小云会在指定时间段保持安静。")
-        proactive_lines.append("你可以说「别打扰」「安静一会儿」让小云暂停。")
+    if config.proactive_quiet_hours_enabled:
+        proactive_lines.append(f"  勿扰时段：{config.proactive_quiet_start_hour}:00 – {config.proactive_quiet_end_hour}:00")
+    proactive_lines.append(f"用户控制：{proactive_copy.user_control_hint}")
+    proactive_lines.append(f"托盘行为：{proactive_copy.tray_hint}")
 
     # Section 6: Configuration example
     example_lines = (
