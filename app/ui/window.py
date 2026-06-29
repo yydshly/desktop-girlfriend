@@ -97,12 +97,9 @@ class DesktopWindow(QMainWindow):
         header_layout = QHBoxLayout(header_widget)
         header_layout.setContentsMargins(10, 10, 10, 10)
 
-        self._avatar_label = QLabel(self._view_model.companion_avatar_text)
-        self._avatar_label.setStyleSheet(
-            "font-size: 28px; min-width: 48px; max-width: 48px; "
-            "min-height: 48px; max-height: 48px; "
-            "background-color: #eef3ff; qproperty-alignment: AlignCenter;"
-        )
+        self._avatar_label = QLabel(self._view_model.effective_avatar_text)
+        self._avatar_label.setToolTip(self._view_model.effective_avatar_label)
+        self._avatar_label.setStyleSheet(self._view_model.effective_avatar_style)
         header_layout.addWidget(self._avatar_label)
 
         info_widget = QWidget()
@@ -121,6 +118,11 @@ class DesktopWindow(QMainWindow):
         self._state_label = QLabel(self._view_model.display_text)
         self._state_label.setStyleSheet("font-size: 13px; color: #444;")
         info_layout.addWidget(self._state_label)
+
+        # V10-B: Avatar action status label
+        self._avatar_action_label = QLabel(self._view_model.effective_avatar_label)
+        self._avatar_action_label.setStyleSheet("font-size: 12px; color: #777;")
+        info_layout.addWidget(self._avatar_action_label)
 
         header_layout.addWidget(info_widget, stretch=1)
         layout.addWidget(header_widget)
@@ -281,7 +283,10 @@ class DesktopWindow(QMainWindow):
         """Update UI from view model state."""
         self._name_label.setText(self._view_model.companion_name)
         self._subtitle_label.setText(self._view_model.companion_subtitle)
-        self._avatar_label.setText(self._view_model.companion_avatar_text)
+        self._avatar_label.setText(self._view_model.effective_avatar_text)
+        self._avatar_label.setToolTip(self._view_model.effective_avatar_label)
+        self._avatar_label.setStyleSheet(self._view_model.effective_avatar_style)
+        self._avatar_action_label.setText(self._view_model.effective_avatar_label)
         self._state_label.setText(self._view_model.effective_display_text)
         self._chat_history.setPlainText(
             render_chat_messages(self._view_model.chat_messages)

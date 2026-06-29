@@ -20,6 +20,12 @@ from app.contracts.events import (
     BaseEvent,
 )
 from app.contracts.states import AppState
+from app.ui.avatar_action import (
+    AvatarAction,
+    avatar_label_for_action,
+    avatar_style_for_action,
+    avatar_text_for_action,
+)
 from app.ui.chat_message import ChatMessage
 from app.ui.memory_record_view import MemoryRecordView
 from app.ui.memory_suggestion import MemorySuggestionView
@@ -58,6 +64,9 @@ class DesktopViewModel:
         self.memory_status_text: str = ""
         self.memory_records: list[MemoryRecordView] = []
         self.memory_panel_visible: bool = False
+        # Avatar action state (V10-A)
+        self.avatar_action: AvatarAction = AvatarAction.IDLE
+        self.avatar_action_label: str = avatar_label_for_action(AvatarAction.IDLE)
 
     def handle_state_changed(self, event: BaseEvent) -> None:
         """Handle state.changed event and update display text.
@@ -83,6 +92,21 @@ class DesktopViewModel:
 
         if self.state == AppState.THINKING:
             self.error_text = ""
+
+        # Update avatar action based on new state (V10-A)
+        if self.state == AppState.IDLE:
+            self.avatar_action = AvatarAction.IDLE
+        elif self.state == AppState.LISTENING:
+            self.avatar_action = AvatarAction.LISTENING
+        elif self.state == AppState.THINKING:
+            self.avatar_action = AvatarAction.THINKING
+        elif self.state == AppState.SPEAKING:
+            self.avatar_action = AvatarAction.SPEAKING
+        elif self.state == AppState.ERROR:
+            self.avatar_action = AvatarAction.ERROR
+        else:
+            self.avatar_action = AvatarAction.IDLE
+        self.avatar_action_label = avatar_label_for_action(self.avatar_action)
 
     def handle_assistant_text_received(self, event: BaseEvent) -> None:
         """Handle assistant.text_received event and update assistant text.
@@ -127,6 +151,9 @@ class DesktopViewModel:
         else:
             self.error_text = "发生未知错误。"
 
+        self.avatar_action = AvatarAction.ERROR
+        self.avatar_action_label = avatar_label_for_action(AvatarAction.ERROR)
+
     def handle_conversation_cleared(self, event: BaseEvent) -> None:
         """Handle conversation.cleared event and reset UI state.
 
@@ -145,6 +172,8 @@ class DesktopViewModel:
         self.memory_panel_visible = False
         self.state = AppState.IDLE
         self.display_text = _STATE_DISPLAY_TEXT[AppState.IDLE]
+        self.avatar_action = AvatarAction.IDLE
+        self.avatar_action_label = avatar_label_for_action(AvatarAction.IDLE)
 
     def handle_voice_progress_event(self, event: BaseEvent) -> None:
         """Handle voice progress events and update fine-grained status text.
@@ -321,9 +350,43 @@ class DesktopViewModel:
 
         self.chat_messages.append(ChatMessage(role="assistant", text=text))
 
+        self.avatar_action = AvatarAction.PROACTIVE
+        self.avatar_action_label = avatar_label_for_action(AvatarAction.PROACTIVE)
+
+    def handle_proactive_avatar_hint(self, event: BaseEvent) -> None:
+        """Handle proactive visual hint without appending chat message.
+
+        Used when proactive_tts_enabled=True to update avatar to PROACTIVE
+        without duplicating the chat message (TTS pipeline appends via
+        ASSISTANT_TEXT_RECEIVED subscription).
+
+        Args:
+            event: The proactive.nudge_ready event.
+        """
+        if event.event_type != PROACTIVE_NUDGE_READY:
+            return
+
+        self.avatar_action = AvatarAction.PROACTIVE
+        self.avatar_action_label = avatar_label_for_action(AvatarAction.PROACTIVE)
+
     def toggle_memory_panel(self) -> None:
         """Toggle the memory panel visibility."""
         self.memory_panel_visible = not self.memory_panel_visible
+
+    @property
+    def effective_avatar_text(self) -> str:
+        """Return the avatar emoji text for the current avatar action."""
+        return avatar_text_for_action(self.avatar_action)
+
+    @property
+    def effective_avatar_label(self) -> str:
+        """Return the avatar label text for the current avatar action."""
+        return self.avatar_action_label
+
+    @property
+    def effective_avatar_style(self) -> str:
+        """Return the stylesheet for the current avatar action."""
+        return avatar_style_for_action(self.avatar_action)
 
     @property
     def effective_display_text(self) -> str:
