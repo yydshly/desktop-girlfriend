@@ -199,10 +199,11 @@ class TestRenderDiagnosticsDetails:
     """Tests for render_startup_diagnostics_details."""
 
     def test_details_ok(self) -> None:
-        """OK message when no issues."""
+        """No issues: shows friendly 'no problems' message, not duplicate OK."""
         diag = StartupDiagnostics(issues=())
         result = render_startup_diagnostics_details(diag)
-        assert "OK" in result
+        # Avoids duplicating "启动检查：OK" already shown in product status item
+        assert "没有发现启动问题" in result
 
     def test_details_warning(self) -> None:
         """Details show warning with ⚠️."""

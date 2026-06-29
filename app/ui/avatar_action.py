@@ -38,33 +38,33 @@ _AVATAR_ACTION_LABEL: dict[AvatarAction, str] = {
 # V10-B: Per-action background color stylesheet
 _AVATAR_ACTION_STYLE: dict[AvatarAction, str] = {
     AvatarAction.IDLE: (
-        "font-size: 28px; min-width: 48px; max-width: 48px; "
-        "min-height: 48px; max-height: 48px; "
+        "font-size: 32px; min-width: 56px; max-width: 56px; "
+        "min-height: 56px; max-height: 56px; "
         "background-color: #eef3ff; qproperty-alignment: AlignCenter;"
     ),
     AvatarAction.LISTENING: (
-        "font-size: 28px; min-width: 48px; max-width: 48px; "
-        "min-height: 48px; max-height: 48px; "
+        "font-size: 32px; min-width: 56px; max-width: 56px; "
+        "min-height: 56px; max-height: 56px; "
         "background-color: #e8f7ff; qproperty-alignment: AlignCenter;"
     ),
     AvatarAction.THINKING: (
-        "font-size: 28px; min-width: 48px; max-width: 48px; "
-        "min-height: 48px; max-height: 48px; "
+        "font-size: 32px; min-width: 56px; max-width: 56px; "
+        "min-height: 56px; max-height: 56px; "
         "background-color: #f3edff; qproperty-alignment: AlignCenter;"
     ),
     AvatarAction.SPEAKING: (
-        "font-size: 28px; min-width: 48px; max-width: 48px; "
-        "min-height: 48px; max-height: 48px; "
+        "font-size: 32px; min-width: 56px; max-width: 56px; "
+        "min-height: 56px; max-height: 56px; "
         "background-color: #fff3df; qproperty-alignment: AlignCenter;"
     ),
     AvatarAction.PROACTIVE: (
-        "font-size: 28px; min-width: 48px; max-width: 48px; "
-        "min-height: 48px; max-height: 48px; "
+        "font-size: 32px; min-width: 56px; max-width: 56px; "
+        "min-height: 56px; max-height: 56px; "
         "background-color: #fff7cc; qproperty-alignment: AlignCenter;"
     ),
     AvatarAction.ERROR: (
-        "font-size: 28px; min-width: 48px; max-width: 48px; "
-        "min-height: 48px; max-height: 48px; "
+        "font-size: 32px; min-width: 56px; max-width: 56px; "
+        "min-height: 56px; max-height: 56px; "
         "background-color: #ffecec; qproperty-alignment: AlignCenter;"
     ),
 }

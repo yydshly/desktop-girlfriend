@@ -27,6 +27,7 @@ from app.ui.avatar_action import (
     avatar_text_for_action,
 )
 from app.ui.chat_message import ChatMessage
+from app.ui.companion_presence import render_companion_status_text
 from app.ui.memory_record_view import MemoryRecordView
 from app.ui.memory_suggestion import MemorySuggestionView
 from app.ui.product_status import ProductStatusView, render_status_view
@@ -46,6 +47,8 @@ _DEFAULT_ASSISTANT_TEXT = ""
 COMPANION_NAME = "小云"
 COMPANION_SUBTITLE = "你的桌面 AI 伙伴"
 COMPANION_AVATAR_TEXT = "☁️"
+COMPANION_VERSION = "0.1.0-rc.3"
+COMPANION_RELEASE_STAGE = "release-candidate"
 
 
 class DesktopViewModel:
@@ -68,6 +71,10 @@ class DesktopViewModel:
         # Avatar action state (V10-A)
         self.avatar_action: AvatarAction = AvatarAction.IDLE
         self.avatar_action_label: str = avatar_label_for_action(AvatarAction.IDLE)
+        # Companion presence fields (Phase 2-A)
+        self.companion_status_text: str = render_companion_status_text(AvatarAction.IDLE)
+        self.companion_version_text: str = COMPANION_VERSION
+        self.companion_release_stage_text: str = COMPANION_RELEASE_STAGE
         # Product status state (V11-A)
         self.product_status_visible: bool = False
         self.product_status_view: ProductStatusView = ProductStatusView(items=())
@@ -114,6 +121,7 @@ class DesktopViewModel:
         else:
             self.avatar_action = AvatarAction.IDLE
         self.avatar_action_label = avatar_label_for_action(self.avatar_action)
+        self.companion_status_text = render_companion_status_text(self.avatar_action)
 
     def handle_assistant_text_received(self, event: BaseEvent) -> None:
         """Handle assistant.text_received event and update assistant text.
@@ -160,6 +168,7 @@ class DesktopViewModel:
 
         self.avatar_action = AvatarAction.ERROR
         self.avatar_action_label = avatar_label_for_action(AvatarAction.ERROR)
+        self.companion_status_text = render_companion_status_text(AvatarAction.ERROR)
 
     def handle_conversation_cleared(self, event: BaseEvent) -> None:
         """Handle conversation.cleared event and reset UI state.
@@ -181,6 +190,7 @@ class DesktopViewModel:
         self.display_text = _STATE_DISPLAY_TEXT[AppState.IDLE]
         self.avatar_action = AvatarAction.IDLE
         self.avatar_action_label = avatar_label_for_action(AvatarAction.IDLE)
+        self.companion_status_text = render_companion_status_text(AvatarAction.IDLE)
 
     def handle_voice_progress_event(self, event: BaseEvent) -> None:
         """Handle voice progress events and update fine-grained status text.
@@ -359,6 +369,7 @@ class DesktopViewModel:
 
         self.avatar_action = AvatarAction.PROACTIVE
         self.avatar_action_label = avatar_label_for_action(AvatarAction.PROACTIVE)
+        self.companion_status_text = render_companion_status_text(AvatarAction.PROACTIVE)
 
     def handle_proactive_avatar_hint(self, event: BaseEvent) -> None:
         """Handle proactive visual hint without appending chat message.
@@ -375,6 +386,7 @@ class DesktopViewModel:
 
         self.avatar_action = AvatarAction.PROACTIVE
         self.avatar_action_label = avatar_label_for_action(AvatarAction.PROACTIVE)
+        self.companion_status_text = render_companion_status_text(AvatarAction.PROACTIVE)
 
     def toggle_memory_panel(self) -> None:
         """Toggle the memory panel visibility."""
