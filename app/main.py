@@ -296,13 +296,16 @@ def main() -> None:
 
     event_bus.subscribe(MEMORY_DELETED, on_memory_deleted)
 
-    # Register ViewModel subscription to proactive nudge events (V9-A / V9-B)
+    # Register ViewModel subscription to proactive nudge events (V9-A / V9-B / V10-C)
     def on_proactive_nudge_ready(event: BaseEvent) -> None:
         text = event.payload.get("text")
         if not isinstance(text, str) or not text.strip():
             return
 
         if config.proactive_tts_enabled:
+            # V10-C: Always update avatar visual state for proactive nudge.
+            view_model.handle_proactive_avatar_hint(event)
+            window.update_from_view_model()
             # V9-B: route to TTS pipeline via ASSISTANT_TEXT_RECEIVED
             # This triggers both TTSController (plays audio) and
             # ViewModel's on_assistant_text_received (appends to chat_messages)
@@ -316,7 +319,7 @@ def main() -> None:
             )
             return
 
-        # V9-A: text-only mode, direct to ViewModel
+        # V9-A: text-only mode, direct to ViewModel (appends message + sets avatar)
         view_model.handle_proactive_nudge_ready(event)
         window.update_from_view_model()
 

@@ -9,6 +9,7 @@ from app.contracts.events import (
     SYSTEM_ERROR,
     BaseEvent,
 )
+from app.contracts.states import AppState
 from app.ui.avatar_action import (
     AvatarAction,
     avatar_label_for_action,
@@ -304,3 +305,99 @@ class TestAvatarActionStyles:
 
         assert vm.effective_avatar_style != initial_style
         assert vm.effective_avatar_style == avatar_style_for_action(AvatarAction.ERROR)
+
+
+class TestHandleProactiveAvatarHint:
+    """Tests for handle_proactive_avatar_hint (V10-C)."""
+
+    def test_sets_avatar_action_proactive(self) -> None:
+        """handle_proactive_avatar_hint sets AvatarAction.PROACTIVE."""
+        vm = DesktopViewModel()
+        event = BaseEvent(
+            event_type=PROACTIVE_NUDGE_READY,
+            request_id="req1",
+            source="test",
+            payload={"text": "我在这儿。"},
+        )
+        vm.handle_proactive_avatar_hint(event)
+        assert vm.avatar_action == AvatarAction.PROACTIVE
+        assert vm.effective_avatar_text == "✨"
+
+    def test_does_not_append_chat_messages(self) -> None:
+        """handle_proactive_avatar_hint does not append chat_messages."""
+        vm = DesktopViewModel()
+        event = BaseEvent(
+            event_type=PROACTIVE_NUDGE_READY,
+            request_id="req1",
+            source="test",
+            payload={"text": "我在这儿。"},
+        )
+        vm.handle_proactive_avatar_hint(event)
+        assert len(vm.chat_messages) == 0
+
+    def test_does_not_modify_assistant_text(self) -> None:
+        """handle_proactive_avatar_hint does not modify assistant_text."""
+        vm = DesktopViewModel()
+        vm.assistant_text = "original"
+        event = BaseEvent(
+            event_type=PROACTIVE_NUDGE_READY,
+            request_id="req1",
+            source="test",
+            payload={"text": "我在这儿。"},
+        )
+        vm.handle_proactive_avatar_hint(event)
+        assert vm.assistant_text == "original"
+
+    def test_does_not_change_app_state(self) -> None:
+        """handle_proactive_avatar_hint does not change AppState."""
+        vm = DesktopViewModel()
+        assert vm.state == AppState.IDLE
+        event = BaseEvent(
+            event_type=PROACTIVE_NUDGE_READY,
+            request_id="req1",
+            source="test",
+            payload={"text": "我在这儿。"},
+        )
+        vm.handle_proactive_avatar_hint(event)
+        assert vm.state == AppState.IDLE
+
+    def test_ignores_wrong_event_type(self) -> None:
+        """handle_proactive_avatar_hint ignores non-PROACTIVE_NUDGE_READY events."""
+        vm = DesktopViewModel()
+        event = BaseEvent(
+            event_type="other.event",
+            request_id="req1",
+            source="test",
+            payload={"text": "ignored"},
+        )
+        vm.handle_proactive_avatar_hint(event)
+        assert vm.avatar_action == AvatarAction.IDLE
+        assert len(vm.chat_messages) == 0
+
+    def test_empty_text_still_sets_proactive(self) -> None:
+        """handle_proactive_avatar_hint sets PROACTIVE even for empty text (no text check per spec)."""
+        vm = DesktopViewModel()
+        event = BaseEvent(
+            event_type=PROACTIVE_NUDGE_READY,
+            request_id="req1",
+            source="test",
+            payload={"text": ""},
+        )
+        vm.handle_proactive_avatar_hint(event)
+        # Spec: only sets avatar_action and avatar_action_label, no text check
+        assert vm.avatar_action == AvatarAction.PROACTIVE
+        assert len(vm.chat_messages) == 0
+
+    def test_updates_avatar_action_label(self) -> None:
+        """handle_proactive_avatar_hint updates avatar_action_label."""
+        vm = DesktopViewModel()
+        initial_label = vm.avatar_action_label
+        event = BaseEvent(
+            event_type=PROACTIVE_NUDGE_READY,
+            request_id="req1",
+            source="test",
+            payload={"text": "我在这儿。"},
+        )
+        vm.handle_proactive_avatar_hint(event)
+        assert vm.avatar_action_label != initial_label
+        assert "主动" in vm.avatar_action_label or "proactive" in vm.avatar_action_label.lower()

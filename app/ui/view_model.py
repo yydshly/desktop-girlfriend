@@ -353,6 +353,22 @@ class DesktopViewModel:
         self.avatar_action = AvatarAction.PROACTIVE
         self.avatar_action_label = avatar_label_for_action(AvatarAction.PROACTIVE)
 
+    def handle_proactive_avatar_hint(self, event: BaseEvent) -> None:
+        """Handle proactive visual hint without appending chat message.
+
+        Used when proactive_tts_enabled=True to update avatar to PROACTIVE
+        without duplicating the chat message (TTS pipeline appends via
+        ASSISTANT_TEXT_RECEIVED subscription).
+
+        Args:
+            event: The proactive.nudge_ready event.
+        """
+        if event.event_type != PROACTIVE_NUDGE_READY:
+            return
+
+        self.avatar_action = AvatarAction.PROACTIVE
+        self.avatar_action_label = avatar_label_for_action(AvatarAction.PROACTIVE)
+
     def toggle_memory_panel(self) -> None:
         """Toggle the memory panel visibility."""
         self.memory_panel_visible = not self.memory_panel_visible
