@@ -40,6 +40,7 @@ from app.contracts.events import (
     BaseEvent,
 )
 from app.contracts.payloads import (
+    AssistantTextReceivedPayload,
     MemoryConfirmRequestedPayload,
     MemoryDeleteRequestedPayload,
     MemoryListRequestedPayload,
@@ -295,8 +296,27 @@ def main() -> None:
 
     event_bus.subscribe(MEMORY_DELETED, on_memory_deleted)
 
-    # Register ViewModel subscription to proactive nudge events (V9-A)
+    # Register ViewModel subscription to proactive nudge events (V9-A / V9-B)
     def on_proactive_nudge_ready(event: BaseEvent) -> None:
+        text = event.payload.get("text")
+        if not isinstance(text, str) or not text.strip():
+            return
+
+        if config.proactive_tts_enabled:
+            # V9-B: route to TTS pipeline via ASSISTANT_TEXT_RECEIVED
+            # This triggers both TTSController (plays audio) and
+            # ViewModel's on_assistant_text_received (appends to chat_messages)
+            event_bus.publish(
+                BaseEvent(
+                    event_type=ASSISTANT_TEXT_RECEIVED,
+                    request_id=event.request_id,
+                    source="proactive_controller",
+                    payload=AssistantTextReceivedPayload(text=text).to_event_payload(),
+                )
+            )
+            return
+
+        # V9-A: text-only mode, direct to ViewModel
         view_model.handle_proactive_nudge_ready(event)
         window.update_from_view_model()
 

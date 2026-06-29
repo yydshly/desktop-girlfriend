@@ -161,6 +161,10 @@ class AppConfig:
         self.proactive_max_per_session: int = _env_int_or_default(
             "PROACTIVE_MAX_PER_SESSION", "3"
         )
+        # Proactive TTS configuration (V9-B)
+        self.proactive_tts_enabled: bool = _env_bool_or_default(
+            "PROACTIVE_TTS_ENABLED", "false"
+        )
 
         # ASR recording configuration (V6-B1)
         self.asr_recording_output_dir: str = _env_or_default(

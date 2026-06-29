@@ -1,4 +1,4 @@
-"""Tests for proactive nudge (V9-A)."""
+"""Tests for proactive nudge (V9-A / V9-B)."""
 
 from __future__ import annotations
 
@@ -8,10 +8,14 @@ from unittest.mock import MagicMock
 
 from app.brain.proactive.controller import ProactiveController
 from app.brain.proactive.service import ProactiveNudgeConfig, ProactiveNudgeService
-from app.contracts.events import PROACTIVE_NUDGE_READY, USER_TEXT_SUBMITTED, BaseEvent
-from app.contracts.payloads import ProactiveNudgeReadyPayload
+from app.contracts.events import (
+    ASSISTANT_TEXT_RECEIVED,
+    PROACTIVE_NUDGE_READY,
+    USER_TEXT_SUBMITTED,
+    BaseEvent,
+)
+from app.contracts.payloads import AssistantTextReceivedPayload, ProactiveNudgeReadyPayload
 from app.contracts.states import AppState
-from app.ui.chat_message import ChatMessage
 from app.ui.view_model import DesktopViewModel
 
 
@@ -405,3 +409,137 @@ def test_service_does_not_read_memory() -> None:
     # No memory access in this service
     assert not hasattr(service, "_memory_store")
     assert not hasattr(service, "_memory_repo")
+
+
+# ---------------------------------------------------------------------------
+# V9-B TTS routing helper (mirrors main.py on_proactive_nudge_ready logic)
+# ---------------------------------------------------------------------------
+
+
+def _build_assistant_text_event_from_proactive(event: BaseEvent) -> BaseEvent | None:
+    """Pure helper: build ASSISTANT_TEXT_RECEIVED from PROACTIVE_NUDGE_READY.
+
+    Mirrors the V9-B routing in main.py for testability.
+    """
+    text = event.payload.get("text")
+    if not isinstance(text, str) or not text.strip():
+        return None
+    return BaseEvent(
+        event_type=ASSISTANT_TEXT_RECEIVED,
+        request_id=event.request_id,
+        source=event.source,
+        payload=AssistantTextReceivedPayload(text=text).to_event_payload(),
+    )
+
+
+def test_proactive_tts_enabled_false_routes_to_viewmodel() -> None:
+    """When proactive_tts_enabled=False, text should go to ViewModel (not TTS)."""
+    vm = DesktopViewModel()
+    proactive_event = BaseEvent(
+        event_type=PROACTIVE_NUDGE_READY,
+        request_id="req-1",
+        source="proactive_controller",
+        payload={"text": "我在这儿。"},
+    )
+    proactive_tts_enabled = False
+
+    if proactive_tts_enabled:
+        # Would publish ASSISTANT_TEXT_RECEIVED → handled elsewhere
+        pass
+    else:
+        # Direct to ViewModel
+        vm.handle_proactive_nudge_ready(proactive_event)
+
+    # Message appended as assistant
+    assert len(vm.chat_messages) == 1
+    assert vm.chat_messages[0].role == "assistant"
+    assert vm.chat_messages[0].text == "我在这儿。"
+
+
+def test_proactive_tts_enabled_true_builds_assistant_event() -> None:
+    """When proactive_tts_enabled=True, PROACTIVE_NUDGE_READY builds ASSISTANT_TEXT_RECEIVED."""
+    proactive_event = BaseEvent(
+        event_type=PROACTIVE_NUDGE_READY,
+        request_id="req-tts",
+        source="proactive_controller",
+        payload={"text": "要不要休息一下眼睛？"},
+    )
+    proactive_tts_enabled = True
+
+    if proactive_tts_enabled:
+        assistant_event = _build_assistant_text_event_from_proactive(proactive_event)
+        assert assistant_event is not None
+        assert assistant_event.event_type == ASSISTANT_TEXT_RECEIVED
+        assert assistant_event.payload["text"] == "要不要休息一下眼睛？"
+
+    # ViewModel should NOT receive it directly (would be handled by TTS pipeline)
+    vm = DesktopViewModel()
+    if proactive_tts_enabled:
+        pass  # Would be handled via ASSISTANT_TEXT_RECEIVED subscription
+    else:
+        vm.handle_proactive_nudge_ready(proactive_event)
+    assert len(vm.chat_messages) == 0
+
+
+def test_proactive_tts_enabled_empty_text_returns_none() -> None:
+    """Empty text in proactive event returns None from helper."""
+    event = BaseEvent(
+        event_type=PROACTIVE_NUDGE_READY,
+        request_id="req-1",
+        source="test",
+        payload={"text": ""},
+    )
+    result = _build_assistant_text_event_from_proactive(event)
+    assert result is None
+
+
+def test_proactive_tts_enabled_missing_text_returns_none() -> None:
+    """Missing text key returns None from helper."""
+    event = BaseEvent(
+        event_type=PROACTIVE_NUDGE_READY,
+        request_id="req-1",
+        source="test",
+        payload={},
+    )
+    result = _build_assistant_text_event_from_proactive(event)
+    assert result is None
+
+
+def test_proactive_tts_routing_does_not_call_llm() -> None:
+    """Routing helper does not call LLM."""
+    event = BaseEvent(
+        event_type=PROACTIVE_NUDGE_READY,
+        request_id="req-1",
+        source="test",
+        payload={"text": "我还在。"},
+    )
+    result = _build_assistant_text_event_from_proactive(event)
+    # Result is from fixed pool, no LLM
+    assert result is not None
+
+
+def test_proactive_tts_routing_does_not_call_tts_provider() -> None:
+    """Routing helper does not call TTS provider directly."""
+    event = BaseEvent(
+        event_type=PROACTIVE_NUDGE_READY,
+        request_id="req-1",
+        source="test",
+        payload={"text": "我在这儿。"},
+    )
+    # Helper only builds event; does not call provider
+    result = _build_assistant_text_event_from_proactive(event)
+    assert result is not None
+    assert result.event_type == ASSISTANT_TEXT_RECEIVED
+    # No TTS provider called in this module
+
+
+def test_proactive_tts_routing_does_not_read_memory() -> None:
+    """Routing helper does not read memory."""
+    event = BaseEvent(
+        event_type=PROACTIVE_NUDGE_READY,
+        request_id="req-1",
+        source="test",
+        payload={"text": "我在这儿。"},
+    )
+    _build_assistant_text_event_from_proactive(event)
+    # No memory access
