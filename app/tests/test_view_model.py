@@ -1,11 +1,15 @@
 """Tests for DesktopViewModel."""
 
 from app.contracts.events import (
+    ASR_RECOGNITION_STARTED,
+    ASR_TEXT_RECOGNIZED,
     ASSISTANT_TEXT_RECEIVED,
     CONVERSATION_CLEARED,
     STATE_CHANGED,
     SYSTEM_ERROR,
     USER_TEXT_SUBMITTED,
+    VOICE_RECORDING_FINISHED,
+    VOICE_RECORDING_STARTED,
     BaseEvent,
 )
 from app.contracts.states import AppState
@@ -713,3 +717,134 @@ def test_handle_conversation_cleared_keeps_companion_fields() -> None:
     assert vm.companion_name == original_name
     assert vm.companion_subtitle == original_subtitle
     assert vm.companion_avatar_text == original_avatar
+
+
+# Voice progress event tests
+
+
+def test_handle_voice_progress_event_voice_recording_started() -> None:
+    """Test VOICE_RECORDING_STARTED sets voice_status_text to recording message."""
+    vm = DesktopViewModel()
+
+    event = BaseEvent(
+        event_type=VOICE_RECORDING_STARTED,
+        request_id="req38",
+        source="test",
+        payload={"duration_seconds": 4.0},
+    )
+    vm.handle_voice_progress_event(event)
+
+    assert vm.voice_status_text == "当前状态：正在录音，请说话"
+
+
+def test_handle_voice_progress_event_voice_recording_finished() -> None:
+    """Test VOICE_RECORDING_FINISHED sets voice_status_text to organizing message."""
+    vm = DesktopViewModel()
+
+    event = BaseEvent(
+        event_type=VOICE_RECORDING_FINISHED,
+        request_id="req39",
+        source="test",
+        payload={"audio_path": "/tmp/recording.wav", "duration_seconds": 4.0},
+    )
+    vm.handle_voice_progress_event(event)
+
+    assert vm.voice_status_text == "当前状态：正在整理语音"
+
+
+def test_handle_voice_progress_event_asr_recognition_started() -> None:
+    """Test ASR_RECOGNITION_STARTED sets voice_status_text to recognizing message."""
+    vm = DesktopViewModel()
+
+    event = BaseEvent(
+        event_type=ASR_RECOGNITION_STARTED,
+        request_id="req40",
+        source="test",
+        payload={},
+    )
+    vm.handle_voice_progress_event(event)
+
+    assert vm.voice_status_text == "当前状态：正在识别语音"
+
+
+def test_handle_voice_progress_event_asr_text_recognized() -> None:
+    """Test ASR_TEXT_RECOGNIZED sets voice_status_text to thinking message."""
+    vm = DesktopViewModel()
+
+    event = BaseEvent(
+        event_type=ASR_TEXT_RECOGNIZED,
+        request_id="req41",
+        source="test",
+        payload={"text": "识别结果"},
+    )
+    vm.handle_voice_progress_event(event)
+
+    assert vm.voice_status_text == "当前状态：正在想你说的话"
+
+
+def test_handle_state_changed_clears_voice_status_text() -> None:
+    """Test STATE_CHANGED to IDLE clears voice_status_text."""
+    vm = DesktopViewModel()
+    vm.voice_status_text = "当前状态：正在录音，请说话"
+
+    event = BaseEvent(
+        event_type=STATE_CHANGED,
+        request_id="req42",
+        source="test",
+        payload={"current_state": "idle"},
+    )
+    vm.handle_state_changed(event)
+
+    assert vm.voice_status_text == ""
+
+
+def test_voice_recording_finished_payload_audio_path_not_in_ui_text() -> None:
+    """Test that audio_path in payload does not appear in voice_status_text."""
+    vm = DesktopViewModel()
+
+    event = BaseEvent(
+        event_type=VOICE_RECORDING_FINISHED,
+        request_id="req43",
+        source="test",
+        payload={
+            "audio_path": "/tmp/secret_path.wav",
+            "duration_seconds": 4.0,
+        },
+    )
+    vm.handle_voice_progress_event(event)
+
+    assert vm.voice_status_text == "当前状态：正在整理语音"
+    assert "/tmp/secret_path.wav" not in vm.voice_status_text
+    assert "secret_path" not in vm.voice_status_text
+
+
+def test_effective_display_text_uses_voice_status_text_when_set() -> None:
+    """Test effective_display_text returns voice_status_text when it is set."""
+    vm = DesktopViewModel()
+    vm.voice_status_text = "当前状态：正在录音，请说话"
+
+    assert vm.effective_display_text == "当前状态：正在录音，请说话"
+
+
+def test_effective_display_text_uses_display_text_when_voice_status_empty() -> None:
+    """Test effective_display_text returns display_text when voice_status_text is empty."""
+    vm = DesktopViewModel()
+    vm.display_text = "当前状态：聆听中"
+
+    assert vm.effective_display_text == "当前状态：聆听中"
+
+
+def test_conversation_cleared_clears_voice_status_text() -> None:
+    """Test conversation_cleared resets voice_status_text to empty."""
+    vm = DesktopViewModel()
+    vm.voice_status_text = "当前状态：正在录音，请说话"
+
+    event = BaseEvent(
+        event_type=CONVERSATION_CLEARED,
+        request_id="req44",
+        source="test",
+        payload={},
+    )
+    vm.handle_conversation_cleared(event)
+
+    assert vm.voice_status_text == ""

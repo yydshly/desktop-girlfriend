@@ -9,15 +9,19 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from app.contracts.events import (
+    ASR_RECOGNITION_STARTED,
     ASR_TEXT_RECOGNIZED,
     STATE_CHANGE_REQUESTED,
     SYSTEM_ERROR,
     USER_TEXT_SUBMITTED,
     VOICE_INPUT_REQUESTED,
+    VOICE_RECORDING_FINISHED,
+    VOICE_RECORDING_STARTED,
     BaseEvent,
 )
 from app.contracts.states import AppState
 from app.input.asr.providers.base import ASRProvider, ASRProviderError, ASRRequest
+from app.input.audio import AudioRecordingError
 
 if TYPE_CHECKING:
     from app.core.event_bus import EventBus
@@ -110,7 +114,7 @@ class VoiceInputController:
         )
         thread.start()
 
-    def _build_asr_request(self) -> ASRRequest:
+    def _build_asr_request(self, request_id: str) -> ASRRequest:
         """Build ASR request, recording audio if provider requires it.
 
         Returns:
@@ -125,6 +129,16 @@ class VoiceInputController:
         if self._recorder is None:
             raise ASRProviderError("audio recorder is required for this ASR provider")
 
+        # Publish recording started event
+        self._dispatch_event(
+            BaseEvent(
+                event_type=VOICE_RECORDING_STARTED,
+                request_id=request_id,
+                source="voice_input_controller",
+                payload={"duration_seconds": self._recording_duration_seconds},
+            )
+        )
+
         # Import here to avoid circular dependency at module level
         from app.input.audio import RecordingRequest
 
@@ -134,6 +148,21 @@ class VoiceInputController:
                 output_dir=self._recording_output_dir,
                 sample_rate=self._recording_sample_rate,
                 channels=self._recording_channels,
+            )
+        )
+
+        # Publish recording finished event
+        self._dispatch_event(
+            BaseEvent(
+                event_type=VOICE_RECORDING_FINISHED,
+                request_id=request_id,
+                source="voice_input_controller",
+                payload={
+                    "audio_path": recording.audio_path,
+                    "duration_seconds": recording.duration_seconds,
+                    "sample_rate": recording.sample_rate,
+                    "channels": recording.channels,
+                },
             )
         )
 
@@ -149,7 +178,18 @@ class VoiceInputController:
             request_id: Request ID for tracking.
         """
         try:
-            asr_request = self._build_asr_request()
+            asr_request = self._build_asr_request(request_id)
+
+            # Publish recognition started event
+            self._dispatch_event(
+                BaseEvent(
+                    event_type=ASR_RECOGNITION_STARTED,
+                    request_id=request_id,
+                    source="voice_input_controller",
+                    payload={},
+                )
+            )
+
             response = self._provider.recognize(asr_request)
 
             if self._should_discard_result():
@@ -182,6 +222,13 @@ class VoiceInputController:
                     payload={"text": recognized_text},
                 )
             )
+
+        except AudioRecordingError:
+            if self._should_discard_result():
+                return
+            logger.exception("Microphone recording failed")
+            self._dispatch_error(request_id, "录音失败，请检查麦克风后重试。")
+            self._dispatch_state_request(AppState.ERROR, "recording_error", request_id)
 
         except ASRProviderError:
             if self._should_discard_result():

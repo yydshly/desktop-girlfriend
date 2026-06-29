@@ -183,7 +183,7 @@ class DesktopWindow(QMainWindow):
         self._name_label.setText(self._view_model.companion_name)
         self._subtitle_label.setText(self._view_model.companion_subtitle)
         self._avatar_label.setText(self._view_model.companion_avatar_text)
-        self._state_label.setText(self._view_model.display_text)
+        self._state_label.setText(self._view_model.effective_display_text)
         self._chat_history.setPlainText(
             render_chat_messages(self._view_model.chat_messages)
         )

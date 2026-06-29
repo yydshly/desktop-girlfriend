@@ -5,11 +5,14 @@ from collections.abc import Callable
 from unittest.mock import MagicMock
 
 from app.contracts.events import (
+    ASR_RECOGNITION_STARTED,
     ASR_TEXT_RECOGNIZED,
     STATE_CHANGE_REQUESTED,
     SYSTEM_ERROR,
     USER_TEXT_SUBMITTED,
     VOICE_INPUT_REQUESTED,
+    VOICE_RECORDING_FINISHED,
+    VOICE_RECORDING_STARTED,
     BaseEvent,
 )
 from app.input.asr.controller import VoiceInputController
@@ -287,6 +290,32 @@ class TestVoiceInputControllerWithRecorder:
 
         assert not fake_recorder.record_called
 
+    def test_audio_path_not_required_does_not_publish_recording_events(self) -> None:
+        """Test that provider not requiring audio_path does not publish recording events."""
+        event_bus = MagicMock()
+        provider = FakeASRProviderForTest()
+        fake_recorder = FakeMicrophoneRecorder()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+        controller = VoiceInputController(
+            event_bus=event_bus,
+            provider=provider,
+            dispatch_event=dispatch_event,
+            recorder=fake_recorder,
+            recording_output_dir=".tmp/asr",
+            recording_duration_seconds=4.0,
+            recording_sample_rate=16000,
+            recording_channels=1,
+        )
+        controller.start()
+
+        controller._on_voice_input_requested(self._make_event())
+        time.sleep(0.05)
+
+        recording_started = [e for e in dispatch_events if e.event_type == VOICE_RECORDING_STARTED]
+        recording_finished = [e for e in dispatch_events if e.event_type == VOICE_RECORDING_FINISHED]
+        assert len(recording_started) == 0
+        assert len(recording_finished) == 0
+
     def test_audio_required_provider_calls_recorder(self) -> None:
         """Test that audio-required ASR provider calls the microphone recorder."""
         event_bus = MagicMock()
@@ -346,7 +375,7 @@ class TestVoiceInputControllerWithRecorder:
         assert provider._captured_request.mime_type == "audio/wav"
 
     def test_recorder_raises_audio_recording_error(self) -> None:
-        """Test that AudioRecordingError is converted to SYSTEM_ERROR."""
+        """Test that AudioRecordingError is converted to safe recording error."""
         event_bus = MagicMock()
         provider = FakeAudioRequiredProvider()
         fake_recorder = FakeMicrophoneRecorder()
@@ -375,11 +404,11 @@ class TestVoiceInputControllerWithRecorder:
 
         error_events = [e for e in dispatch_events if e.event_type == SYSTEM_ERROR]
         assert len(error_events) >= 1
-        assert error_events[0].payload["message"] == "语音识别失败，请稍后重试。"
+        assert error_events[0].payload["message"] == "录音失败，请检查麦克风后重试。"
         assert "microphone recording failed" not in error_events[0].payload["message"]
 
     def test_recorder_error_dispatches_error_state(self) -> None:
-        """Test that AudioRecordingError results in ERROR state."""
+        """Test that AudioRecordingError results in ERROR state with recording_error reason."""
         event_bus = MagicMock()
         provider = FakeAudioRequiredProvider()
         fake_recorder = FakeMicrophoneRecorder()
@@ -406,6 +435,7 @@ class TestVoiceInputControllerWithRecorder:
                 e for e in dispatch_events
                 if e.event_type == STATE_CHANGE_REQUESTED
                 and e.payload.get("target_state") == "error"
+                and e.payload.get("reason") == "recording_error"
             ]
             if error_state_events:
                 break
@@ -414,6 +444,204 @@ class TestVoiceInputControllerWithRecorder:
             e for e in dispatch_events
             if e.event_type == STATE_CHANGE_REQUESTED
             and e.payload.get("target_state") == "error"
+            and e.payload.get("reason") == "recording_error"
+        ]
+        assert len(error_state_events) >= 1
+
+    def test_audio_required_publishes_recording_started(self) -> None:
+        """Test that audio-required provider publishes VOICE_RECORDING_STARTED."""
+        event_bus = MagicMock()
+        provider = FakeAudioRequiredProvider()
+        fake_recorder = FakeMicrophoneRecorder()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+        controller = VoiceInputController(
+            event_bus=event_bus,
+            provider=provider,
+            dispatch_event=dispatch_event,
+            recorder=fake_recorder,
+            recording_output_dir=".tmp/asr",
+            recording_duration_seconds=4.0,
+            recording_sample_rate=16000,
+            recording_channels=1,
+        )
+        controller.start()
+
+        controller._on_voice_input_requested(self._make_event())
+
+        # Wait for worker thread to complete
+        for _ in range(50):
+            time.sleep(0.01)
+            recording_started = [e for e in dispatch_events if e.event_type == VOICE_RECORDING_STARTED]
+            if recording_started:
+                break
+
+        recording_started = [e for e in dispatch_events if e.event_type == VOICE_RECORDING_STARTED]
+        assert len(recording_started) == 1
+        assert "duration_seconds" in recording_started[0].payload
+
+    def test_audio_required_publishes_recording_finished(self) -> None:
+        """Test that audio-required provider publishes VOICE_RECORDING_FINISHED."""
+        event_bus = MagicMock()
+        provider = FakeAudioRequiredProvider()
+        fake_recorder = FakeMicrophoneRecorder()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+        controller = VoiceInputController(
+            event_bus=event_bus,
+            provider=provider,
+            dispatch_event=dispatch_event,
+            recorder=fake_recorder,
+            recording_output_dir=".tmp/asr",
+            recording_duration_seconds=4.0,
+            recording_sample_rate=16000,
+            recording_channels=1,
+        )
+        controller.start()
+
+        controller._on_voice_input_requested(self._make_event())
+
+        # Wait for worker thread to complete
+        for _ in range(50):
+            time.sleep(0.01)
+            recording_finished = [e for e in dispatch_events if e.event_type == VOICE_RECORDING_FINISHED]
+            if recording_finished:
+                break
+
+        recording_finished = [e for e in dispatch_events if e.event_type == VOICE_RECORDING_FINISHED]
+        assert len(recording_finished) == 1
+        assert "audio_path" in recording_finished[0].payload
+        assert "duration_seconds" in recording_finished[0].payload
+        assert "sample_rate" in recording_finished[0].payload
+        assert "channels" in recording_finished[0].payload
+
+    def test_audio_required_publishes_asr_recognition_started(self) -> None:
+        """Test that audio-required provider publishes ASR_RECOGNITION_STARTED."""
+        event_bus = MagicMock()
+        provider = FakeAudioRequiredProvider()
+        fake_recorder = FakeMicrophoneRecorder()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+        controller = VoiceInputController(
+            event_bus=event_bus,
+            provider=provider,
+            dispatch_event=dispatch_event,
+            recorder=fake_recorder,
+            recording_output_dir=".tmp/asr",
+            recording_duration_seconds=4.0,
+            recording_sample_rate=16000,
+            recording_channels=1,
+        )
+        controller.start()
+
+        controller._on_voice_input_requested(self._make_event())
+
+        # Wait for worker thread to complete
+        for _ in range(50):
+            time.sleep(0.01)
+            recognition_started = [e for e in dispatch_events if e.event_type == ASR_RECOGNITION_STARTED]
+            if recognition_started:
+                break
+
+        recognition_started = [e for e in dispatch_events if e.event_type == ASR_RECOGNITION_STARTED]
+        assert len(recognition_started) == 1
+
+    def test_audio_required_successful_still_publishes_asr_text_recognized(self) -> None:
+        """Test that successful audio-required ASR still publishes ASR_TEXT_RECOGNIZED."""
+        event_bus = MagicMock()
+        provider = FakeAudioRequiredProvider(transcript="识别成功")
+        fake_recorder = FakeMicrophoneRecorder()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+        controller = VoiceInputController(
+            event_bus=event_bus,
+            provider=provider,
+            dispatch_event=dispatch_event,
+            recorder=fake_recorder,
+            recording_output_dir=".tmp/asr",
+            recording_duration_seconds=4.0,
+            recording_sample_rate=16000,
+            recording_channels=1,
+        )
+        controller.start()
+
+        controller._on_voice_input_requested(self._make_event())
+
+        # Wait for worker thread to complete
+        for _ in range(50):
+            time.sleep(0.01)
+            asr_events = [e for e in dispatch_events if e.event_type == ASR_TEXT_RECOGNIZED]
+            if asr_events:
+                break
+
+        asr_events = [e for e in dispatch_events if e.event_type == ASR_TEXT_RECOGNIZED]
+        assert len(asr_events) == 1
+        assert asr_events[0].payload["text"] == "识别成功"
+
+    def test_audio_required_successful_still_publishes_user_text_submitted(self) -> None:
+        """Test that successful audio-required ASR still publishes USER_TEXT_SUBMITTED."""
+        event_bus = MagicMock()
+        provider = FakeAudioRequiredProvider(transcript="语音识别结果")
+        fake_recorder = FakeMicrophoneRecorder()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+        controller = VoiceInputController(
+            event_bus=event_bus,
+            provider=provider,
+            dispatch_event=dispatch_event,
+            recorder=fake_recorder,
+            recording_output_dir=".tmp/asr",
+            recording_duration_seconds=4.0,
+            recording_sample_rate=16000,
+            recording_channels=1,
+        )
+        controller.start()
+
+        controller._on_voice_input_requested(self._make_event())
+
+        # Wait for worker thread to complete
+        for _ in range(50):
+            time.sleep(0.01)
+            user_events = [e for e in dispatch_events if e.event_type == USER_TEXT_SUBMITTED]
+            if user_events:
+                break
+
+        user_events = [e for e in dispatch_events if e.event_type == USER_TEXT_SUBMITTED]
+        assert len(user_events) == 1
+        assert user_events[0].payload["text"] == "语音识别结果"
+
+    def test_asr_provider_error_still_asr_error_reason(self) -> None:
+        """Test that ASRProviderError results in ERROR state with asr_error reason."""
+        event_bus = MagicMock()
+        provider = FakeAudioRequiredProvider(should_fail=True)
+        fake_recorder = FakeMicrophoneRecorder()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+        controller = VoiceInputController(
+            event_bus=event_bus,
+            provider=provider,
+            dispatch_event=dispatch_event,
+            recorder=fake_recorder,
+            recording_output_dir=".tmp/asr",
+            recording_duration_seconds=4.0,
+            recording_sample_rate=16000,
+            recording_channels=1,
+        )
+        controller.start()
+
+        controller._on_voice_input_requested(self._make_event())
+
+        # Wait for worker thread to complete
+        for _ in range(50):
+            time.sleep(0.01)
+            error_state_events = [
+                e for e in dispatch_events
+                if e.event_type == STATE_CHANGE_REQUESTED
+                and e.payload.get("target_state") == "error"
+                and e.payload.get("reason") == "asr_error"
+            ]
+            if error_state_events:
+                break
+
+        error_state_events = [
+            e for e in dispatch_events
+            if e.event_type == STATE_CHANGE_REQUESTED
+            and e.payload.get("target_state") == "error"
+            and e.payload.get("reason") == "asr_error"
         ]
         assert len(error_state_events) >= 1
 

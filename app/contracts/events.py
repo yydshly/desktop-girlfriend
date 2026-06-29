@@ -15,6 +15,9 @@ TTS_AUDIO_READY = "tts.audio_ready"
 TTS_STOP_REQUESTED = "tts.stop_requested"
 TTS_STOPPED = "tts.stopped"
 VOICE_INPUT_REQUESTED = "voice.input_requested"
+VOICE_RECORDING_STARTED = "voice.recording_started"
+VOICE_RECORDING_FINISHED = "voice.recording_finished"
+ASR_RECOGNITION_STARTED = "asr.recognition_started"
 ASR_TEXT_RECOGNIZED = "asr.text_recognized"
 
 

@@ -1,11 +1,15 @@
 """UI view model."""
 
 from app.contracts.events import (
+    ASR_RECOGNITION_STARTED,
+    ASR_TEXT_RECOGNIZED,
     ASSISTANT_TEXT_RECEIVED,
     CONVERSATION_CLEARED,
     STATE_CHANGED,
     SYSTEM_ERROR,
     USER_TEXT_SUBMITTED,
+    VOICE_RECORDING_FINISHED,
+    VOICE_RECORDING_STARTED,
     BaseEvent,
 )
 from app.contracts.states import AppState
@@ -40,6 +44,7 @@ class DesktopViewModel:
         self.companion_name: str = COMPANION_NAME
         self.companion_subtitle: str = COMPANION_SUBTITLE
         self.companion_avatar_text: str = COMPANION_AVATAR_TEXT
+        self.voice_status_text: str = ""
 
     def handle_state_changed(self, event: BaseEvent) -> None:
         """Handle state.changed event and update display text.
@@ -60,6 +65,7 @@ class DesktopViewModel:
             except ValueError:
                 self.state = AppState.ERROR
 
+        self.voice_status_text = ""
         self.display_text = _STATE_DISPLAY_TEXT.get(self.state, "状态：未知")
 
         if self.state == AppState.THINKING:
@@ -120,5 +126,29 @@ class DesktopViewModel:
         self.chat_messages.clear()
         self.assistant_text = ""
         self.error_text = ""
+        self.voice_status_text = ""
         self.state = AppState.IDLE
         self.display_text = _STATE_DISPLAY_TEXT[AppState.IDLE]
+
+    def handle_voice_progress_event(self, event: BaseEvent) -> None:
+        """Handle voice progress events and update fine-grained status text.
+
+        Args:
+            event: A voice progress event (recording/recognition started/finished).
+        """
+        event_type = event.event_type
+        if event_type == VOICE_RECORDING_STARTED:
+            self.voice_status_text = "当前状态：正在录音，请说话"
+        elif event_type == VOICE_RECORDING_FINISHED:
+            self.voice_status_text = "当前状态：正在整理语音"
+        elif event_type == ASR_RECOGNITION_STARTED:
+            self.voice_status_text = "当前状态：正在识别语音"
+        elif event_type == ASR_TEXT_RECOGNIZED:
+            self.voice_status_text = "当前状态：正在想你说的话"
+
+    @property
+    def effective_display_text(self) -> str:
+        """Return the display text, using voice_status_text if set."""
+        if self.voice_status_text:
+            return self.voice_status_text
+        return self.display_text

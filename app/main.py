@@ -12,6 +12,8 @@ from app.brain.prompts.history import CurrentSessionHistory
 from app.brain.prompts.registry import PromptRegistry
 from app.brain.providers import ChatProviderError, create_chat_provider
 from app.contracts.events import (
+    ASR_RECOGNITION_STARTED,
+    ASR_TEXT_RECOGNIZED,
     ASSISTANT_TEXT_RECEIVED,
     CONVERSATION_CLEARED,
     STATE_CHANGED,
@@ -19,6 +21,8 @@ from app.contracts.events import (
     TTS_STOP_REQUESTED,
     USER_TEXT_SUBMITTED,
     VOICE_INPUT_REQUESTED,
+    VOICE_RECORDING_FINISHED,
+    VOICE_RECORDING_STARTED,
     BaseEvent,
 )
 from app.contracts.payloads import UserTextSubmittedPayload
@@ -161,6 +165,16 @@ def main() -> None:
         window.update_from_view_model()
 
     event_bus.subscribe(USER_TEXT_SUBMITTED, on_user_text_submitted)
+
+    # Register ViewModel subscription to voice progress events
+    def on_voice_progress_event(event: BaseEvent) -> None:
+        view_model.handle_voice_progress_event(event)
+        window.update_from_view_model()
+
+    event_bus.subscribe(VOICE_RECORDING_STARTED, on_voice_progress_event)
+    event_bus.subscribe(VOICE_RECORDING_FINISHED, on_voice_progress_event)
+    event_bus.subscribe(ASR_RECOGNITION_STARTED, on_voice_progress_event)
+    event_bus.subscribe(ASR_TEXT_RECOGNIZED, on_voice_progress_event)
 
     # Register handler for conversation.cleared events
     def on_conversation_cleared(event: BaseEvent) -> None:
