@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
+from app.tests.conftest import clear_config_env
+
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
@@ -60,21 +64,24 @@ class TestRcDocContent:
 
 class TestRcConfigDefaults:
     @staticmethod
-    def test_memory_disabled_by_default() -> None:
+    def test_memory_disabled_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+        clear_config_env(monkeypatch)
         from app.core.config import AppConfig
 
         cfg = AppConfig()
         assert cfg.memory_context_enabled is False
 
     @staticmethod
-    def test_proactive_disabled_by_default() -> None:
+    def test_proactive_disabled_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+        clear_config_env(monkeypatch)
         from app.core.config import AppConfig
 
         cfg = AppConfig()
         assert cfg.proactive_enabled is False
 
     @staticmethod
-    def test_proactive_tts_disabled_by_default() -> None:
+    def test_proactive_tts_disabled_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+        clear_config_env(monkeypatch)
         from app.core.config import AppConfig
 
         cfg = AppConfig()

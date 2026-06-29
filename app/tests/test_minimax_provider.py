@@ -1,7 +1,10 @@
 """Tests for MiniMaxChatProvider."""
 
+from email.message import Message
+from io import BytesIO
 from typing import Any
 from unittest.mock import MagicMock, patch
+from urllib.error import HTTPError
 
 import pytest
 
@@ -232,6 +235,39 @@ class TestMiniMaxProviderGenerate:
             response = provider.generate(request)
 
         assert response.text == "Hello!"
+
+
+class TestMiniMaxProviderHttpErrors:
+    """Tests for HTTP error diagnostics."""
+
+    def test_http_error_includes_safe_response_body_summary(self) -> None:
+        """HTTP errors include provider diagnostics without leaking API keys."""
+        provider = MiniMaxChatProvider(
+            api_key="sk-secret-key-12345",
+            group_id=None,
+            base_url="https://api.minimax.chat/v1",
+            model="MiniMax-Text-01",
+            timeout_seconds=30.0,
+            chat_path="/text/chatcompletion_v2",
+        )
+        error = HTTPError(
+            url="https://api.minimax.chat/v1/text/chatcompletion_v2",
+            code=401,
+            msg="Unauthorized",
+            hdrs=Message(),
+            fp=BytesIO(
+                b'{"base_resp":{"status_msg":"invalid api key sk-secret-key-12345"}}'
+            ),
+        )
+
+        with patch("app.brain.providers.minimax.urllib.request.urlopen", side_effect=error):
+            with pytest.raises(ChatProviderError) as exc_info:
+                provider._send_request({"messages": []}, provider._build_headers())
+
+        message = str(exc_info.value)
+        assert "401" in message
+        assert "invalid api key" in message
+        assert "sk-secret-key-12345" not in message
 
 
 class TestMiniMaxProviderURLConstruction:

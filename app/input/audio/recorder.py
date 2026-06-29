@@ -9,8 +9,6 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Protocol
 
-import sounddevice
-
 
 class AudioRecordingError(Exception):
     """Raised when microphone recording fails."""
@@ -101,6 +99,12 @@ class MicrophoneRecorder:
         audio_path = os.path.join(request.output_dir, filename)
 
         # Record audio
+        if self._record_func is None or self._wait_func is None:
+            try:
+                import sounddevice
+            except ModuleNotFoundError as exc:
+                raise AudioRecordingError("microphone recording dependency is missing") from exc
+
         record_func = self._record_func or sounddevice.rec
         wait_func = self._wait_func or sounddevice.wait
 

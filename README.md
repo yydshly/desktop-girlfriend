@@ -164,7 +164,7 @@ cd desktop-girlfriend
 # 2. 创建虚拟环境
 python -m venv .venv
 .venv\Scripts\python.exe -m pip install -U pip
-.venv\Scripts\python.exe -m pip install -r requirements.txt
+.venv\Scripts\python.exe -m pip install -e ".[dev]"
 
 # 3. 配置环境变量
 Copy-Item .env.example .env

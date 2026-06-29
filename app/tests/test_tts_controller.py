@@ -3,7 +3,12 @@
 import time
 from collections.abc import Callable
 
-from app.contracts.events import ASSISTANT_TEXT_RECEIVED, STATE_CHANGE_REQUESTED, BaseEvent
+from app.contracts.events import (
+    ASSISTANT_TEXT_RECEIVED,
+    STATE_CHANGE_REQUESTED,
+    SYSTEM_ERROR,
+    BaseEvent,
+)
 from app.core.event_bus import EventBus
 from app.expression.tts.controller import TTSController
 from app.expression.tts.providers.base import TTSProvider, TTSProviderError, TTSRequest, TTSResponse
@@ -251,6 +256,23 @@ class TestTTSController:
             e for e in bus_events if e.payload.get("target_state") == "speaking"
         ]
         assert len(speaking_events) == 1
+
+    def test_inflight_guard_publishes_busy_error(self) -> None:
+        """Test second event while speaking publishes a busy error."""
+        event_bus = EventBus()
+        provider = ImmediateTTSProvider(delay=0.2)
+        system_errors: list[BaseEvent] = []
+        event_bus.subscribe(SYSTEM_ERROR, system_errors.append)
+        dispatch_events, dispatch_event = _make_dispatch_collector()
+
+        controller = TTSController(event_bus, provider, dispatch_event)
+        controller.start()
+
+        event_bus.publish(_make_assistant_event("First"))
+        event_bus.publish(_make_assistant_event("Second"))
+
+        assert len(system_errors) == 1
+        assert "busy" in system_errors[0].payload["message"].lower()
 
         # Wait for completion
         time.sleep(0.2)
@@ -889,6 +911,47 @@ class TestTTSControllerStop:
             e for e in dispatch_events if e.event_type == "system.error"
         ]
         assert len(error_events) == 0
+
+    def test_stop_legacy_speaking_waits_for_cancelled_worker_thread(self) -> None:
+        """Test stop() joins a provider-cancelled worker thread."""
+        import threading
+
+        from app.contracts.events import TTS_STOP_REQUESTED
+
+        class StoppableLegacyProvider(TTSProvider):
+            def __init__(self) -> None:
+                self.speak_started = threading.Event()
+                self._stop_event = threading.Event()
+
+            def speak(self, request: TTSRequest) -> TTSResponse:
+                self.speak_started.set()
+                self._stop_event.wait()
+                return TTSResponse(duration_seconds=0.0)
+
+            def stop(self) -> None:
+                self._stop_event.set()
+
+        event_bus = EventBus()
+        provider = StoppableLegacyProvider()
+        dispatch_events, dispatch_event = _make_dispatch_collector(event_bus)
+
+        controller = TTSController(event_bus, provider, dispatch_event)
+        controller.start()
+
+        event_bus.publish(_make_assistant_event("Hello"))
+        assert provider.speak_started.wait(timeout=1.0)
+
+        event_bus.publish(
+            BaseEvent(
+                event_type=TTS_STOP_REQUESTED,
+                request_id="stop_join",
+                source="test",
+                payload={},
+            )
+        )
+
+        assert controller._worker_thread is not None
+        assert not controller._worker_thread.is_alive()
 
     def test_stop_requested_ignores_provider_stop_error_and_idles(self) -> None:
         """Test provider stop errors do not break user stop handling."""

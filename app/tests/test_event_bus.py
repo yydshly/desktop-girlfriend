@@ -1,5 +1,6 @@
 """Tests for EventBus."""
 
+import threading
 
 from app.contracts.events import BaseEvent
 from app.core.event_bus import EventBus
@@ -137,3 +138,54 @@ def test_handler_exception_does_not_stop_later_handlers() -> None:
     bus.publish(event)
 
     assert received == [event]
+
+
+def test_concurrent_subscribe_unsubscribe_and_publish_does_not_raise() -> None:
+    """Test EventBus tolerates concurrent subscription changes and publishing."""
+    bus = EventBus()
+    errors: list[Exception] = []
+    received: list[BaseEvent] = []
+    start = threading.Event()
+
+    def stable_handler(event: BaseEvent) -> None:
+        received.append(event)
+
+    def temporary_handler(_: BaseEvent) -> None:
+        return
+
+    def mutate_subscriptions() -> None:
+        start.wait()
+        try:
+            for _ in range(200):
+                bus.subscribe("test.event", temporary_handler)
+                bus.unsubscribe("test.event", temporary_handler)
+        except Exception as exc:
+            errors.append(exc)
+
+    def publish_events() -> None:
+        start.wait()
+        try:
+            for i in range(200):
+                bus.publish(
+                    BaseEvent(
+                        event_type="test.event",
+                        request_id=f"req-{i}",
+                        source="test",
+                    )
+                )
+        except Exception as exc:
+            errors.append(exc)
+
+    bus.subscribe("test.event", stable_handler)
+    threads = [
+        threading.Thread(target=mutate_subscriptions),
+        threading.Thread(target=publish_events),
+    ]
+    for thread in threads:
+        thread.start()
+    start.set()
+    for thread in threads:
+        thread.join(timeout=2)
+
+    assert errors == []
+    assert len(received) > 0

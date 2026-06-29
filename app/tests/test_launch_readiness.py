@@ -5,6 +5,10 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import pytest
+
+from app.tests.conftest import clear_config_env
+
 # Project root is the parent of app/
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -70,35 +74,68 @@ class TestReadme:
         assert "主动陪伴" in content
 
 
+class TestInstallInstructions:
+    """Tests for local environment installation guidance."""
+
+    def test_readme_uses_pyproject_install_command(self) -> None:
+        """README uses pyproject-based install instructions."""
+        readme = PROJECT_ROOT / "README.md"
+        content = readme.read_text(encoding="utf-8")
+        assert 'pip install -e ".[dev]"' in content
+        assert "requirements.txt" not in content
+
+    def test_run_desktop_uses_pyproject_install_command(self) -> None:
+        """Launcher help uses pyproject-based install instructions."""
+        script = PROJECT_ROOT / "scripts" / "run_desktop.ps1"
+        content = script.read_text(encoding="utf-8")
+        assert 'pip install -e ".[dev]"' in content
+        assert "requirements.txt" not in content
+
+
 class TestAppConfigDefaults:
     """Tests for AppConfig default values."""
 
-    def test_memory_context_enabled_default_false(self) -> None:
+    def test_memory_context_enabled_default_false(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """MEMORY_CONTEXT_ENABLED defaults to False."""
+        clear_config_env(monkeypatch)
         from app.core.config import get_config
         config = get_config()
         assert config.memory_context_enabled is False
 
-    def test_memory_suggestions_enabled_default_false(self) -> None:
+    def test_memory_suggestions_enabled_default_false(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """MEMORY_SUGGESTIONS_ENABLED defaults to False."""
+        clear_config_env(monkeypatch)
         from app.core.config import get_config
         config = get_config()
         assert config.memory_suggestions_enabled is False
 
-    def test_memory_management_enabled_default_false(self) -> None:
+    def test_memory_management_enabled_default_false(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """MEMORY_MANAGEMENT_ENABLED defaults to False."""
+        clear_config_env(monkeypatch)
         from app.core.config import get_config
         config = get_config()
         assert config.memory_management_enabled is False
 
-    def test_proactive_enabled_default_false(self) -> None:
+    def test_proactive_enabled_default_false(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """PROACTIVE_ENABLED defaults to False."""
+        clear_config_env(monkeypatch)
         from app.core.config import get_config
         config = get_config()
         assert config.proactive_enabled is False
 
-    def test_proactive_tts_enabled_default_false(self) -> None:
+    def test_proactive_tts_enabled_default_false(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """PROACTIVE_TTS_ENABLED defaults to False."""
+        clear_config_env(monkeypatch)
         from app.core.config import get_config
         config = get_config()
         assert config.proactive_tts_enabled is False

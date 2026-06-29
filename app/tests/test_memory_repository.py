@@ -2,9 +2,11 @@
 
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import pytest
 
+import app.brain.memory.repository as repository_module
 from app.brain.memory import (
     ConfirmedMemory,
     MemoryImportance,
@@ -181,6 +183,29 @@ class TestLocalJsonMemoryRepository:
         repo.add(record)
         text = path.read_text(encoding="utf-8")
         assert "evidence" not in text
+
+    def test_failed_write_preserves_existing_json_file(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        path = tmp_path / "memory.json"
+        repo = LocalJsonMemoryRepository(path)
+        repo.add(_make_record(id="first"))
+
+        real_dump = repository_module.json.dump
+
+        def failing_dump(data: object, fp: Any, *args: object, **kwargs: object) -> None:
+            fp.write('{"version": 1, "records": [')
+            raise RuntimeError("simulated partial write")
+
+        monkeypatch.setattr(repository_module.json, "dump", failing_dump)
+
+        with pytest.raises(RuntimeError, match="simulated partial write"):
+            repo.add(_make_record(id="second"))
+
+        monkeypatch.setattr(repository_module.json, "dump", real_dump)
+        records = repo.list_all()
+        assert len(records) == 1
+        assert records[0].id == "first"
 
 
 class TestMemoryRecordFromConfirmed:

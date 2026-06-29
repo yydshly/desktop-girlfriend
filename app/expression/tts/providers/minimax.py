@@ -175,13 +175,27 @@ class MiniMaxTTSProvider(TTSProvider):
             with urllib.request.urlopen(req, timeout=self._config.timeout_seconds) as resp:
                 status = resp.status
                 if status != 200:
-                    raise TTSProviderError("MiniMax TTS HTTP error")
+                    raise TTSProviderError(f"MiniMax TTS HTTP {status}")
                 result: dict[str, Any] = json.loads(resp.read().decode("utf-8"))
                 return result
         except urllib.error.HTTPError as e:
-            raise TTSProviderError("MiniMax TTS HTTP error") from e
+            detail = self._http_error_detail(e)
+            raise TTSProviderError(f"MiniMax TTS HTTP {e.code}: {detail}") from e
         except urllib.error.URLError as e:
             raise TTSProviderError("MiniMax TTS network error") from e
+
+    def _http_error_detail(self, error: Any) -> str:
+        """Return a safe, compact HTTP error detail string."""
+        raw: str
+        try:
+            raw = error.read().decode("utf-8", errors="replace").strip()
+        except Exception:
+            raw = ""
+        if not raw:
+            reason = getattr(error, "reason", None)
+            return str(reason) if reason else "no response body"
+        safe = raw.replace(self._config.api_key, "[redacted]")
+        return safe[:500]
 
     def _parse_audio_bytes(self, result: dict[str, Any]) -> bytes:
         """Extract audio bytes from the API response.

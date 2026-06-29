@@ -1,8 +1,11 @@
 """Tests for MiniMaxTTSProvider."""
 
 import base64
+from email.message import Message
+from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch
+from urllib.error import HTTPError
 
 import pytest
 
@@ -316,6 +319,32 @@ class TestMiniMaxTTSProviderSynthesize:
             except TTSProviderError as e:
                 assert "super-secret-key" not in str(e)
                 assert "Bearer super-secret-key" not in str(e)
+
+
+class TestMiniMaxTTSProviderHttpErrors:
+    """Tests for HTTP error diagnostics."""
+
+    def test_http_error_includes_safe_response_body_summary(self) -> None:
+        """HTTP errors include provider diagnostics without leaking API keys."""
+        provider = _make_provider(api_key="sk-secret-key-12345")
+        error = HTTPError(
+            url="https://api.minimax.chat/v1/t2a_v2",
+            code=403,
+            msg="Forbidden",
+            hdrs=Message(),
+            fp=BytesIO(
+                b'{"base_resp":{"status_msg":"quota exceeded for sk-secret-key-12345"}}'
+            ),
+        )
+
+        with patch("urllib.request.urlopen", side_effect=error):
+            with pytest.raises(TTSProviderError) as exc_info:
+                provider._send_request({"text": "hello"}, provider._build_headers())
+
+        message = str(exc_info.value)
+        assert "403" in message
+        assert "quota exceeded" in message
+        assert "sk-secret-key-12345" not in message
 
 
 def test_minimax_tts_provider_supports_audio_path_playback() -> None:

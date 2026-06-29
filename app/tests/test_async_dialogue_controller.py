@@ -9,7 +9,7 @@ from app.brain.async_dialogue_controller import AsyncDialogueController
 from app.brain.prompts.history import CurrentSessionHistory
 from app.brain.prompts.registry import PromptRegistry
 from app.brain.providers.base import ChatProvider, ChatProviderError, ChatRequest, ChatResponse
-from app.contracts.events import BaseEvent
+from app.contracts.events import SYSTEM_ERROR, BaseEvent
 
 
 class SlowFakeProvider(ChatProvider):
@@ -321,6 +321,31 @@ class TestAsyncDialogueController:
         # Wait for completion
         time.sleep(0.3)
 
+    def test_second_submission_while_generating_publishes_busy_error(self) -> None:
+        """Test second submission while generating publishes a busy error."""
+        event_bus = MagicMock()
+        provider = SlowFakeProvider(delay=0.2)
+        registry = PromptRegistry()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+
+        controller = AsyncDialogueController(
+            event_bus=event_bus,
+            provider=provider,
+            prompt_registry=registry,
+            dispatch_event=dispatch_event,
+        )
+
+        controller._on_user_text_submitted(self._make_event("First"))
+        controller._on_user_text_submitted(self._make_event("Second"))
+
+        error_events = [
+            call[0][0]
+            for call in event_bus.publish.call_args_list
+            if call[0][0].event_type == SYSTEM_ERROR
+        ]
+        assert len(error_events) == 1
+        assert "busy" in error_events[0].payload["message"].lower()
+
     def test_inflight_guard_released_after_success(self) -> None:
         """Test in-flight guard is released after successful generation."""
         event_bus = MagicMock()
@@ -396,6 +421,30 @@ class TestAsyncDialogueController:
 
         assert provider.stop_called is True
         assert provider.generate_finished.wait(timeout=0.5)
+        assert dispatch_events == []
+
+    def test_stop_waits_briefly_for_cancelled_worker_thread(self) -> None:
+        """Test stop() joins a provider-cancelled worker thread."""
+        event_bus = MagicMock()
+        provider = StoppableBlockingChatProvider(reply_text="Too late")
+        registry = PromptRegistry()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+
+        controller = AsyncDialogueController(
+            event_bus=event_bus,
+            provider=provider,
+            prompt_registry=registry,
+            dispatch_event=dispatch_event,
+        )
+        controller.start()
+
+        controller._on_user_text_submitted(self._make_event("Hello"))
+        assert provider.generate_started.wait(timeout=1.0)
+
+        controller.stop()
+
+        assert controller._worker_thread is not None
+        assert not controller._worker_thread.is_alive()
         assert dispatch_events == []
 
     def test_stop_ignores_provider_stop_error_and_unsubscribes(self) -> None:
