@@ -245,6 +245,20 @@ Copy-Item .env.example .env
 .venv\Scripts\python.exe scripts\probe_launch_readiness.py
 ```
 
+## Release Candidate
+
+Windows 快速启动：
+
+```powershell
+.\scripts\run_desktop.ps1
+```
+
+更多说明见：
+
+```text
+RELEASE_CANDIDATE.md
+```
+
 ## 不要提交的内容
 
 以下文件/目录**永远不要**提交到版本控制：

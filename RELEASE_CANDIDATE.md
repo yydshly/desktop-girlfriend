@@ -1,0 +1,113 @@
+# Desktop Girlfriend Release Candidate v0
+
+## 当前版本能力
+
+### V8 Memory Runtime v0
+
+- 用户确认式记忆
+- 本地 JSON 保存
+- 不保存 evidence
+- 不保存完整原始对话
+- 不自动确认
+
+### V9 Proactive Companionship v0
+
+- 空闲主动陪伴
+- 可选 TTS
+- 勿扰时间
+- 用户拒绝后暂停
+
+### V10 Avatar Action v0
+
+- idle / listening / thinking / speaking / proactive / error 状态
+- emoji 状态显示
+- 状态样式
+- 主动陪伴 avatar 状态修复
+
+### V11 Product Experience v0
+
+- 状态面板
+- 启动说明
+- 启动诊断
+
+---
+
+## 快速启动（Windows）
+
+```powershell
+.\scripts\run_desktop.ps1
+```
+
+首次运行脚本会自动从 `.env.example` 创建 `.env`，请先编辑 `.env` 填写真实 provider 配置。
+
+---
+
+## 开发验证
+
+在仓库根目录执行：
+
+```powershell
+# Lint
+.venv\Scripts\python.exe -m ruff check .
+
+# Type check
+.venv\Scripts\python.exe -m mypy app
+
+# Full test suite
+.venv\Scripts\python.exe -m pytest -q
+
+# RC self-check
+.venv\Scripts\python.exe scripts\probe_release_candidate.py
+
+# Individual probes
+.venv\Scripts\python.exe scripts\probe_product_status.py
+.venv\Scripts\python.exe scripts\probe_launch_readiness.py
+.venv\Scripts\python.exe scripts\probe_startup_diagnostics.py
+```
+
+---
+
+## 隐私与安全
+
+**不要提交以下内容：**
+
+- `.env` — 包含真实 API key
+- `.tmp` — 临时文件
+- 任何真实 API key 或 token
+
+**默认关闭的功能：**
+
+- 记忆（memory_context_enabled）默认关闭
+- 主动陪伴（proactive_enabled）默认关闭
+- 主动陪伴 TTS（proactive_tts_enabled）默认关闭
+
+**记忆行为：**
+
+- 记忆必须用户确认才保存
+- 不保存 evidence
+- 不保存完整原始对话
+
+---
+
+## 如何开启可选功能
+
+编辑 `.env`：
+
+```env
+# 记忆
+MEMORY_CONTEXT_ENABLED=true
+
+# 主动陪伴
+PROACTIVE_ENABLED=true
+
+# 主动陪伴 TTS（需先开启主动陪伴）
+PROACTIVE_TTS_ENABLED=true
+```
+
+---
+
+## 已知限制
+
+- 不支持云端同步
+- 不支持自动更新
+- 不提供安装包
