@@ -1,5 +1,7 @@
 """Tests for V8-J Memory Management UI."""
 
+from unittest.mock import MagicMock
+
 import pytest
 
 from app.contracts.events import (
@@ -9,6 +11,7 @@ from app.contracts.events import (
 )
 from app.ui.memory_record_view import MemoryRecordView, render_memory_record_text
 from app.ui.view_model import DesktopViewModel
+from app.ui.window import DesktopWindow
 
 
 class TestMemoryRecordView:
@@ -356,3 +359,100 @@ class TestDesktopViewModelMemoryManagement:
 
         assert vm.memory_panel_visible is False
         assert len(vm.memory_records) == 1  # records are kept
+
+
+# Window UI tests for memory management (V8-J Patch)
+
+
+class TestMemoryManagementWindowButton:
+    """Tests for DesktopWindow memory management button visibility."""
+
+    @pytest.fixture(autouse=True)
+    def _check_qt(self) -> None:
+        """Skip all tests in this class if Qt display is not available."""
+        if not _qt_available():
+            pytest.skip("No Qt display available")
+
+    def test_memory_panel_button_hidden_when_management_disabled(self) -> None:
+        """Test memory panel button is hidden when memory_management_enabled=False."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=MagicMock(),
+            on_conversation_cleared=MagicMock(),
+            memory_management_enabled=False,
+        )
+        assert window._memory_panel_button.isVisible() is False
+
+    def test_memory_panel_button_visible_when_management_enabled(self) -> None:
+        """Test memory panel button is visible when memory_management_enabled=True."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=MagicMock(),
+            on_conversation_cleared=MagicMock(),
+            memory_management_enabled=True,
+        )
+        # Note: isVisible() returns False when parent is not shown yet in Qt
+        # We verify the button is NOT hidden (inverse of visible)
+        assert window._memory_panel_button.isHidden() is False
+
+    def test_hidden_memory_button_does_not_affect_suggestion_widget(self) -> None:
+        """Test hidden memory button does not affect suggestion widget behavior."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=MagicMock(),
+            on_conversation_cleared=MagicMock(),
+            on_memory_confirm_requested=MagicMock(),
+            on_memory_reject_requested=MagicMock(),
+            memory_management_enabled=False,
+        )
+        # Suggestion widget should still be accessible
+        assert hasattr(window, "_memory_suggestion_widget")
+        # Suggestion widget should be hidden initially
+        assert window._memory_suggestion_widget.isVisible() is False
+
+    def test_memory_panel_button_click_triggers_list_callback_when_enabled(
+        self,
+    ) -> None:
+        """Test clicking memory panel button triggers list callback when enabled."""
+        vm = DesktopViewModel()
+        on_list = MagicMock()
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=MagicMock(),
+            on_conversation_cleared=MagicMock(),
+            on_memory_list_requested=on_list,
+            memory_management_enabled=True,
+        )
+        window._memory_panel_button.click()
+        on_list.assert_called_once()
+
+    def test_memory_panel_button_click_does_not_crash_when_no_callback(
+        self,
+    ) -> None:
+        """Test memory panel button click with no callback does not crash."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            vm,
+            on_user_text_submitted=MagicMock(),
+            on_conversation_cleared=MagicMock(),
+            on_memory_list_requested=None,
+            memory_management_enabled=True,
+        )
+        # Should not raise
+        window._memory_panel_button.click()
+
+
+def _qt_available() -> bool:
+    """Check if Qt is available."""
+    try:
+        from PySide6.QtWidgets import QApplication
+
+        app = QApplication.instance()
+        if app is None:
+            QApplication([])
+        return True
+    except Exception:
+        return False

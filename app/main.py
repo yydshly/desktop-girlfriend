@@ -202,6 +202,7 @@ def main() -> None:
         on_memory_reject_requested=request_memory_reject,
         on_memory_list_requested=request_memory_list,
         on_memory_delete_requested=request_memory_delete,
+        memory_management_enabled=config.memory_management_enabled,
     )
 
     # Initialize StateController and wire EventBus + StateMachine
@@ -324,10 +325,16 @@ def main() -> None:
 
         session_memory_context_provider = create_memory_context_provider_from_config(config)
 
-    # V8-H: Create memory suggestion controller if enabled
+    # V8-H / V8-J Patch: Create memory controller if suggestions or management is enabled
     memory_suggestion_controller = None
     memory_runtime = None
-    if config.memory_suggestions_enabled:
+
+    memory_runtime_enabled = (
+        config.memory_suggestions_enabled
+        or config.memory_management_enabled
+    )
+
+    if memory_runtime_enabled:
         from pathlib import Path
 
         from app.brain.memory.controller import MemorySuggestionController

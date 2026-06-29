@@ -69,6 +69,7 @@ class DesktopWindow(QMainWindow):
         on_memory_reject_requested: Callable[[str], None] | None = None,
         on_memory_list_requested: Callable[[], None] | None = None,
         on_memory_delete_requested: Callable[[str], None] | None = None,
+        memory_management_enabled: bool = False,
     ) -> None:
         super().__init__()
         self._view_model = view_model
@@ -80,6 +81,7 @@ class DesktopWindow(QMainWindow):
         self._on_memory_reject_requested = on_memory_reject_requested
         self._on_memory_list_requested = on_memory_list_requested
         self._on_memory_delete_requested = on_memory_delete_requested
+        self._memory_management_enabled = memory_management_enabled
 
         config = get_config()
         self.setWindowTitle(config.app_name)
@@ -208,6 +210,7 @@ class DesktopWindow(QMainWindow):
 
         self._memory_panel_button = QPushButton("记忆")
         self._memory_panel_button.clicked.connect(self._on_memory_panel_clicked)
+        self._memory_panel_button.setVisible(memory_management_enabled)
         button_layout.addWidget(self._memory_panel_button)
 
         self._stop_speaking_button = QPushButton("停止说话")

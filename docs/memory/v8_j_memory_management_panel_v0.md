@@ -22,6 +22,31 @@ V8-J 的目标是让用户可以在 UI 中查看和删除已经保存的 active 
 
 **本阶段只做：查看 active memories、删除 active memory、刷新记忆列表。**
 
+## 配置开关 (V8-J Patch)
+
+V8-J Patch 新增了 `MEMORY_MANAGEMENT_ENABLED` 配置项，与 `MEMORY_SUGGESTIONS_ENABLED` 独立：
+
+| 配置项 | 默认值 | 作用 |
+|--------|--------|------|
+| `MEMORY_SUGGESTIONS_ENABLED` | false | 控制是否从用户输入中生成 pending memory suggestion |
+| `MEMORY_MANAGEMENT_ENABLED` | false | 控制是否允许 UI 查看/删除已保存 active memory |
+
+**两个开关可以独立开启：**
+
+1. `MEMORY_SUGGESTIONS_ENABLED=true` + `MEMORY_MANAGEMENT_ENABLED=false`：生成建议，但不管理
+2. `MEMORY_SUGGESTIONS_ENABLED=false` + `MEMORY_MANAGEMENT_ENABLED=true`：只查看/删除已有记忆，不生成新记忆
+3. `MEMORY_SUGGESTIONS_ENABLED=true` + `MEMORY_MANAGEMENT_ENABLED=true`：两个能力都可用
+4. `MEMORY_SUGGESTIONS_ENABLED=false` + `MEMORY_MANAGEMENT_ENABLED=false`：不创建 MemorySuggestionController
+
+**为什么分离？**
+
+当只想使用记忆管理功能（查看/删除已有记忆），但不想要自动生成建议时，可以单独开启 `MEMORY_MANAGEMENT_ENABLED`。
+
+**UI 行为：**
+
+- `MEMORY_MANAGEMENT_ENABLED=false` 时，"记忆"按钮隐藏
+- `MEMORY_MANAGEMENT_ENABLED=true` 时，"记忆"按钮可见
+
 ## 为什么只做查看和删除
 
 V8-J 专注于最基础的记忆管理功能：

@@ -140,6 +140,13 @@ class AppConfig:
             "MEMORY_SUGGESTIONS_ENABLED", "false"
         )
 
+        # Memory management configuration (V8-J Patch)
+        # Note: MEMORY_MANAGEMENT_ENABLED defaults to False.
+        # Controls whether the memory management panel is available.
+        self.memory_management_enabled: bool = _env_bool_or_default(
+            "MEMORY_MANAGEMENT_ENABLED", "false"
+        )
+
         # ASR recording configuration (V6-B1)
         self.asr_recording_output_dir: str = _env_or_default(
             "ASR_RECORDING_OUTPUT_DIR", ".tmp/asr"
