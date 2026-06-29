@@ -33,6 +33,7 @@ class AsyncDialogueController:
         dispatch_event: Callable[[BaseEvent], None],
         session_history: CurrentSessionHistory | None = None,
         complete_state_after_assistant_response: bool = True,
+        session_memory_context_provider: Callable[[], str] | None = None,
     ) -> None:
         """Initialize AsyncDialogueController.
 
@@ -47,6 +48,9 @@ class AsyncDialogueController:
                 IDLE state after successful assistant response. Set to False when
                 TTSController接管 state lifecycle so DialogueController does not
                 override SPEAKING with IDLE.
+            session_memory_context_provider: Optional callable that returns a
+                formatted session memory context string. If None (default),
+                no memory context is injected.
         """
         self._event_bus = event_bus
         self._provider = provider
@@ -54,6 +58,7 @@ class AsyncDialogueController:
         self._dispatch_event = dispatch_event
         self._session_history = session_history if session_history is not None else CurrentSessionHistory()
         self._complete_state_after_assistant_response = complete_state_after_assistant_response
+        self._session_memory_context_provider = session_memory_context_provider
         self._is_generating = False
         self._is_stopped = False
         self._lock = threading.Lock()
@@ -121,9 +126,20 @@ class AsyncDialogueController:
         """
         try:
             history_turns = self._session_history.recent_turns()
+
+            # Get session memory context if provider is set
+            session_memory_context: str | None = None
+            if self._session_memory_context_provider is not None:
+                try:
+                    session_memory_context = self._session_memory_context_provider()
+                except Exception:
+                    logger.exception("Session memory context provider failed")
+                    session_memory_context = None
+
             messages = self._prompt_registry.build_chat_messages(
                 text,
                 history_turns=history_turns,
+                session_memory_context=session_memory_context,
             )
             prompt_messages = [
                 PromptMessage(role=m.role, content=m.content) for m in messages

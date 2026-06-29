@@ -84,6 +84,7 @@ class PromptRegistry:
         self,
         user_text: str,
         history_turns: list["DialogueTurn"] | None = None,
+        session_memory_context: str | None = None,
     ) -> list[PromptMessage]:
         """Build provider-neutral chat messages for a user utterance.
 
@@ -91,10 +92,21 @@ class PromptRegistry:
             user_text: The current user input text.
             history_turns: Optional list of recent dialogue turns from the
                            current session to include as context.
+            session_memory_context: Optional formatted session memory context
+                                   to inject as a system message after the
+                                   persona prompt.
         """
         messages: list[PromptMessage] = [
             PromptMessage(role="system", content=self.default_system_prompt),
         ]
+
+        if session_memory_context and session_memory_context.strip():
+            messages.append(
+                PromptMessage(
+                    role="system",
+                    content=session_memory_context.strip(),
+                )
+            )
 
         if history_turns:
             for turn in history_turns:

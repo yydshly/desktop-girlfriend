@@ -257,3 +257,76 @@ def test_persona_system_prompt_no_api_keys_or_secrets() -> None:
     assert "bearer" not in prompt
     assert "authorization" not in prompt
 
+
+# Session memory context tests
+
+
+def test_build_chat_messages_without_session_memory_context_keeps_old_behavior() -> None:
+    """Test build_chat_messages without session_memory_context has same structure as before."""
+    registry = PromptRegistry(default_system_prompt="system")
+    messages = registry.build_chat_messages("Hi")
+    assert len(messages) == 2
+    assert messages[0].role == "system"
+    assert messages[1].role == "user"
+
+
+def test_build_chat_messages_with_session_memory_context_inserts_second_system_message(
+) -> None:
+    """Test session_memory_context is inserted as a second system message."""
+    registry = PromptRegistry(default_system_prompt="system")
+    memory_context = "已确认的用户会话记忆：\n- 用户喜欢短回复。"
+    messages = registry.build_chat_messages("Hi", session_memory_context=memory_context)
+    assert len(messages) == 3
+    assert messages[0].role == "system"
+    assert messages[0].content == "system"
+    assert messages[1].role == "system"
+    assert messages[1].content == memory_context
+    assert messages[2].role == "user"
+
+
+def test_build_chat_messages_memory_context_appears_before_history() -> None:
+    """Test memory context appears before history turns."""
+    registry = PromptRegistry(default_system_prompt="system")
+    memory_context = "记忆上下文"
+    history = [
+        DialogueTurn(role="user", text="之前的话"),
+        DialogueTurn(role="assistant", text="之前的回复"),
+    ]
+    messages = registry.build_chat_messages(
+        "现在",
+        history_turns=history,
+        session_memory_context=memory_context,
+    )
+    roles = [m.role for m in messages]
+    # Order: system (persona), system (memory), user (history), assistant (history), user (current)
+    assert roles == ["system", "system", "user", "assistant", "user"]
+    # Memory context should be the second message
+    assert messages[1].content == memory_context
+
+
+def test_build_chat_messages_blank_memory_context_is_ignored() -> None:
+    """Test blank memory context does not add an extra message."""
+    registry = PromptRegistry(default_system_prompt="system")
+    messages = registry.build_chat_messages("Hi", session_memory_context="   ")
+    assert len(messages) == 2
+    assert messages[0].role == "system"
+    assert messages[1].role == "user"
+
+
+def test_build_chat_messages_empty_memory_context_is_ignored() -> None:
+    """Test empty string memory context does not add an extra message."""
+    registry = PromptRegistry(default_system_prompt="system")
+    messages = registry.build_chat_messages("Hi", session_memory_context="")
+    assert len(messages) == 2
+    assert messages[0].role == "system"
+    assert messages[1].role == "user"
+
+
+def test_build_chat_messages_memory_context_none_ignored() -> None:
+    """Test None memory context does not add an extra message."""
+    registry = PromptRegistry(default_system_prompt="system")
+    messages = registry.build_chat_messages("Hi", session_memory_context=None)
+    assert len(messages) == 2
+    assert messages[0].role == "system"
+    assert messages[1].role == "user"
+

@@ -617,3 +617,109 @@ class TestAsyncDialogueControllerSessionHistory:
         ]
         assert len(assistant_events) == 0
 
+
+class TestSessionMemoryContextProvider:
+    """Tests for session_memory_context_provider in AsyncDialogueController."""
+
+    def _make_event(self, text: str) -> BaseEvent:
+        return BaseEvent(
+            event_type="user.text_submitted",
+            request_id="req1",
+            source="test",
+            payload={"text": text},
+        )
+
+    def test_default_session_memory_context_provider_none_works(self) -> None:
+        """Test controller works when session_memory_context_provider defaults to None."""
+        event_bus = MagicMock()
+        provider = ImmediateFakeProvider(reply_text="Reply")
+        registry = PromptRegistry()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+
+        controller = AsyncDialogueController(
+            event_bus=event_bus,
+            provider=provider,
+            prompt_registry=registry,
+            dispatch_event=dispatch_event,
+            session_memory_context_provider=None,
+        )
+        controller._on_user_text_submitted(self._make_event("Hello"))
+        time.sleep(0.05)
+
+        # Should have dispatched assistant.text_received
+        event_types = [e.event_type for e in dispatch_events]
+        assert "assistant.text_received" in event_types
+
+    def test_session_memory_context_provider_passes_context_to_registry(self) -> None:
+        """Test session_memory_context_provider result is passed to PromptRegistry."""
+        event_bus = MagicMock()
+        spy = SpyProvider(reply_text="Reply")
+        registry = PromptRegistry()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+
+        def provider() -> str:
+            return "已确认的用户会话记忆：\n- 用户喜欢短回复。"
+
+        controller = AsyncDialogueController(
+            event_bus=event_bus,
+            provider=spy,
+            prompt_registry=registry,
+            dispatch_event=dispatch_event,
+            session_memory_context_provider=provider,
+        )
+        controller._on_user_text_submitted(self._make_event("Hello"))
+        time.sleep(0.05)
+
+        # Verify the memory context was in the messages sent to provider
+        assert spy.last_request is not None
+        messages_content = [m.content for m in spy.last_request.messages]
+        memory_in_messages = any("已确认的用户会话记忆" in c for c in messages_content)
+        assert memory_in_messages
+
+    def test_session_memory_context_provider_exception_does_not_fail_chat(self) -> None:
+        """Test provider exception does not cause chat failure."""
+        event_bus = MagicMock()
+        provider = ImmediateFakeProvider(reply_text="Reply")
+        registry = PromptRegistry()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+
+        def bad_provider() -> str:
+            raise RuntimeError("Provider error")
+
+        controller = AsyncDialogueController(
+            event_bus=event_bus,
+            provider=provider,
+            prompt_registry=registry,
+            dispatch_event=dispatch_event,
+            session_memory_context_provider=bad_provider,
+        )
+        controller._on_user_text_submitted(self._make_event("Hello"))
+        time.sleep(0.05)
+
+        # Chat should still succeed
+        event_types = [e.event_type for e in dispatch_events]
+        assert "assistant.text_received" in event_types
+
+    def test_session_memory_context_provider_returns_context_on_success(self) -> None:
+        """Test when provider returns context, messages include it."""
+        event_bus = MagicMock()
+        spy = SpyProvider(reply_text="Reply")
+        registry = PromptRegistry()
+        dispatch_events, dispatch_event = make_dispatch_collector()
+
+        controller = AsyncDialogueController(
+            event_bus=event_bus,
+            provider=spy,
+            prompt_registry=registry,
+            dispatch_event=dispatch_event,
+            session_memory_context_provider=lambda: "用户记忆块",
+        )
+        controller._on_user_text_submitted(self._make_event("Test"))
+        time.sleep(0.05)
+
+        # Check memory context was passed
+        assert spy.last_request is not None
+        has_memory = any(
+            "用户记忆块" in m.content for m in spy.last_request.messages
+        )
+        assert has_memory

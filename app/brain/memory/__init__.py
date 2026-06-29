@@ -1,7 +1,8 @@
-"""Memory core module for V8-A and V8-B.
+"""Memory core module for V8-A, V8-B, and V8-C.
 
 V8-A: Rule-based memory candidate extraction.
 V8-B: Memory confirmation state machine (Pending -> Confirmed/Rejected).
+V8-C: Session memory context injection (ConfirmedMemory -> prompt context).
 
 Memory candidates are surfaced for inspection but not automatically persisted.
 """
@@ -16,6 +17,10 @@ from app.brain.memory.confirmation import (
 )
 from app.brain.memory.extractor import DeterministicMemoryExtractor
 from app.brain.memory.probe_cases import DEFAULT_MEMORY_PROBE_CASES, MemoryProbeCase
+from app.brain.memory.session_context import (
+    SessionMemoryContextBuilder,
+    SessionMemoryContextConfig,
+)
 from app.brain.memory.types import MemoryCandidate, MemoryImportance, MemoryKind
 
 __all__ = [
@@ -32,4 +37,7 @@ __all__ = [
     "RejectedMemory",
     "InMemoryMemoryConfirmationStore",
     "MemoryConfirmationService",
+    # V8-C session context types
+    "SessionMemoryContextBuilder",
+    "SessionMemoryContextConfig",
 ]
