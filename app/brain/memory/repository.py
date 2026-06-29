@@ -202,7 +202,6 @@ def memory_record_from_confirmed(
     Returns:
         A MemoryRecord for persistence.
     """
-    now = utc_now()
     return MemoryRecord(
         id=memory_id or new_memory_record_id(),
         kind=confirmed.candidate.kind,
@@ -210,6 +209,6 @@ def memory_record_from_confirmed(
         text=confirmed.candidate.text,
         source=confirmed.candidate.source,
         created_at=confirmed.confirmed_at,
-        updated_at=now,
+        updated_at=confirmed.confirmed_at,
         status=MemoryRecordStatus.ACTIVE,
     )

@@ -117,7 +117,8 @@ class TestLocalJsonMemoryRepository:
         repo.add(record)
         original_updated = record.updated_at
         result = repo.delete(record.id)
-        assert result.updated_at >= original_updated
+        # delete should change updated_at
+        assert result.updated_at != original_updated
 
     def test_delete_unknown_id_raises_key_error(self, tmp_path: Path) -> None:
         path = tmp_path / "memory.json"
@@ -227,6 +228,29 @@ class TestMemoryRecordFromConfirmed:
         )
         record = memory_record_from_confirmed(confirmed)
         assert record.created_at == confirmed.confirmed_at
+
+    def test_memory_record_from_confirmed_uses_confirmed_at_as_updated_at(self) -> None:
+        now = datetime.now(UTC)
+        confirmed = ConfirmedMemory(
+            id="confirm-id",
+            candidate=self._make_candidate(),
+            created_at=now,
+            confirmed_at=now,
+        )
+        record = memory_record_from_confirmed(confirmed)
+        assert record.updated_at == confirmed.confirmed_at
+
+    def test_memory_record_created_at_equals_updated_at(self) -> None:
+        """Newly created MemoryRecord has created_at == updated_at."""
+        now = datetime.now(UTC)
+        confirmed = ConfirmedMemory(
+            id="confirm-id",
+            candidate=self._make_candidate(),
+            created_at=now,
+            confirmed_at=now,
+        )
+        record = memory_record_from_confirmed(confirmed)
+        assert record.created_at == record.updated_at
 
     def test_memory_record_from_confirmed_with_custom_id(self) -> None:
         now = datetime.now(UTC)
