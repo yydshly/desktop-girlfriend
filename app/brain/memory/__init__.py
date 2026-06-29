@@ -1,10 +1,11 @@
-"""Memory core module for V8-A through V8-E.
+"""Memory core module for V8-A through V8-F.
 
 V8-A: Rule-based memory candidate extraction.
 V8-B: Memory confirmation state machine (Pending -> Confirmed/Rejected).
 V8-C: Session memory context injection (ConfirmedMemory -> prompt context).
 V8-D: Local memory persistence repository (LocalJsonMemoryRepository).
 V8-E: Memory runtime service coordinating all above modules.
+V8-F: Memory runtime CLI for local debugging and probe.
 
 Memory candidates are surfaced for inspection but not automatically persisted.
 """
@@ -31,6 +32,7 @@ from app.brain.memory.runtime import (
     MemoryRuntimeSnapshot,
     create_local_memory_runtime,
 )
+from app.brain.memory.cli import run_memory_cli
 from app.brain.memory.session_context import (
     SessionMemoryContextBuilder,
     SessionMemoryContextConfig,
@@ -64,4 +66,6 @@ __all__ = [
     "MemoryRuntimeSnapshot",
     "MemoryRuntimeService",
     "create_local_memory_runtime",
+    # V8-F CLI
+    "run_memory_cli",
 ]
