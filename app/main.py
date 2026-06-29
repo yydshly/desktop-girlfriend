@@ -58,6 +58,7 @@ from app.expression.tts.providers import TTSProviderError, create_tts_provider
 from app.input.asr.controller import VoiceInputController
 from app.input.asr.providers import ASRProviderError, create_asr_provider
 from app.input.audio import MicrophoneRecorder, MicrophoneRecorderLike
+from app.ui.product_status_builder import build_product_status_view
 from app.ui.qt_event_bridge import QtEventBridge
 from app.ui.view_model import DesktopViewModel
 from app.ui.window import DesktopWindow
@@ -196,6 +197,16 @@ def main() -> None:
             )
         )
 
+    # V11-A: Product status callback
+    def _on_product_status_requested() -> None:
+        view_model.toggle_product_status_visible()
+        view_model.set_product_status_view(
+            build_product_status_view(
+                config=config,
+                avatar_action=view_model.avatar_action,
+            )
+        )
+
     window = DesktopWindow(
         view_model,
         on_user_text_submitted=submit_user_text,
@@ -206,6 +217,7 @@ def main() -> None:
         on_memory_reject_requested=request_memory_reject,
         on_memory_list_requested=request_memory_list,
         on_memory_delete_requested=request_memory_delete,
+        on_product_status_requested=_on_product_status_requested,
         memory_management_enabled=config.memory_management_enabled,
     )
 
@@ -216,6 +228,14 @@ def main() -> None:
     def on_state_changed(event: BaseEvent) -> None:
         view_model.handle_state_changed(event)
         window.update_from_view_model()
+        # V11-A: refresh product status panel if visible
+        if view_model.product_status_visible:
+            view_model.set_product_status_view(
+                build_product_status_view(
+                    config=config,
+                    avatar_action=view_model.avatar_action,
+                )
+            )
 
     event_bus.subscribe(STATE_CHANGED, on_state_changed)
 

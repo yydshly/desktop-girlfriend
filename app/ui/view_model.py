@@ -29,6 +29,7 @@ from app.ui.avatar_action import (
 from app.ui.chat_message import ChatMessage
 from app.ui.memory_record_view import MemoryRecordView
 from app.ui.memory_suggestion import MemorySuggestionView
+from app.ui.product_status import ProductStatusView, render_status_view
 
 # Mapping from AppState to display text
 _STATE_DISPLAY_TEXT: dict[AppState, str] = {
@@ -67,6 +68,10 @@ class DesktopViewModel:
         # Avatar action state (V10-A)
         self.avatar_action: AvatarAction = AvatarAction.IDLE
         self.avatar_action_label: str = avatar_label_for_action(AvatarAction.IDLE)
+        # Product status state (V11-A)
+        self.product_status_visible: bool = False
+        self.product_status_view: ProductStatusView = ProductStatusView(items=())
+        self.product_status_text: str = ""
 
     def handle_state_changed(self, event: BaseEvent) -> None:
         """Handle state.changed event and update display text.
@@ -372,6 +377,19 @@ class DesktopViewModel:
     def toggle_memory_panel(self) -> None:
         """Toggle the memory panel visibility."""
         self.memory_panel_visible = not self.memory_panel_visible
+
+    def toggle_product_status_visible(self) -> None:
+        """Toggle the product status panel visibility."""
+        self.product_status_visible = not self.product_status_visible
+
+    def set_product_status_view(self, view: ProductStatusView) -> None:
+        """Set the product status view and update rendered text.
+
+        Args:
+            view: The product status view to display.
+        """
+        self.product_status_view = view
+        self.product_status_text = render_status_view(view)
 
     @property
     def effective_avatar_text(self) -> str:
