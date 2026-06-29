@@ -62,6 +62,7 @@ from app.input.asr.providers import ASRProviderError, create_asr_provider
 from app.input.audio import MicrophoneRecorder, MicrophoneRecorderLike
 from app.ui.product_status_builder import build_product_status_view
 from app.ui.qt_event_bridge import QtEventBridge
+from app.ui.settings_view import build_settings_view, render_settings_view_text
 from app.ui.startup_diagnostics_view import render_startup_diagnostics_details
 from app.ui.view_model import DesktopViewModel
 from app.ui.window import DesktopWindow
@@ -127,6 +128,10 @@ def main() -> None:
             startup_diagnostics=startup_diagnostics,
             app_version=app_version,
         )
+    )
+    # Phase 2-E: Pre-build settings view text
+    view_model.set_settings_text(
+        render_settings_view_text(build_settings_view(config, app_version=app_version))
     )
 
     # Callback to submit user text via EventBus
