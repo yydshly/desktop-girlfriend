@@ -92,6 +92,8 @@ class DesktopViewModel:
         # System tray state (Phase 2-F)
         self.tray_available: bool = False
         self.hidden_to_tray: bool = False
+        # Phase 3-A: Force quit state (for tray "退出" menu)
+        self.force_quit_requested: bool = False
 
     def handle_state_changed(self, event: BaseEvent) -> None:
         """Handle state.changed event and update display text.
@@ -452,6 +454,14 @@ class DesktopViewModel:
             hidden: Whether the window is currently hidden to tray.
         """
         self.hidden_to_tray = hidden
+
+    def request_force_quit(self) -> None:
+        """Request forced quit when user selects '退出' from tray menu."""
+        self.force_quit_requested = True
+
+    def clear_force_quit_request(self) -> None:
+        """Clear the force-quit request flag."""
+        self.force_quit_requested = False
 
     def set_product_status_view(self, view: ProductStatusView) -> None:
         """Set the product status view and update rendered text.
