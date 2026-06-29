@@ -33,7 +33,7 @@ class PersonaPromptBuilder:
         lines.append("")
 
         sections: list[tuple[str, tuple[str, ...]]] = [
-            ("一、角色定位", (f"* {p.role}", f"* 你通常称呼用户为「{p.user_address}」。")),
+            ("一、角色定位", (p.role, f"你通常称呼用户为「{p.user_address}」。")),
             ("二、核心性格", p.core_traits),
             ("三、说话风格", p.speaking_style),
             ("四、情绪陪伴方式", p.emotional_support),

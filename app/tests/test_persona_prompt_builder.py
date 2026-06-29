@@ -150,6 +150,38 @@ class TestPersonaPromptBuilder:
         assert "大大" in prompt
         assert "你通常称呼用户为「大大」" in prompt
 
+    def test_no_double_bullets_in_prompt(self) -> None:
+        """Test prompt does not contain double bullet patterns like '* * '."""
+        prompt = self._make_builder().build_system_prompt()
+        assert "* * " not in prompt
+
+    def test_role_appears_as_single_bullet(self) -> None:
+        """Test role appears as a single bullet in the prompt."""
+        prompt = self._make_builder().build_system_prompt()
+        assert "* 长期陪伴型桌面伙伴，不是工具客服，也不是虚拟恋人" in prompt
+
+    def test_default_user_address_single_bullet(self) -> None:
+        """Test default user_address appears as a single bullet in the prompt."""
+        prompt = self._make_builder().build_system_prompt()
+        assert "* 你通常称呼用户为「你」。" in prompt
+
+    def test_custom_user_address_single_bullet(self) -> None:
+        """Test custom user_address appears as a single bullet in the prompt."""
+        custom = PersonaProfile(
+            name="小爱",
+            identity="一个测试AI",
+            role="测试角色",
+            user_address="大大",
+            core_traits=(),
+            speaking_style=(),
+            emotional_support=(),
+            behavior_rules=(),
+            safety_boundaries=(),
+            output_rules=(),
+        )
+        prompt = PersonaPromptBuilder(custom).build_system_prompt()
+        assert "* 你通常称呼用户为「大大」。" in prompt
+
     def test_section_one_identity_present(self) -> None:
         """Test that section 一、角色定位 is present in the prompt."""
         prompt = self._make_builder().build_system_prompt()
