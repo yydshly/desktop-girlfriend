@@ -265,3 +265,88 @@ class TestWindowButtonsStillWorkWithMemoryUx:
         window.update_from_view_model()
         qapp.processEvents()
         assert window._onboarding_card.isVisible() is True
+
+
+class TestSettingsPanelSections:
+    """Tests for settings panel having all sections visible."""
+
+    @staticmethod
+    def test_settings_has_memory_section(qapp: QApplication) -> None:
+        """Settings panel contains all sections including memory and proactive."""
+        from app.core.config import AppConfig
+        from app.ui.settings_view import build_settings_view, render_settings_view_text
+        cfg = AppConfig()
+        view = build_settings_view(cfg)
+        text = render_settings_view_text(view)
+        # All expected sections should be present
+        assert "【基础信息】" in text or "基础信息" in text
+        assert "【桌面行为】" in text or "桌面行为" in text
+        assert "【对话设置】" in text or "对话设置" in text
+        assert "【语音设置】" in text or "语音设置" in text
+        assert "【记忆设置】" in text or "记忆设置" in text
+        assert "【主动陪伴设置】" in text or "主动陪伴设置" in text
+        assert "【配置示例】" in text or "配置示例" in text
+
+
+class TestMemoryPanelManualAdd:
+    """Tests for memory panel manual add feature."""
+
+    @staticmethod
+    def test_memory_panel_has_manual_input(qapp: QApplication) -> None:
+        """Memory panel has manual add input field."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+        )
+        window.show()
+        assert hasattr(window, "_memory_manual_input")
+
+    @staticmethod
+    def test_memory_panel_has_add_button(qapp: QApplication) -> None:
+        """Memory panel has '添加记忆' button."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+        )
+        window.show()
+        assert hasattr(window, "_memory_add_button")
+        assert window._memory_add_button.text() == "添加记忆"
+
+    @staticmethod
+    def test_delete_button_text_is_improved(qapp: QApplication) -> None:
+        """Delete button text is '删除这条记忆' not '删除第一条'."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+        )
+        window.show()
+        assert "删除这条记忆" in window._memory_delete_first_button.text()
+
+    @staticmethod
+    def test_add_manual_memory_calls_callback(qapp: QApplication) -> None:
+        """Adding manual memory text calls the callback."""
+        vm = DesktopViewModel()
+        callback_results = []
+        def on_add(text):
+            callback_results.append(text)
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_add_manual_memory_requested=on_add,
+        )
+        window.show()
+        window._on_memory_panel_clicked()
+        qapp.processEvents()
+        window._memory_manual_input.setText("我喜欢你回复短一点")
+        window._memory_add_button.clicked.emit()
+        qapp.processEvents()
+        assert len(callback_results) == 1
+        assert callback_results[0] == "我喜欢你回复短一点"
+

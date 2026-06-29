@@ -57,8 +57,8 @@ def build_memory_panel_copy() -> MemoryPanelCopy:
     return MemoryPanelCopy(
         title="小云记住的事",
         empty_title="还没有保存的记忆",
-        empty_body="当你确认「记住」后，相关记忆会出现在这里。",
-        privacy_body="记忆保存在本地。小云不会保存完整原始对话，也不会在你未确认时自动保存。",
+        empty_body="当你确认「记住」或手动添加后，相关记忆会出现在这里。",
+        privacy_body="记忆保存在本地。小云不会保存完整原始对话，也不会在你未确认时自动保存。你可以手动添加记忆。",
         delete_hint="删除后，这条记忆不会再用于后续对话。",
     )
 
@@ -68,6 +68,6 @@ def build_memory_settings_copy() -> MemorySettingsCopy:
     return MemorySettingsCopy(
         context_label="开启后，小云会在回复时参考你确认保存过的记忆。",
         suggestions_label="开启后，小云会在合适时建议保存一条记忆。",
-        management_label="开启后，你可以查看和删除已保存的记忆。",
-        privacy_hint="隐私说明：小云不会自动保存完整聊天，只会保存你确认过的记忆。",
+        management_label="开启后，你可以查看、手动添加和删除已保存的记忆。",
+        privacy_hint="隐私说明：小云不会自动保存完整聊天，只会保存你确认过或手动添加的记忆。",
     )

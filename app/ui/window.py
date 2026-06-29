@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMainWindow,
     QPushButton,
+    QScrollArea,
     QTextEdit,
     QVBoxLayout,
     QWidget,
@@ -83,6 +84,7 @@ class DesktopWindow(QMainWindow):
         on_memory_reject_requested: Callable[[str], None] | None = None,
         on_memory_list_requested: Callable[[], None] | None = None,
         on_memory_delete_requested: Callable[[str], None] | None = None,
+        on_add_manual_memory_requested: Callable[[str], None] | None = None,
         on_product_status_requested: Callable[[], None] | None = None,
         on_hide_requested: Callable[[], None] | None = None,
         on_close_requested: Callable[[], bool] | None = None,
@@ -98,6 +100,7 @@ class DesktopWindow(QMainWindow):
         self._on_memory_reject_requested = on_memory_reject_requested
         self._on_memory_list_requested = on_memory_list_requested
         self._on_memory_delete_requested = on_memory_delete_requested
+        self._on_add_manual_memory_requested = on_add_manual_memory_requested
         self._on_product_status_requested = on_product_status_requested
         self._on_hide_requested = on_hide_requested
         self._on_close_requested = on_close_requested
@@ -231,16 +234,22 @@ class DesktopWindow(QMainWindow):
         layout.addWidget(self._product_status_panel)
 
         # Phase 2-E: Settings panel — card style, mutually exclusive with status panel
+        # Uses QScrollArea so all sections are readable even when content is long
         self._settings_panel = QWidget()
         self._settings_panel.setStyleSheet(
             "background-color: #f0f7f0; border-radius: 6px; padding: 4px;"
         )
         self._settings_panel_layout = QVBoxLayout(self._settings_panel)
         self._settings_panel_layout.setContentsMargins(10, 8, 10, 8)
+        self._settings_scroll = QScrollArea()
+        self._settings_scroll.setWidgetResizable(True)
+        self._settings_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        self._settings_scroll.setStyleSheet("background: transparent; border: none;")
         self._settings_text = QLabel()
         self._settings_text.setWordWrap(True)
         self._settings_text.setStyleSheet(window_style.PRODUCT_STATUS_TEXT_STYLE)
-        self._settings_panel_layout.addWidget(self._settings_text)
+        self._settings_scroll.setWidget(self._settings_text)
+        self._settings_panel_layout.addWidget(self._settings_scroll)
         self._settings_panel.setVisible(False)
         layout.addWidget(self._settings_panel)
 
@@ -320,12 +329,29 @@ class DesktopWindow(QMainWindow):
         self._memory_panel_text.setStyleSheet(window_style.MEMORY_PANEL_TEXT_STYLE)
         self._memory_panel_layout.addWidget(self._memory_panel_text)
 
-        self._memory_delete_first_button = QPushButton("删除第一条")
+        self._memory_delete_first_button = QPushButton("删除这条记忆")
         self._memory_delete_first_button.setStyleSheet(window_style.DESTRUCTIVE_BUTTON_STYLE)
         self._memory_delete_first_button.clicked.connect(self._on_memory_delete_first_clicked)
         self._memory_panel_layout.addWidget(self._memory_delete_first_button)
 
+        # Phase 3-C: Manual memory add input row
+        self._memory_manual_input = QLineEdit()
+        self._memory_manual_input.setPlaceholderText("想让小云记住什么...")
+        self._memory_manual_input.setStyleSheet("padding: 4px; font-size: 13px;")
+        self._memory_panel_layout.addWidget(self._memory_manual_input)
+
+        memory_add_button_row = QWidget()
+        memory_add_button_layout = QHBoxLayout(memory_add_button_row)
+        memory_add_button_layout.setContentsMargins(0, 0, 0, 0)
+        self._memory_add_button = QPushButton("添加记忆")
+        self._memory_add_button.setStyleSheet(window_style.PRIMARY_BUTTON_STYLE)
+        self._memory_add_button.clicked.connect(self._on_memory_add_manual_clicked)
+        memory_add_button_layout.addWidget(self._memory_add_button)
+        memory_add_button_layout.addStretch()
+        self._memory_panel_layout.addWidget(memory_add_button_row)
+
         self._memory_panel_widget.setVisible(False)
+
         layout.addWidget(self._memory_panel_widget)
 
         # Input field (Phase 2-B)
@@ -440,6 +466,19 @@ class DesktopWindow(QMainWindow):
         first = self._view_model.memory_records[0]
         if self._on_memory_delete_requested:
             self._on_memory_delete_requested(first.record_id)
+
+    def _on_memory_add_manual_clicked(self) -> None:
+        """Handle manual memory add button click (Phase 3-C)."""
+        text = self._memory_manual_input.text().strip()
+        if not text:
+            return
+        if self._on_add_manual_memory_requested:
+            self._on_add_manual_memory_requested(text)
+        self._memory_manual_input.clear()
+        # Refresh memory list if panel is open
+        if self._view_model.memory_panel_visible and self._on_memory_list_requested:
+            self._on_memory_list_requested()
+        self.update_from_view_model()
 
     def _handle_settings_clicked(self) -> None:
         """Handle settings button click (Phase 2-E).

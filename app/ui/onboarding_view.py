@@ -48,7 +48,7 @@ def build_onboarding_view(
             "点击「设置」可以查看对话、语音、记忆和主动陪伴配置。",
             "点击「状态」可以查看当前能力是否启用。",
             "我可以置顶、小窗，也可以隐藏到托盘里。",
-            "我只会保存你确认过的记忆，不会自动保存完整聊天。",
+            "我只会保存你确认或手动添加的记忆，不会自动保存完整聊天。",
         ),
         primary_action=OnboardingAction(text="知道了", intent="dismiss"),
         secondary_action=OnboardingAction(text="打开设置", intent="open_settings"),

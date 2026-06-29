@@ -72,6 +72,13 @@ def main() -> int:
         print("settings privacy: FAIL")
         return 1
 
+    # Test all settings sections are present
+    if "记忆设置" in settings_text and "主动陪伴设置" in settings_text and "配置示例" in settings_text:
+        print("settings sections: OK")
+    else:
+        print("settings sections: FAIL")
+        return 1
+
     # Test onboarding memory copy
     onboarding = build_onboarding_view()
     onboarding_text = render_onboarding_text(onboarding)
@@ -114,6 +121,20 @@ def main() -> int:
         print("memory panel privacy: OK")
     else:
         print("memory panel privacy: FAIL")
+        return 1
+
+    # Verify manual add input and button exist
+    if hasattr(window, "_memory_manual_input") and hasattr(window, "_memory_add_button"):
+        print("manual add memory: OK")
+    else:
+        print("manual add memory: FAIL")
+        return 1
+
+    # Verify delete button text
+    if "删除这条记忆" in window._memory_delete_first_button.text():
+        print("delete button: OK")
+    else:
+        print("delete button: FAIL")
         return 1
 
     # Verify onboarding still shows on first frame
