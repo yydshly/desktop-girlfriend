@@ -63,6 +63,7 @@ ERROR_LABEL_STYLE = "color: #c0392b; padding: 8px; font-size: 13px;"
 
 MEMORY_SUGGESTION_TITLE_STYLE = "font-size: 14px; font-weight: 600; color: #2c3e50;"
 MEMORY_SUGGESTION_TEXT_STYLE = "padding: 4px 0; color: #333; font-size: 13px;"
+MEMORY_SUGGESTION_PRIVACY_STYLE = "padding: 4px 0; color: #888; font-size: 12px;"
 
 # ---------------------------------------------------------------------------
 # Memory panel widget
@@ -70,6 +71,7 @@ MEMORY_SUGGESTION_TEXT_STYLE = "padding: 4px 0; color: #333; font-size: 13px;"
 
 MEMORY_PANEL_TITLE_STYLE = "font-size: 14px; font-weight: 600; color: #2c3e50;"
 MEMORY_PANEL_TEXT_STYLE = "padding: 4px 0; color: #333; font-size: 13px;"
+MEMORY_PANEL_PRIVACY_STYLE = "padding: 4px 0; color: #888; font-size: 12px;"
 
 # ---------------------------------------------------------------------------
 # Buttons — primary / secondary distinction (Phase 2-C)

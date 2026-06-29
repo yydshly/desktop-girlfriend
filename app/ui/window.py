@@ -258,7 +258,7 @@ class DesktopWindow(QMainWindow):
         self._error_label.setVisible(bool(self._view_model.error_text))
         layout.addWidget(self._error_label)
 
-        # Memory suggestion widget (V8-I) — card style (Phase 2-C)
+        # Memory suggestion widget (V8-I) — card style (Phase 2-C/3-C)
         self._memory_suggestion_widget = QWidget()
         self._memory_suggestion_widget.setStyleSheet(
             "background-color: #f0f7ff; border-radius: 6px; padding: 4px;"
@@ -274,6 +274,11 @@ class DesktopWindow(QMainWindow):
         self._memory_suggestion_text.setWordWrap(True)
         self._memory_suggestion_text.setStyleSheet(window_style.MEMORY_SUGGESTION_TEXT_STYLE)
         self._memory_suggestion_layout.addWidget(self._memory_suggestion_text)
+
+        self._memory_suggestion_privacy = QLabel("")
+        self._memory_suggestion_privacy.setWordWrap(True)
+        self._memory_suggestion_privacy.setStyleSheet(window_style.MEMORY_SUGGESTION_PRIVACY_STYLE)
+        self._memory_suggestion_layout.addWidget(self._memory_suggestion_privacy)
 
         memory_button_row = QWidget()
         memory_button_layout = QHBoxLayout(memory_button_row)
@@ -293,7 +298,7 @@ class DesktopWindow(QMainWindow):
         self._memory_suggestion_widget.setVisible(False)
         layout.addWidget(self._memory_suggestion_widget)
 
-        # Memory panel widget (V8-J) — card style (Phase 2-C)
+        # Memory panel widget (V8-J) — card style (Phase 2-C/3-C)
         self._memory_panel_widget = QWidget()
         self._memory_panel_widget.setStyleSheet(
             "background-color: #f0f7ff; border-radius: 6px; padding: 4px;"
@@ -301,9 +306,14 @@ class DesktopWindow(QMainWindow):
         self._memory_panel_layout = QVBoxLayout(self._memory_panel_widget)
         self._memory_panel_layout.setContentsMargins(10, 8, 10, 8)
 
-        self._memory_panel_title = QLabel("已保存的记忆")
+        self._memory_panel_title = QLabel("小云记住的事")
         self._memory_panel_title.setStyleSheet(window_style.MEMORY_PANEL_TITLE_STYLE)
         self._memory_panel_layout.addWidget(self._memory_panel_title)
+
+        self._memory_panel_privacy = QLabel("")
+        self._memory_panel_privacy.setWordWrap(True)
+        self._memory_panel_privacy.setStyleSheet(window_style.MEMORY_PANEL_PRIVACY_STYLE)
+        self._memory_panel_layout.addWidget(self._memory_panel_privacy)
 
         self._memory_panel_text = QLabel("")
         self._memory_panel_text.setWordWrap(True)
@@ -493,6 +503,8 @@ class DesktopWindow(QMainWindow):
             # Exit compact mode: restore size, show aux buttons
             self.resize(self._normal_window_width, self._normal_window_height)
             self._aux_button_row.setVisible(True)
+        # Sync all UI state including onboarding card visibility
+        self.update_from_view_model()
 
     def update_from_view_model(self) -> None:
         """Update UI from view model state."""
@@ -534,30 +546,37 @@ class DesktopWindow(QMainWindow):
         self._error_label.setText(self._view_model.error_text)
         self._error_label.setVisible(bool(self._view_model.error_text))
 
-        # Update memory suggestion widget (V8-I)
+        # Update memory suggestion widget (V8-I / Phase 3-C)
         suggestion = self._view_model.memory_suggestion
         if suggestion is None:
             self._memory_suggestion_widget.setVisible(False)
         else:
             self._memory_suggestion_widget.setVisible(True)
+            # Phase 3-C: Use UX copy for body text
+            from app.ui.memory_ux_view import build_memory_suggestion_copy
+            suggestion_copy = build_memory_suggestion_copy()
             self._memory_suggestion_text.setText(
-                f"「{render_memory_suggestion_text(suggestion.text, max_chars=80)}」"
+                f"「{render_memory_suggestion_text(suggestion.text, max_chars=80)}」\n\n{suggestion_copy.body}"
             )
+            self._memory_suggestion_privacy.setText(suggestion_copy.privacy_hint)
 
-        # Update memory panel widget (V8-J)
+        # Update memory panel widget (V8-J / Phase 3-C)
         if not self._view_model.memory_panel_visible:
             self._memory_panel_widget.setVisible(False)
         else:
             self._memory_panel_widget.setVisible(True)
+            from app.ui.memory_ux_view import build_memory_panel_copy
+            panel_copy = build_memory_panel_copy()
             records = self._view_model.memory_records
             if not records:
-                self._memory_panel_text.setText("还没有保存的记忆")
+                self._memory_panel_text.setText(panel_copy.empty_title)
             else:
                 lines: list[str] = []
                 for i, record in enumerate(records[:5], 1):
                     truncated = render_memory_record_text(record.text, max_chars=80)
                     lines.append(f"{i}. {truncated}")
                 self._memory_panel_text.setText("\n".join(lines))
+            self._memory_panel_privacy.setText(panel_copy.privacy_body)
             self._memory_delete_first_button.setEnabled(bool(records))
 
         # Update product status panel (V11-A)
