@@ -52,13 +52,33 @@ def main() -> int:
         on_conversation_cleared=lambda: None,
     )
     window.show()
+    # Phase 3-B fix: update_from_view_model MUST be called before show(),
+    # and we verify initial render without any further manual update
     window.update_from_view_model()
+    QApplication.instance().processEvents()
 
     # Verify onboarding card is visible by default
     if vm.onboarding_visible and window._onboarding_card.isVisible():
         print("onboarding visible: OK")
     else:
         print("onboarding visible: FAIL")
+        return 1
+
+    # Verify onboarding text is rendered on first frame (key fix verification)
+    title = window._onboarding_title.text()
+    subtitle = window._onboarding_subtitle.text()
+    bullets = window._onboarding_bullets.text()
+    if "小云" in title and len(subtitle) > 0 and len(bullets) > 0:
+        print("initial render: OK")
+    else:
+        msg = f"initial render: FAIL (title='{title}', subtitle='{subtitle}', bullets='{bullets}')"
+        print(msg)
+        return 1
+
+    if "语音输入" in bullets and "设置" in bullets and "托盘" in bullets:
+        print("onboarding text: OK")
+    else:
+        print("onboarding text: FAIL")
         return 1
 
     # Test dismiss action
