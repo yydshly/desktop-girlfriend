@@ -219,6 +219,25 @@ def main() -> None:
 
         session_memory_context_provider = create_memory_context_provider_from_config(config)
 
+    # V8-H: Create memory suggestion controller if enabled
+    memory_suggestion_controller = None
+    memory_runtime = None
+    if config.memory_suggestions_enabled:
+        from pathlib import Path
+
+        from app.brain.memory.controller import MemorySuggestionController
+        from app.brain.memory.repository import LocalJsonMemoryRepository
+        from app.brain.memory.runtime import create_local_memory_runtime
+
+        memory_repository = LocalJsonMemoryRepository(Path(config.memory_store_path))
+        memory_runtime = create_local_memory_runtime(memory_repository)
+        memory_suggestion_controller = MemorySuggestionController(
+            runtime=memory_runtime,
+            subscribe=event_bus.subscribe,
+            unsubscribe=event_bus.unsubscribe,
+            dispatch_event=event_bridge.event_ready.emit,
+        )
+
     dialogue_controller = AsyncDialogueController(
         event_bus=event_bus,
         provider=provider,
@@ -283,13 +302,18 @@ def main() -> None:
     tts_controller.start()
     dialogue_controller.start()
     voice_input_controller.start()
-    _wire_shutdown(
-        app,
+    if memory_suggestion_controller is not None:
+        memory_suggestion_controller.start()
+
+    shutdown_components: list[object] = [
         voice_input_controller,
         tts_controller,
         dialogue_controller,
         state_controller,
-    )
+    ]
+    if memory_suggestion_controller is not None:
+        shutdown_components.append(memory_suggestion_controller)
+    _wire_shutdown(app, *shutdown_components)  # type: ignore[arg-type]
 
     window.show()
 

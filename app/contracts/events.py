@@ -20,6 +20,14 @@ VOICE_RECORDING_FINISHED = "voice.recording_finished"
 ASR_RECOGNITION_STARTED = "asr.recognition_started"
 ASR_TEXT_RECOGNIZED = "asr.text_recognized"
 
+# Memory suggestion events (V8-H)
+MEMORY_SUGGESTIONS_DETECTED = "memory.suggestions_detected"
+MEMORY_CONFIRM_REQUESTED = "memory.confirm_requested"
+MEMORY_REJECT_REQUESTED = "memory.reject_requested"
+MEMORY_CONFIRMED = "memory.confirmed"
+MEMORY_REJECTED = "memory.rejected"
+MEMORY_ERROR = "memory.error"
+
 
 @dataclass
 class BaseEvent:

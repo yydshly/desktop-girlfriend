@@ -133,6 +133,13 @@ class AppConfig:
             "MEMORY_STORE_PATH", ".tmp/memory.json"
         )
 
+        # Memory suggestion configuration (V8-H)
+        # Note: MEMORY_SUGGESTIONS_ENABLED defaults to False.
+        # When disabled, no memory suggestion controller is created.
+        self.memory_suggestions_enabled: bool = _env_bool_or_default(
+            "MEMORY_SUGGESTIONS_ENABLED", "false"
+        )
+
         # ASR recording configuration (V6-B1)
         self.asr_recording_output_dir: str = _env_or_default(
             "ASR_RECORDING_OUTPUT_DIR", ".tmp/asr"
