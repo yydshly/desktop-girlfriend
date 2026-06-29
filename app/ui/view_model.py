@@ -5,6 +5,7 @@ from app.contracts.events import (
     ASR_TEXT_RECOGNIZED,
     ASSISTANT_TEXT_RECEIVED,
     CONVERSATION_CLEARED,
+    MEMORY_ADDED,
     MEMORY_CONFIRMED,
     MEMORY_DELETED,
     MEMORY_ERROR,
@@ -99,6 +100,8 @@ class DesktopViewModel:
         self.onboarding_text: str = ""
         # Phase 3-D: Proactive status hint (e.g., "小云会安静一会儿。")
         self.proactive_status_text: str = ""
+        # Memory panel UX: track if panel has ever been closed (for status clearing)
+        self._memory_panel_ever_closed: bool = False
 
     def handle_state_changed(self, event: BaseEvent) -> None:
         """Handle state.changed event and update display text.
@@ -304,6 +307,12 @@ class DesktopViewModel:
         self.memory_suggestion = None
         self.memory_status_text = "已记住"
 
+    def handle_memory_added(self, event: BaseEvent) -> None:
+        """Handle memory.added event and update memory status text."""
+        if event.event_type != MEMORY_ADDED:
+            return
+        self.memory_status_text = "已添加记忆"
+
     def handle_memory_rejected(self, event: BaseEvent) -> None:
         """Handle memory.rejected event and clear suggestion.
 
@@ -344,7 +353,8 @@ class DesktopViewModel:
         if not isinstance(records, list):
             self.memory_records = []
             self.memory_panel_visible = True
-            self.memory_status_text = "已加载记忆"
+            if self.memory_status_text != "已添加记忆":
+                self.memory_status_text = "已加载记忆"
             return
 
         self.memory_records = []
@@ -378,7 +388,8 @@ class DesktopViewModel:
                 )
 
         self.memory_panel_visible = True
-        self.memory_status_text = "已加载记忆"
+        if self.memory_status_text != "已添加记忆":
+            self.memory_status_text = "已加载记忆"
 
     def handle_memory_deleted(self, event: BaseEvent) -> None:
         """Handle memory.deleted event and remove the deleted record.
@@ -434,7 +445,16 @@ class DesktopViewModel:
 
     def toggle_memory_panel(self) -> None:
         """Toggle the memory panel visibility."""
+        was_visible = self.memory_panel_visible
         self.memory_panel_visible = not self.memory_panel_visible
+        if self.memory_panel_visible:
+            # Only clear stale feedback on re-open (not first open from manual add)
+            if self._memory_panel_ever_closed and self.memory_status_text == "已添加记忆":
+                self.memory_status_text = ""
+            self.product_status_visible = False
+            self.settings_visible = False
+        else:
+            self._memory_panel_ever_closed = True
 
     def toggle_product_status_visible(self) -> None:
         """Toggle the product status panel visibility."""

@@ -13,6 +13,8 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication
 
+from app.contracts.events import MEMORY_ADDED, BaseEvent
+from app.ui.memory_record_view import MemoryRecordView
 from app.ui.memory_ux_view import (
     build_memory_suggestion_copy,
 )
@@ -130,11 +132,174 @@ def main() -> int:
         print("manual add memory: FAIL")
         return 1
 
-    # Verify delete button text
-    if "删除这条记忆" in window._memory_delete_first_button.text():
+    # Verify delete button text is per-record
+    if "删除第 1 条记忆" in window._memory_delete_first_button.text():
         print("delete button: OK")
     else:
         print("delete button: FAIL")
+        return 1
+
+    # Test per-record delete buttons exist
+    if hasattr(window, "_memory_delete_record_buttons") and len(window._memory_delete_record_buttons) >= 5:
+        print("memory delete per-record: OK")
+    else:
+        print("memory delete per-record: FAIL")
+        return 1
+
+    # Test per-record delete with 3 records - click 2nd button
+    vm.memory_records = [
+        MemoryRecordView(
+            record_id="record-1", kind="preference", importance="medium",
+            text="我喜欢短回复", created_at="2024-01-01T00:00:00", updated_at="2024-01-01T00:00:00",
+        ),
+        MemoryRecordView(
+            record_id="record-2", kind="preference", importance="medium",
+            text="我喜欢长回复", created_at="2024-01-01T00:00:00", updated_at="2024-01-01T00:00:00",
+        ),
+        MemoryRecordView(
+            record_id="record-3", kind="preference", importance="medium",
+            text="我喜欢emoji", created_at="2024-01-01T00:00:00", updated_at="2024-01-01T00:00:00",
+        ),
+    ]
+    vm.memory_panel_visible = True
+    deleted: list[str] = []
+
+    def on_delete(record_id: str) -> None:
+        deleted.append(record_id)
+
+    window2 = DesktopWindow(
+        view_model=vm,
+        on_user_text_submitted=lambda t: None,
+        on_conversation_cleared=lambda: None,
+        on_memory_delete_requested=on_delete,
+    )
+    window2.show()
+    window2.update_from_view_model()
+    QApplication.instance().processEvents()
+
+    # Verify first 3 buttons are visible
+    if (
+        window2._memory_delete_record_buttons[0].isVisible()
+        and window2._memory_delete_record_buttons[1].isVisible()
+        and window2._memory_delete_record_buttons[2].isVisible()
+        and not window2._memory_delete_record_buttons[3].isVisible()
+    ):
+        print("memory delete per-record visibility: OK")
+    else:
+        print("memory delete per-record visibility: FAIL")
+        return 1
+
+    # Click 2nd delete button, verify it calls record-2
+    window2._memory_delete_record_buttons[1].click()
+    QApplication.instance().processEvents()
+    if deleted == ["record-2"]:
+        print("memory delete per-record index 2: OK")
+    else:
+        print(f"memory delete per-record index 2: FAIL (got {deleted})")
+        return 1
+
+    # Test manual memory Enter shortcut
+    callback_results: list[str] = []
+
+    def on_add(text: str) -> None:
+        callback_results.append(text)
+
+    vm3 = DesktopViewModel()
+    window3 = DesktopWindow(
+        view_model=vm3,
+        on_user_text_submitted=lambda t: None,
+        on_conversation_cleared=lambda: None,
+        on_add_manual_memory_requested=on_add,
+    )
+    window3.show()
+    window3._on_memory_panel_clicked()
+    QApplication.instance().processEvents()
+    window3._memory_manual_input.setText("我喜欢短回复")
+    window3._memory_manual_input.returnPressed.emit()
+    QApplication.instance().processEvents()
+    if callback_results == ["我喜欢短回复"] and window3._memory_manual_input.text() == "":
+        print("manual add enter shortcut: OK")
+    else:
+        print(f"manual add enter shortcut: FAIL (callback={callback_results}, input={window3._memory_manual_input.text()!r})")
+        return 1
+
+    # Test chat Enter shortcut
+    submitted: list[str] = []
+    vm4 = DesktopViewModel()
+    window4 = DesktopWindow(
+        view_model=vm4,
+        on_user_text_submitted=submitted.append,
+        on_conversation_cleared=lambda: None,
+    )
+    window4.show()
+    window4._input_field.setText("你好")
+    window4._input_field.returnPressed.emit()
+    QApplication.instance().processEvents()
+    if submitted == ["你好"] and window4._input_field.text() == "":
+        print("chat enter shortcut: OK")
+    else:
+        print(f"chat enter shortcut: FAIL (submitted={submitted})")
+        return 1
+
+    # Test memory status feedback
+    vm5 = DesktopViewModel()
+    window5 = DesktopWindow(
+        view_model=vm5,
+        on_user_text_submitted=lambda t: None,
+        on_conversation_cleared=lambda: None,
+    )
+    window5.show()
+    vm5.handle_memory_added(
+        BaseEvent(
+            event_type=MEMORY_ADDED,
+            request_id="req",
+            source="test",
+            payload={"record_id": "record-1", "kind": "other", "importance": "medium", "text": "我喜欢短回复"},
+        )
+    )
+    # Open memory panel so status label is visible
+    window5._on_memory_panel_clicked()
+    window5.update_from_view_model()
+    QApplication.instance().processEvents()
+    if window5._memory_panel_status.text() == "已添加记忆" and window5._memory_panel_status.isVisible():
+        print("memory status feedback: OK")
+    else:
+        print(f"memory status feedback: FAIL (text={window5._memory_panel_status.text()!r}, visible={window5._memory_panel_status.isVisible()})")
+        return 1
+
+    # Test hide button tray_available
+    vm6 = DesktopViewModel()
+    vm6.tray_available = False
+    window6 = DesktopWindow(
+        view_model=vm6,
+        on_user_text_submitted=lambda t: None,
+        on_conversation_cleared=lambda: None,
+        on_hide_requested=lambda: None,
+    )
+    window6.show()
+    window6.update_from_view_model()
+    QApplication.instance().processEvents()
+    if not window6._hide_button.isEnabled():
+        print("hide button tray unavailable: OK")
+    else:
+        print("hide button tray unavailable: FAIL")
+        return 1
+
+    vm7 = DesktopViewModel()
+    vm7.tray_available = True
+    window7 = DesktopWindow(
+        view_model=vm7,
+        on_user_text_submitted=lambda t: None,
+        on_conversation_cleared=lambda: None,
+        on_hide_requested=lambda: None,
+    )
+    window7.show()
+    window7.update_from_view_model()
+    QApplication.instance().processEvents()
+    if window7._hide_button.isEnabled():
+        print("hide button tray available: OK")
+    else:
+        print("hide button tray available: FAIL")
         return 1
 
     # Verify onboarding still shows on first frame
@@ -145,18 +310,18 @@ def main() -> int:
         return 1
 
     # Verify settings button still works
-    vm2 = DesktopViewModel()
-    vm2.set_settings_text(settings_text)
-    window2 = DesktopWindow(
-        view_model=vm2,
+    vm8 = DesktopViewModel()
+    vm8.set_settings_text(settings_text)
+    window8 = DesktopWindow(
+        view_model=vm8,
         on_user_text_submitted=lambda t: None,
         on_conversation_cleared=lambda: None,
     )
-    window2.show()
-    window2.update_from_view_model()
-    window2._settings_button.clicked.emit()
+    window8.show()
+    window8.update_from_view_model()
+    window8._settings_button.clicked.emit()
     QApplication.instance().processEvents()
-    if vm2.settings_visible and window2._settings_panel.isVisible():
+    if vm8.settings_visible and window8._settings_panel.isVisible():
         print("settings button: OK")
     else:
         print("settings button: FAIL")
@@ -164,37 +329,37 @@ def main() -> int:
 
     # Verify status button still works
     def on_status() -> None:
-        vm2.toggle_product_status_visible()
-        window2.update_from_view_model()
+        vm8.toggle_product_status_visible()
+        window8.update_from_view_model()
 
-    window3 = DesktopWindow(
-        view_model=vm2,
+    window9 = DesktopWindow(
+        view_model=vm8,
         on_user_text_submitted=lambda t: None,
         on_conversation_cleared=lambda: None,
         on_product_status_requested=on_status,
     )
-    window3.show()
-    window3.update_from_view_model()
-    window3._product_status_button.pressed.emit()
+    window9.show()
+    window9.update_from_view_model()
+    window9._product_status_button.pressed.emit()
     QApplication.instance().processEvents()
-    if vm2.product_status_visible:
+    if vm8.product_status_visible:
         print("status button: OK")
     else:
         print("status button: FAIL")
         return 1
 
     # Verify compact mode still works
-    vm3 = DesktopViewModel()
-    window4 = DesktopWindow(
-        view_model=vm3,
+    vm10 = DesktopViewModel()
+    window10 = DesktopWindow(
+        view_model=vm10,
         on_user_text_submitted=lambda t: None,
         on_conversation_cleared=lambda: None,
     )
-    window4.show()
-    window4.update_from_view_model()
-    window4._handle_compact_clicked()
+    window10.show()
+    window10.update_from_view_model()
+    window10._handle_compact_clicked()
     QApplication.instance().processEvents()
-    if vm3.compact_mode and not window4._onboarding_card.isVisible():
+    if vm10.compact_mode and not window10._onboarding_card.isVisible():
         print("compact mode: OK")
     else:
         print("compact mode: FAIL")
