@@ -94,6 +94,9 @@ class DesktopViewModel:
         self.hidden_to_tray: bool = False
         # Phase 3-A: Force quit state (for tray "退出" menu)
         self.force_quit_requested: bool = False
+        # Phase 3-B: Onboarding state (session-level, not persisted)
+        self.onboarding_visible: bool = True
+        self.onboarding_text: str = ""
 
     def handle_state_changed(self, event: BaseEvent) -> None:
         """Handle state.changed event and update display text.
@@ -419,10 +422,11 @@ class DesktopViewModel:
     def toggle_compact_mode(self) -> None:
         """Toggle compact mode (Phase 2-D)."""
         self.compact_mode = not self.compact_mode
-        # When entering compact mode, close status panel if open
+        # When entering compact mode, close panels and onboarding
         if self.compact_mode:
             self.product_status_visible = False
             self.settings_visible = False
+            self.onboarding_visible = False
 
     def toggle_settings_visible(self) -> None:
         """Toggle the settings panel visibility (Phase 2-E)."""
@@ -462,6 +466,28 @@ class DesktopViewModel:
     def clear_force_quit_request(self) -> None:
         """Clear the force-quit request flag."""
         self.force_quit_requested = False
+
+    def set_onboarding_text(self, text: str) -> None:
+        """Set the onboarding card display text.
+
+        Args:
+            text: The rendered onboarding text.
+        """
+        self.onboarding_text = text
+
+    def dismiss_onboarding(self) -> None:
+        """Dismiss the onboarding card (Phase 3-B)."""
+        self.onboarding_visible = False
+
+    def open_settings_from_onboarding(self) -> None:
+        """Open settings from onboarding card (Phase 3-B).
+
+        Dismisses the onboarding card and opens the settings panel,
+        ensuring mutual exclusivity with the product status panel.
+        """
+        self.onboarding_visible = False
+        self.settings_visible = True
+        self.product_status_visible = False
 
     def set_product_status_view(self, view: ProductStatusView) -> None:
         """Set the product status view and update rendered text.
