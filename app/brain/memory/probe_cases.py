@@ -85,4 +85,18 @@ DEFAULT_MEMORY_PROBE_CASES: tuple[MemoryProbeCase, ...] = (
         expected_count_min=1,
         expected_count_max=3,
     ),
+    MemoryProbeCase(
+        case_id="boundary_blocks_relationship",
+        user_text="我女朋友叫红红，这件事不要记住。",
+        expected_kinds=("boundary",),
+        expected_count_min=1,
+        expected_count_max=1,
+    ),
+    MemoryProbeCase(
+        case_id="boundary_blocks_health",
+        user_text="我最近睡不着，但这件事不要记住。",
+        expected_kinds=("boundary",),
+        expected_count_min=1,
+        expected_count_max=1,
+    ),
 )

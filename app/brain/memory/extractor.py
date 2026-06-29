@@ -33,12 +33,13 @@ class DeterministicMemoryExtractor:
         if len(raw) > MAX_TEXT_LEN:
             raw = raw[:MAX_TEXT_LEN]
 
-        candidates: list[MemoryCandidate] = []
-
         # Boundary (highest priority — user explicitly says don't remember)
-        candidates.extend(self._extract_boundary(raw))
+        boundary_candidates = self._extract_boundary(raw)
+        if boundary_candidates:
+            return tuple(boundary_candidates[: self.MAX_CANDIDATES])
 
         # Collect from all sentences, allowing multiple kinds per sentence
+        candidates: list[MemoryCandidate] = []
         sentences = self._split_sentences(raw)
         for sent in sentences:
             candidates.extend(self._extract_from_sentence(sent))
@@ -78,12 +79,16 @@ class DeterministicMemoryExtractor:
         ]
         for trigger in triggers:
             if trigger in text:
+                # Use only the portion from the trigger onwards as evidence
+                # to avoid including sensitive content that appears before the trigger
+                idx = text.index(trigger)
+                evidence = text[idx:]
                 return [
                     MemoryCandidate(
                         kind=MemoryKind.BOUNDARY,
                         importance=MemoryImportance.HIGH,
                         text="用户请求不要记住特定内容",
-                        evidence=self._truncate(text),
+                        evidence=self._truncate(evidence),
                         confidence=0.85,
                     )
                 ]

@@ -146,3 +146,39 @@ class TestDeterministicMemoryExtractor:
         extractor = self._make()
         extractor.extract("我正在做一个项目。")
         # No assertion needed — if file was written, it would raise
+
+    def test_boundary_blocks_relationship(self) -> None:
+        """When user says '不要记住', boundary blocks relationship extraction."""
+        extractor = self._make()
+        candidates = extractor.extract("我女朋友叫红红，这件事不要记住。")
+        kinds = {c.kind for c in candidates}
+        assert MemoryKind.BOUNDARY in kinds
+        assert MemoryKind.RELATIONSHIP not in kinds
+
+    def test_boundary_blocks_health(self) -> None:
+        """When user says '不要记住', boundary blocks health extraction."""
+        extractor = self._make()
+        candidates = extractor.extract("我最近睡不着，但这件事不要记住。")
+        kinds = {c.kind for c in candidates}
+        assert MemoryKind.BOUNDARY in kinds
+        assert MemoryKind.HEALTH not in kinds
+        assert MemoryKind.EMOTION_PATTERN not in kinds
+
+    def test_boundary_blocks_project(self) -> None:
+        """When user says '不要记住', boundary blocks project extraction."""
+        extractor = self._make()
+        candidates = extractor.extract("我正在做一个项目，但不要记住。")
+        kinds = {c.kind for c in candidates}
+        assert MemoryKind.BOUNDARY in kinds
+        assert MemoryKind.PROJECT not in kinds
+
+    def test_boundary_text_does_not_contain_sensitive_facts(self) -> None:
+        """Boundary candidate text should not contain specific sensitive facts."""
+        extractor = self._make()
+        candidates = extractor.extract("我女朋友叫红红，这件事不要记住。")
+        assert len(candidates) >= 1
+        boundary_candidates = [c for c in candidates if c.kind == MemoryKind.BOUNDARY]
+        assert len(boundary_candidates) == 1
+        boundary = boundary_candidates[0]
+        assert "红红" not in boundary.text
+        assert "红红" not in boundary.evidence
