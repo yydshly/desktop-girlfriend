@@ -188,6 +188,20 @@ class DesktopWindow(QMainWindow):
         self._product_status_panel.setVisible(False)
         layout.addWidget(self._product_status_panel)
 
+        # Phase 2-E: Settings panel — card style, mutually exclusive with status panel
+        self._settings_panel = QWidget()
+        self._settings_panel.setStyleSheet(
+            "background-color: #f0f7f0; border-radius: 6px; padding: 4px;"
+        )
+        self._settings_panel_layout = QVBoxLayout(self._settings_panel)
+        self._settings_panel_layout.setContentsMargins(10, 8, 10, 8)
+        self._settings_text = QLabel()
+        self._settings_text.setWordWrap(True)
+        self._settings_text.setStyleSheet(window_style.PRODUCT_STATUS_TEXT_STYLE)
+        self._settings_panel_layout.addWidget(self._settings_text)
+        self._settings_panel.setVisible(False)
+        layout.addWidget(self._settings_panel)
+
         # Chat history display
         self._chat_history = QTextEdit()
         self._chat_history.setReadOnly(True)
@@ -294,6 +308,12 @@ class DesktopWindow(QMainWindow):
         self._stop_speaking_button.setEnabled(False)
         aux_button_layout.addWidget(self._stop_speaking_button)
 
+        # Phase 2-E: Settings button
+        self._settings_button = QPushButton("设置")
+        self._settings_button.setStyleSheet(window_style.SECONDARY_BUTTON_STYLE)
+        self._settings_button.clicked.connect(self._handle_settings_clicked)
+        aux_button_layout.addWidget(self._settings_button)
+
         aux_button_layout.addStretch()
         layout.addWidget(self._aux_button_row)
 
@@ -361,6 +381,18 @@ class DesktopWindow(QMainWindow):
         first = self._view_model.memory_records[0]
         if self._on_memory_delete_requested:
             self._on_memory_delete_requested(first.record_id)
+
+    def _handle_settings_clicked(self) -> None:
+        """Handle settings button click (Phase 2-E).
+
+        Mutual exclusivity: opening settings closes product status.
+        """
+        self._view_model.toggle_settings_visible()
+        self._settings_panel.setVisible(self._view_model.settings_visible)
+        # Sync status panel visibility (should already be false due to mutual exclusion)
+        if self._view_model.settings_visible and self._view_model.product_status_visible:
+            self._view_model.product_status_visible = False
+            self._product_status_panel.setVisible(False)
 
     def _handle_product_status_clicked(self) -> None:
         """Handle product status button click (Phase 2-D).
@@ -456,6 +488,10 @@ class DesktopWindow(QMainWindow):
         self._product_status_text.setText(self._view_model.product_status_text)
         # V11-C: Startup diagnostics details
         self._startup_diagnostics_text.setText(self._view_model.startup_diagnostics_text)
+
+        # Phase 2-E: Update settings panel
+        self._settings_panel.setVisible(self._view_model.settings_visible)
+        self._settings_text.setText(self._view_model.settings_text)
 
         is_listening = self._view_model.state == AppState.LISTENING
         is_thinking = self._view_model.state == AppState.THINKING

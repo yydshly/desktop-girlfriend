@@ -84,6 +84,9 @@ class DesktopViewModel:
         # Desktop presence state (Phase 2-D)
         self.always_on_top: bool = False
         self.compact_mode: bool = False
+        # Settings panel state (Phase 2-E)
+        self.settings_visible: bool = False
+        self.settings_text: str = ""
 
     def handle_state_changed(self, event: BaseEvent) -> None:
         """Handle state.changed event and update display text.
@@ -409,6 +412,22 @@ class DesktopViewModel:
         # When entering compact mode, close status panel if open
         if self.compact_mode:
             self.product_status_visible = False
+            self.settings_visible = False
+
+    def toggle_settings_visible(self) -> None:
+        """Toggle the settings panel visibility (Phase 2-E)."""
+        self.settings_visible = not self.settings_visible
+        # Mutual exclusivity: opening settings closes product status
+        if self.settings_visible:
+            self.product_status_visible = False
+
+    def set_settings_text(self, text: str) -> None:
+        """Set the settings panel display text.
+
+        Args:
+            text: The rendered settings text.
+        """
+        self.settings_text = text
 
     def set_product_status_view(self, view: ProductStatusView) -> None:
         """Set the product status view and update rendered text.
