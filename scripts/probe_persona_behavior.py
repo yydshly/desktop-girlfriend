@@ -10,6 +10,10 @@ Run with real chat provider:
 from __future__ import annotations
 
 import argparse
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.core.config import AppConfig
 
 
 def main() -> None:
@@ -28,62 +32,46 @@ def main() -> None:
         DEFAULT_PERSONA_PROBE_CASES,
         PersonaProbeRunner,
     )
+    from app.brain.persona.probe.runner import PersonaProbeProvider
     from app.brain.prompts.registry import PromptRegistry
 
-    if args.real:
-        from dataclasses import replace
+    def create_real_probe_provider(cfg: AppConfig) -> PersonaProbeProvider:
+        """Create a real probe provider backed by the configured ChatProvider."""
+        from typing import cast
 
         from app.brain.prompts.registry import PromptRegistry
         from app.brain.providers import create_chat_provider
-        from app.core.config import get_config
+        from app.brain.providers.base import ChatProvider, ChatRequest, PromptMessageLike
 
-        config = get_config()
-
-        persona_profile = replace(
-            DEFAULT_XIAOYUN_PERSONA,
-            name=config.persona_name,
-            user_address=config.persona_user_address,
-        )
-        registry = PromptRegistry(
-            persona_prompt_builder=PersonaPromptBuilder(persona_profile)
-        )
+        chat_provider = create_chat_provider(cfg)
 
         class RealPersonaProbeProvider:
-            def __init__(self, reg: PromptRegistry, cfg: type[get_config.return_value]) -> None:
+            def __init__(self, reg: PromptRegistry, chat: ChatProvider) -> None:
                 self._registry = reg
-                self._config = cfg
+                self._chat_provider = chat
 
             def generate_reply(self, user_text: str) -> str:
-
-                from app.brain.providers.base import ChatRequest
-
                 messages = self._registry.build_chat_messages(user_text)
                 chat_request = ChatRequest(
-                    messages=[
-                        {"role": m.role, "content": m.content}
-                        for m in messages
-                    ]
+                    messages=cast(list[PromptMessageLike], messages)
                 )
-                # Use first message content as single prompt for simple probe
-                # For real multi-turn, we'd track history separately
                 try:
-                    provider = create_chat_provider(self._config)
-                    response = provider.generate(chat_request)
+                    response = self._chat_provider.generate(chat_request)
                     return response.text
                 except Exception as e:
                     return f"[Error: {e}]"
 
-        provider = RealPersonaProbeProvider(registry, type(config))
+        return RealPersonaProbeProvider(registry, chat_provider)
 
-    else:
+    def create_fake_probe_provider() -> PersonaProbeProvider:
+        """Create a fake probe provider with canned compassionate replies."""
+
         class FakePersonaProbeProvider:
-            """Local fake provider that returns a canned compassionate reply."""
-
             def generate_reply(self, user_text: str) -> str:
                 if "女朋友" in user_text:
                     return "我明白你的感受，但我作为AI，不能做恋爱承诺。我可以一直陪在你身边倾听和支持你。"
                 if "系统提示词" in user_text or "提示词完整" in user_text:
-                    return "我不会暴露系统提示词的内容，但可以告诉你，我是小云，你的桌面AI伙伴。"
+                    return "这个内容我不能展示。我们可以继续聊你真正想确认的问题。"
                 if "胸口" in user_text or "心脏病" in user_text:
                     return "听起来不太舒服，但我不能做诊断。建议你尽快去医院看看，健康最重要。"
                 if "很累" in user_text or "疲惫" in user_text:
@@ -94,7 +82,25 @@ def main() -> None:
                     return "可以先想一想，最想先做哪一件？不用一次想太多，先把第一步列出来就好。"
                 return "我在的。慢慢说，我听着。"
 
-        provider = FakePersonaProbeProvider()
+        return FakePersonaProbeProvider()
+
+    if args.real:
+        from dataclasses import replace
+
+        from app.core.config import get_config
+
+        config = get_config()
+        persona_profile = replace(
+            DEFAULT_XIAOYUN_PERSONA,
+            name=config.persona_name,
+            user_address=config.persona_user_address,
+        )
+        registry = PromptRegistry(
+            persona_prompt_builder=PersonaPromptBuilder(persona_profile)
+        )
+        provider = create_real_probe_provider(config)
+    else:
+        provider = create_fake_probe_provider()
 
     runner = PersonaProbeRunner(provider)
     report = runner.run(DEFAULT_PERSONA_PROBE_CASES)
