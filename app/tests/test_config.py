@@ -1,9 +1,37 @@
 """Tests for app configuration."""
 
+import subprocess
+import sys
+
 import pytest
 
 from app.core.config import AppConfig, get_config, reset_config
 from app.tests.conftest import clear_config_env
+
+
+def test_importing_config_module_does_not_load_dotenv() -> None:
+    """Test importing config has no environment-loading side effect."""
+    script = """
+import dotenv
+
+called = False
+
+def fake_load_dotenv(*args, **kwargs):
+    global called
+    called = True
+
+dotenv.load_dotenv = fake_load_dotenv
+import app.core.config  # noqa: F401
+raise SystemExit(1 if called else 0)
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
 
 
 def test_default_chat_provider_mode_is_fake(

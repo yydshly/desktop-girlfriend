@@ -1,6 +1,7 @@
 """Event bus implementation."""
 
 import logging
+import threading
 from collections import defaultdict
 from collections.abc import Callable
 
@@ -14,6 +15,7 @@ class EventBus:
 
     def __init__(self) -> None:
         self._handlers: dict[str, list[Callable[[BaseEvent], None]]] = defaultdict(list)
+        self._lock = threading.RLock()
 
     def subscribe(
         self, event_type: str, handler: Callable[[BaseEvent], None]
@@ -24,9 +26,10 @@ class EventBus:
             event_type: The type of event to subscribe to.
             handler: Callback function to invoke when event is published.
         """
-        if handler in self._handlers[event_type]:
-            return
-        self._handlers[event_type].append(handler)
+        with self._lock:
+            if handler in self._handlers[event_type]:
+                return
+            self._handlers[event_type].append(handler)
 
     def publish(self, event: BaseEvent) -> None:
         """Publish an event to all subscribed handlers.
@@ -37,7 +40,8 @@ class EventBus:
         Handler exceptions are logged and isolated so later subscribers still
         receive the event.
         """
-        handlers = list(self._handlers.get(event.event_type, []))
+        with self._lock:
+            handlers = list(self._handlers.get(event.event_type, []))
         for handler in handlers:
             try:
                 handler(event)
@@ -57,11 +61,13 @@ class EventBus:
             event_type: The type of event to unsubscribe from.
             handler: The handler to remove.
         """
-        if event_type in self._handlers:
-            self._handlers[event_type] = [
-                h for h in self._handlers[event_type] if h != handler
-            ]
+        with self._lock:
+            if event_type in self._handlers:
+                self._handlers[event_type] = [
+                    h for h in self._handlers[event_type] if h != handler
+                ]
 
     def clear(self) -> None:
         """Clear all subscriptions."""
-        self._handlers.clear()
+        with self._lock:
+            self._handlers.clear()

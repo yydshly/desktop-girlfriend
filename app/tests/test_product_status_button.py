@@ -29,7 +29,7 @@ class TestProductStatusButtonFirstClick:
             ProductStatusView(
                 items=(
                     ProductStatusItem("对话", True, "已启用"),
-                    ProductStatusItem("版本", True, "0.1.0-rc.2"),
+                    ProductStatusItem("版本", True, "0.1.0-rc.3"),
                 )
             )
         )
@@ -115,7 +115,7 @@ class TestProductStatusButtonFirstClick:
 
     @staticmethod
     def test_panel_contains_version_after_first_press(qapp: QApplication) -> None:
-        """Panel must show version 0.1.0-rc.2 after first press."""
+        """Panel must show version 0.1.0-rc.3 after first press."""
         view_model = DesktopViewModel()
 
         def on_status_requested() -> None:
@@ -124,7 +124,7 @@ class TestProductStatusButtonFirstClick:
                 ProductStatusView(
                     items=(
                         ProductStatusItem("对话", True, "已启用"),
-                        ProductStatusItem("版本", True, "0.1.0-rc.2"),
+                        ProductStatusItem("版本", True, "0.1.0-rc.3"),
                     )
                 )
             )
@@ -134,7 +134,7 @@ class TestProductStatusButtonFirstClick:
             ProductStatusView(
                 items=(
                     ProductStatusItem("对话", True, "已启用"),
-                    ProductStatusItem("版本", True, "0.1.0-rc.2"),
+                    ProductStatusItem("版本", True, "0.1.0-rc.3"),
                 )
             )
         )
@@ -151,7 +151,7 @@ class TestProductStatusButtonFirstClick:
         qapp.processEvents()
 
         assert "版本" in view_model.product_status_text
-        assert "0.1.0-rc.2" in view_model.product_status_text
+        assert "0.1.0-rc.3" in view_model.product_status_text
 
 
 class TestProductStatusButton:

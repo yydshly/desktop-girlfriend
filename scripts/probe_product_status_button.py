@@ -38,7 +38,7 @@ def main() -> int:
             ProductStatusView(
                 items=(
                     ProductStatusItem("对话", True, "已启用"),
-                    ProductStatusItem("版本", True, "0.1.0-rc.2"),
+                    ProductStatusItem("版本", True, "0.1.0-rc.3"),
                     ProductStatusItem("当前角色状态", True, AvatarAction.IDLE.value),
                 )
             )
@@ -50,7 +50,7 @@ def main() -> int:
         ProductStatusView(
             items=(
                 ProductStatusItem("对话", True, "已启用"),
-                ProductStatusItem("版本", True, "0.1.0-rc.2"),
+                ProductStatusItem("版本", True, "0.1.0-rc.3"),
                 ProductStatusItem("当前角色状态", True, AvatarAction.IDLE.value),
             )
         )

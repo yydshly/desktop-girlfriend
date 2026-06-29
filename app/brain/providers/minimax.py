@@ -110,7 +110,8 @@ class MiniMaxChatProvider(ChatProvider):
             with urllib.request.urlopen(req, timeout=self._timeout) as response:
                 body = response.read().decode("utf-8")
         except urllib.error.HTTPError as e:
-            raise ChatProviderError(f"MiniMax API HTTP {e.code}") from e
+            detail = self._http_error_detail(e)
+            raise ChatProviderError(f"MiniMax API HTTP {e.code}: {detail}") from e
         except urllib.error.URLError as e:
             raise ChatProviderError(f"MiniMax network error: {e.reason}") from e
 
@@ -135,3 +136,14 @@ class MiniMaxChatProvider(ChatProvider):
             raise ChatProviderError(
                 f"MiniMax response structure error: {e}"
             ) from e
+
+    def _http_error_detail(self, error: urllib.error.HTTPError) -> str:
+        """Return a safe, compact HTTP error detail string."""
+        try:
+            raw = error.read().decode("utf-8", errors="replace").strip()
+        except Exception:
+            raw = ""
+        if not raw:
+            return error.reason or "no response body"
+        safe = raw.replace(self._api_key, "[redacted]")
+        return safe[:500]

@@ -221,6 +221,22 @@ class TestVoiceInputController:
         ]
         assert len(listening_calls) == 1
 
+    def test_duplicate_request_while_listening_dispatches_busy_error(self) -> None:
+        """Test a second VOICE_INPUT_REQUESTED while listening dispatches busy error."""
+        event_bus = MagicMock()
+        provider = FakeASRProviderForTest(delay_seconds=0.2)
+        dispatch_events, dispatch_event = make_dispatch_collector()
+        controller = VoiceInputController(event_bus, provider, dispatch_event)
+        controller.start()
+
+        controller._on_voice_input_requested(self._make_event())
+        time.sleep(0.01)
+        controller._on_voice_input_requested(self._make_event())
+
+        error_events = [e for e in dispatch_events if e.event_type == SYSTEM_ERROR]
+        assert len(error_events) == 1
+        assert "busy" in error_events[0].payload["message"].lower()
+
     def test_provider_error_dispatches_safe_system_error(self) -> None:
         """Test provider error dispatches SYSTEM_ERROR with safe message."""
         event_bus = MagicMock()

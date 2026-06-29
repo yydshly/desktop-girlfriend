@@ -69,8 +69,8 @@ def _check_env_example() -> bool:
 def _check_config_defaults() -> bool:
     """Check AppConfig defaults for memory/proactive switches."""
     try:
-        from app.core.config import get_config
-        config = get_config()
+        from app.core.config import AppConfig
+        config = AppConfig()
         checks = [
             (not config.memory_context_enabled, "MEMORY_CONTEXT_ENABLED default false"),
             (not config.memory_suggestions_enabled, "MEMORY_SUGGESTIONS_ENABLED default false"),

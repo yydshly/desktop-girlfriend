@@ -6,6 +6,7 @@ Provides a JSON-file based persistence layer for confirmed memories.
 from __future__ import annotations
 
 import json
+import threading
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -76,60 +77,67 @@ class LocalJsonMemoryRepository:
 
     def __init__(self, path: Path) -> None:
         self._path = path
+        self._lock = threading.RLock()
 
     def add(self, record: MemoryRecord) -> MemoryRecord:
         """Add a new memory record."""
-        records = self._read_records()
+        with self._lock:
+            records = self._read_records()
 
-        # Check for duplicate id
-        for existing in records:
-            if existing["id"] == record.id:
-                raise ValueError(f"Record with id {record.id!r} already exists")
+            # Check for duplicate id
+            for existing in records:
+                if existing["id"] == record.id:
+                    raise ValueError(f"Record with id {record.id!r} already exists")
 
-        records.append(self._record_to_dict(record))
-        self._write_records(records)
+            records.append(self._record_to_dict(record))
+            self._write_records(records)
         return record
 
     def get(self, memory_id: str) -> MemoryRecord | None:
         """Get a memory record by id, including deleted."""
-        records = self._read_records()
-        for data in records:
-            if data["id"] == memory_id:
-                return self._record_from_dict(data)
+        with self._lock:
+            records = self._read_records()
+            for data in records:
+                if data["id"] == memory_id:
+                    return self._record_from_dict(data)
         return None
 
     def list_active(self) -> tuple[MemoryRecord, ...]:
         """List all active (non-deleted) memory records."""
-        records = self._read_records()
-        result = []
-        for data in records:
-            record = self._record_from_dict(data)
-            if record.status == MemoryRecordStatus.ACTIVE:
-                result.append(record)
-        return tuple(result)
+        with self._lock:
+            records = self._read_records()
+            result = []
+            for data in records:
+                record = self._record_from_dict(data)
+                if record.status == MemoryRecordStatus.ACTIVE:
+                    result.append(record)
+            return tuple(result)
 
     def list_all(self) -> tuple[MemoryRecord, ...]:
         """List all memory records including deleted."""
-        records = self._read_records()
-        return tuple(self._record_from_dict(data) for data in records)
+        with self._lock:
+            records = self._read_records()
+            return tuple(self._record_from_dict(data) for data in records)
 
     def delete(self, memory_id: str) -> MemoryRecord:
         """Soft delete a memory record by marking it as DELETED."""
-        records = self._read_records()
-        for i, data in enumerate(records):
-            if data["id"] == memory_id:
-                # Update status and updated_at
-                data["status"] = MemoryRecordStatus.DELETED.value
-                data["updated_at"] = utc_now().isoformat()
-                self._write_records(records)
-                return self._record_from_dict(data)
+        with self._lock:
+            records = self._read_records()
+            for i, data in enumerate(records):
+                if data["id"] == memory_id:
+                    # Update status and updated_at
+                    data["status"] = MemoryRecordStatus.DELETED.value
+                    data["updated_at"] = utc_now().isoformat()
+                    self._write_records(records)
+                    return self._record_from_dict(data)
 
         raise KeyError(f"No record with id {memory_id!r}")
 
     def clear(self) -> None:
         """Clear all records."""
-        if self._path.exists():
-            self._path.unlink()
+        with self._lock:
+            if self._path.exists():
+                self._path.unlink()
 
     def _read_records(self) -> list[dict[str, object]]:
         """Read records from JSON file."""
@@ -153,8 +161,14 @@ class LocalJsonMemoryRepository:
             "version": 1,
             "records": records,
         }
-        with open(self._path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        temp_path = self._path.with_name(f"{self._path.name}.tmp")
+        try:
+            with open(temp_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            temp_path.replace(self._path)
+        except Exception:
+            temp_path.unlink(missing_ok=True)
+            raise
 
     def _record_to_dict(self, record: MemoryRecord) -> dict[str, object]:
         """Serialize a MemoryRecord to a dict."""

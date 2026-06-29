@@ -17,7 +17,7 @@ def _check_version_file() -> bool:
         print("VERSION: missing")
         return False
     content = version_file.read_text(encoding="utf-8").strip()
-    if content != "0.1.0-rc.2":
+    if content != "0.1.0-rc.3":
         print(f"VERSION: unexpected content '{content}'")
         return False
     print("VERSION: OK")
@@ -28,7 +28,7 @@ def _check_app_version() -> bool:
     from app.core.version import get_app_version
 
     ver = get_app_version()
-    if ver.version != "0.1.0-rc.2":
+    if ver.version != "0.1.0-rc.3":
         print(f"app version: unexpected '{ver.version}'")
         return False
     if ver.release_stage != "release-candidate":
@@ -41,7 +41,7 @@ def _check_app_version() -> bool:
 def _check_rc_docs() -> bool:
     rc_md = REPO_ROOT / "RELEASE_CANDIDATE.md"
     content = rc_md.read_text(encoding="utf-8")
-    if "0.1.0-rc.2" not in content:
+    if "0.1.0-rc.3" not in content:
         print("release candidate docs: missing version string")
         return False
     if "tag plan" not in content.lower():
@@ -71,7 +71,7 @@ def _check_product_status() -> bool:
     )
     labels = [item.label for item in view.items]
 
-    has_version = any(item.detail == "0.1.0-rc.2" for item in view.items)
+    has_version = any(item.detail == "0.1.0-rc.3" for item in view.items)
     has_stage = any(item.detail == "release-candidate" for item in view.items)
     has_version_label = "版本" in labels
     has_stage_label = "发布阶段" in labels

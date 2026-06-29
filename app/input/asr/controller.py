@@ -1,4 +1,4 @@
-"""Voice input controller — bridges ASR to the dialogue system."""
+﻿"""Voice input controller — bridges ASR to the dialogue system."""
 
 from __future__ import annotations
 
@@ -28,6 +28,8 @@ if TYPE_CHECKING:
     from app.input.audio import MicrophoneRecorderLike
 
 logger = logging.getLogger(__name__)
+
+_WORKER_JOIN_TIMEOUT_SECONDS = 0.2
 
 
 class VoiceInputController:
@@ -72,6 +74,7 @@ class VoiceInputController:
         self._recording_channels = recording_channels
         self._is_listening = False
         self._is_stopped = False
+        self._worker_thread: threading.Thread | None = None
         self._lock = threading.Lock()
 
     def start(self) -> None:
@@ -86,6 +89,7 @@ class VoiceInputController:
             self._is_stopped = True
             self._is_listening = False
         self._event_bus.unsubscribe(VOICE_INPUT_REQUESTED, self._on_voice_input_requested)
+        self._join_worker_thread()
 
     def _on_voice_input_requested(self, event: BaseEvent) -> None:
         """Handle voice.input_requested event.
@@ -97,7 +101,10 @@ class VoiceInputController:
             if self._is_stopped:
                 return
             if self._is_listening:
-                # Already processing a request — silently ignore duplicate
+                self._dispatch_error(
+                    event.request_id,
+                    "System busy: voice input is already in progress.",
+                )
                 return
             self._is_listening = True
 
@@ -112,7 +119,16 @@ class VoiceInputController:
             args=(request_id,),
             daemon=True,
         )
+        with self._lock:
+            self._worker_thread = thread
         thread.start()
+
+    def _join_worker_thread(self) -> None:
+        """Wait briefly for the current worker thread to finish."""
+        with self._lock:
+            worker = self._worker_thread
+        if worker is not None and worker.is_alive() and worker is not threading.current_thread():
+            worker.join(timeout=_WORKER_JOIN_TIMEOUT_SECONDS)
 
     def _build_asr_request(self, request_id: str) -> ASRRequest:
         """Build ASR request, recording audio if provider requires it.

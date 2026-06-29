@@ -1,6 +1,6 @@
 # Desktop Girlfriend Release Candidate v0
 
-Version: `0.1.0-rc.2`
+Version: `0.1.0-rc.3`
 
 Stage: `release-candidate`
 
@@ -13,17 +13,24 @@ Main capabilities:
 
 ## RC changelog
 
+### v0.1.0-rc.3
+
+- Fixed: README and run script now use pyproject-based installation: `pip install -e ".[dev]"`.
+- Fixed: Windows setup now explicitly requires Python >=3.11.
+- Fixed: audio recorder no longer imports `sounddevice` at module import time.
+- Added: environment readiness probe.
+- Improved: event bus thread-safety.
+- Improved: controller shutdown handling for worker threads.
+- Improved: memory repository write durability with temp-file replace.
+- Improved: MiniMax Chat/TTS HTTP error details with key redaction.
+
 ### v0.1.0-rc.2
 
-- Fixed: the first click on the "状态" button after startup could have no visible effect.
-- Changed: product status view is prebuilt during startup.
-- Changed: status button uses first-click-safe mouse press handling.
+- Fixed: the first click on the “状态” button after startup could have no visible effect.
 
 ### v0.1.0-rc.1
 
-- Fixed: the "状态" button did not open the product status panel on Windows/PySide6.
-- Added: offscreen Qt probe for product status button wiring.
-- Added: product status button wiring tests.
+- Fixed: the “状态” button did not open the product status panel on Windows/PySide6.
 
 ### v0.1.0-rc.0
 
@@ -34,8 +41,8 @@ Main capabilities:
 After merging into `main`, create the release candidate tag:
 
 ```powershell
-git tag v0.1.0-rc.2
-git push origin v0.1.0-rc.2
+git tag v0.1.0-rc.3
+git push origin v0.1.0-rc.3
 ```
 
 ## 当前版本能力

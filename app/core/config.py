@@ -4,9 +4,6 @@ import os
 
 from dotenv import load_dotenv
 
-# Load .env file if it exists (but do not require it)
-load_dotenv()
-
 
 def _env_or_fallback(name: str, fallback: str | None) -> str | None:
     """Return env value if set and non-blank, otherwise return fallback."""
@@ -206,12 +203,23 @@ class AppConfig:
 
 
 _config: AppConfig | None = None
+_dotenv_loaded = False
+
+
+def load_env_file_once() -> None:
+    """Load the optional .env file once for application entry points."""
+    global _dotenv_loaded
+    if _dotenv_loaded:
+        return
+    load_dotenv()
+    _dotenv_loaded = True
 
 
 def get_config() -> AppConfig:
     """Get the global application config instance."""
     global _config
     if _config is None:
+        load_env_file_once()
         _config = AppConfig()
     return _config
 

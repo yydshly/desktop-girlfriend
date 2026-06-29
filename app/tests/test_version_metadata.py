@@ -21,7 +21,7 @@ class TestVersionFile:
     @staticmethod
     def test_version_content() -> None:
         content = (REPO_ROOT / "VERSION").read_text(encoding="utf-8").strip()
-        assert content == "0.1.0-rc.2"
+        assert content == "0.1.0-rc.3"
 
 
 class TestReadVersion:
@@ -40,7 +40,7 @@ class TestReadVersion:
 
     @staticmethod
     def test_read_version_missing_file() -> None:
-        assert read_version(Path("/nonexistent/version/file")) == "0.1.0-rc.2"
+        assert read_version(Path("/nonexistent/version/file")) == "0.1.0-rc.3"
 
 
 class TestGetAppVersion:
@@ -52,7 +52,7 @@ class TestGetAppVersion:
     @staticmethod
     def test_get_app_version_version() -> None:
         ver = get_app_version()
-        assert ver.version == "0.1.0-rc.2"
+        assert ver.version == "0.1.0-rc.3"
 
     @staticmethod
     def test_get_app_version_release_stage() -> None:
@@ -79,7 +79,7 @@ class TestProductStatusBuilder:
         labels = [item.label for item in view.items]
         details = [item.detail for item in view.items]
         assert "版本" in labels
-        assert "0.1.0-rc.2" in details
+        assert "0.1.0-rc.3" in details
 
     @staticmethod
     def test_build_with_app_version_includes_release_stage() -> None:
@@ -99,7 +99,7 @@ class TestRcDocContent:
     @staticmethod
     def test_rc_md_contains_version() -> None:
         content = (REPO_ROOT / "RELEASE_CANDIDATE.md").read_text(encoding="utf-8")
-        assert "0.1.0-rc.2" in content
+        assert "0.1.0-rc.3" in content
 
     @staticmethod
     def test_rc_md_contains_history() -> None:

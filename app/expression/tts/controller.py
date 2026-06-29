@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _SAFE_TTS_ERROR_MESSAGE = "语音播放失败，请稍后重试。"
+_WORKER_JOIN_TIMEOUT_SECONDS = 0.2
 
 
 class TTSController:
@@ -55,6 +56,7 @@ class TTSController:
         self._is_stopped = False
         self._active_request_id: str | None = None
         self._stop_requested_request_ids: set[str] = set()
+        self._worker_thread: threading.Thread | None = None
         self._lock = threading.Lock()
 
     def start(self) -> None:
@@ -78,6 +80,7 @@ class TTSController:
         self._event_bus.unsubscribe(ASSISTANT_TEXT_RECEIVED, self._on_assistant_text_received)
         self._event_bus.unsubscribe(TTS_STOP_REQUESTED, self._on_tts_stop_requested)
         self._stop_provider()
+        self._join_worker_thread()
         if self._audio_player is not None:
             self._event_bus.unsubscribe(TTS_AUDIO_READY, self._on_audio_ready)
             self._audio_player.stop()
@@ -103,6 +106,10 @@ class TTSController:
             if self._is_stopped:
                 return
             if self._is_speaking:
+                self._publish_error(
+                    event.request_id,
+                    "System busy: speech playback is already in progress.",
+                )
                 return
             self._is_speaking = True
             self._active_request_id = event.request_id or str(uuid.uuid4())
@@ -116,6 +123,8 @@ class TTSController:
             args=(self._active_request_id, text),
             daemon=True,
         )
+        with self._lock:
+            self._worker_thread = thread
         thread.start()
 
     def _speak_text(self, request_id: str, text: str) -> None:
@@ -202,6 +211,7 @@ class TTSController:
         if self._audio_player is not None:
             self._audio_player.stop()
         self._stop_provider()
+        self._join_worker_thread()
 
         stopped_event = BaseEvent(
             event_type=TTS_STOPPED,
@@ -331,6 +341,13 @@ class TTSController:
         except Exception:
             logger.exception("TTS provider stop failed")
 
+    def _join_worker_thread(self) -> None:
+        """Wait briefly for the current worker thread to finish."""
+        with self._lock:
+            worker = self._worker_thread
+        if worker is not None and worker.is_alive() and worker is not threading.current_thread():
+            worker.join(timeout=_WORKER_JOIN_TIMEOUT_SECONDS)
+
     def _request_state(self, target_state: AppState, reason: str) -> None:
         """Request a state change via event bus (UI thread only).
 
@@ -375,4 +392,14 @@ class TTSController:
             payload={"message": message},
         )
         self._dispatch_event(event)
+
+    def _publish_error(self, request_id: str, message: str) -> None:
+        """Publish a system error event on the event bus."""
+        event = BaseEvent(
+            event_type=SYSTEM_ERROR,
+            request_id=request_id,
+            source="tts_controller",
+            payload={"message": message},
+        )
+        self._event_bus.publish(event)
 
