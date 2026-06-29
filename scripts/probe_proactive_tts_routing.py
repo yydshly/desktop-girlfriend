@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from app.contracts.events import ASSISTANT_TEXT_RECEIVED, PROACTIVE_NUDGE_READY, BaseEvent
 from app.contracts.payloads import AssistantTextReceivedPayload
-from app.contracts.states import AppState
 from app.ui.view_model import DesktopViewModel
 
 
