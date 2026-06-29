@@ -11,7 +11,7 @@ class AppVersion:
     release_stage: str
 
 
-_DEFAULT_VERSION = "0.2.0-alpha.2"
+_DEFAULT_VERSION = "0.3.0-alpha.1"
 _RELEASE_NAME = "Desktop Girlfriend Alpha"
 _RELEASE_STAGE = "alpha"
 

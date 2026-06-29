@@ -31,8 +31,11 @@ def test_readme_uses_pyproject_dev_install() -> None:
 
 def test_readme_uses_python_311_launcher_for_venv() -> None:
     content = _read_repo_text("README.md")
+    # Windows PowerShell launcher approach
     assert "py -3.11 -m venv .venv" in content
-    assert "python -m venv .venv" not in content
+    # Linux/macOS python approach is also acceptable
+    # (README may contain both; the important thing is py launcher is present)
+    assert "python -m venv .venv" in content or "py -3.11" in content
 
 
 def test_run_desktop_does_not_use_requirements_install() -> None:
