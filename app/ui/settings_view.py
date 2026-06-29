@@ -157,10 +157,21 @@ def build_settings_view(
     proactive_lines.append(f"用户控制：{proactive_copy.user_control_hint}")
     proactive_lines.append(f"托盘行为：{proactive_copy.tray_hint}")
 
-    # Section 6: Configuration example
+    # Section 6: Configuration example (Phase 3-E enhanced)
+    from app.ui.settings_controls_view import (
+        build_readonly_hint,
+        build_restart_hint,
+        build_safety_hint,
+    )
+    readonly_hint = build_readonly_hint()
+    restart_hint = build_restart_hint()
+    safety_hint = build_safety_hint()
     example_lines = (
-        "以下是配置示例（只读，不写入 .env）：",
+        readonly_hint,
+        safety_hint,
+        restart_hint,
         "",
+        "【配置示例】",
         _CONFIG_EXAMPLE,
     )
 

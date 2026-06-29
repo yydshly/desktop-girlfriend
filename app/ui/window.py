@@ -5,6 +5,7 @@ from collections.abc import Callable
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QTextCursor
 from PySide6.QtWidgets import (
+    QApplication,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -246,6 +247,11 @@ class DesktopWindow(QMainWindow):
         )
         self._settings_panel_layout = QVBoxLayout(self._settings_panel)
         self._settings_panel_layout.setContentsMargins(10, 8, 10, 8)
+        # Phase 3-E: Copy config button row
+        self._settings_copy_button = QPushButton("复制配置示例")
+        self._settings_copy_button.setStyleSheet(window_style.SETTINGS_COPY_BUTTON_STYLE)
+        self._settings_copy_button.clicked.connect(self._on_copy_config_example)
+        self._settings_panel_layout.addWidget(self._settings_copy_button)
         self._settings_scroll = QScrollArea()
         self._settings_scroll.setWidgetResizable(True)
         self._settings_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
@@ -486,12 +492,31 @@ class DesktopWindow(QMainWindow):
         self.update_from_view_model()
 
     def _handle_settings_clicked(self) -> None:
-        """Handle settings button click (Phase 2-E).
+        """Handle settings button click (Phase 2-E / Phase 3-E).
 
-        Mutual exclusivity: opening settings closes product status.
+        Mutual exclusivity: opening settings closes product status and memory panel.
         """
+        # Phase 3-E: close memory panel when opening settings
+        if not self._view_model.settings_visible:
+            self._view_model.memory_panel_visible = False
         self._view_model.toggle_settings_visible()
         self.update_from_view_model()
+
+    def _on_copy_config_example(self) -> None:
+        """Handle copy config example button click (Phase 3-E).
+
+        Copies the env example text to system clipboard.
+        Does not write to .env or any file.
+        Silently succeeds — no feedback UI in this version.
+        """
+        from app.ui.settings_controls_view import build_env_example
+        clipboard = QApplication.clipboard()
+        if clipboard is not None:
+            try:
+                clipboard.setText(build_env_example())
+            except Exception:
+                # Clipboard may be unavailable in some environments (e.g., offscreen)
+                pass
 
     def _on_hide_clicked(self) -> None:
         """Handle hide button click (Phase 2-F)."""

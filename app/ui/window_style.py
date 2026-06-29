@@ -36,6 +36,13 @@ STATUS_BUTTON_STYLE = (
     "border: none; border-radius: 4px;"
 )
 
+# Phase 3-E: Copy config button in settings panel
+SETTINGS_COPY_BUTTON_STYLE = (
+    "font-size: 12px; padding: 4px 12px; "
+    "background-color: #e8f5e9; color: #2e7d32; "
+    "border: 1px solid #c8e6c9; border-radius: 4px;"
+)
+
 # ---------------------------------------------------------------------------
 # Product status panel
 # ---------------------------------------------------------------------------
