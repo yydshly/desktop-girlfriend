@@ -81,6 +81,9 @@ class DesktopViewModel:
         self.product_status_text: str = ""
         # Startup diagnostics state (V11-C)
         self.startup_diagnostics_text: str = ""
+        # Desktop presence state (Phase 2-D)
+        self.always_on_top: bool = False
+        self.compact_mode: bool = False
 
     def handle_state_changed(self, event: BaseEvent) -> None:
         """Handle state.changed event and update display text.
@@ -395,6 +398,17 @@ class DesktopViewModel:
     def toggle_product_status_visible(self) -> None:
         """Toggle the product status panel visibility."""
         self.product_status_visible = not self.product_status_visible
+
+    def toggle_always_on_top(self) -> None:
+        """Toggle the always-on-top window flag (Phase 2-D)."""
+        self.always_on_top = not self.always_on_top
+
+    def toggle_compact_mode(self) -> None:
+        """Toggle compact mode (Phase 2-D)."""
+        self.compact_mode = not self.compact_mode
+        # When entering compact mode, close status panel if open
+        if self.compact_mode:
+            self.product_status_visible = False
 
     def set_product_status_view(self, view: ProductStatusView) -> None:
         """Set the product status view and update rendered text.
