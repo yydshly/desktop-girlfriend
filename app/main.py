@@ -54,6 +54,7 @@ from app.core.logging import setup_logging
 from app.core.startup_diagnostics import run_startup_diagnostics
 from app.core.state_controller import StateController
 from app.core.state_machine import StateMachine
+from app.core.version import get_app_version
 from app.expression.tts.controller import TTSController
 from app.expression.tts.providers import TTSProviderError, create_tts_provider
 from app.input.asr.controller import VoiceInputController
@@ -98,6 +99,9 @@ def main() -> None:
 
     # V11-C: Run startup diagnostics (non-blocking, only for display)
     startup_diagnostics = run_startup_diagnostics(config)
+
+    # V12-B: Get app version for display in status panel
+    app_version = get_app_version()
 
     app = QApplication(sys.argv)
 
@@ -214,6 +218,7 @@ def main() -> None:
                 config=config,
                 avatar_action=view_model.avatar_action,
                 startup_diagnostics=startup_diagnostics,
+                app_version=app_version,
             )
         )
 
@@ -245,6 +250,7 @@ def main() -> None:
                     config=config,
                     avatar_action=view_model.avatar_action,
                     startup_diagnostics=startup_diagnostics,
+                    app_version=app_version,
                 )
             )
 
