@@ -247,7 +247,7 @@ Copy-Item .env.example .env
 
 ## Release Candidate
 
-Current RC version: `0.1.0-rc.0`
+Current RC version: `0.1.0-rc.1`
 
 Windows 快速启动：
 

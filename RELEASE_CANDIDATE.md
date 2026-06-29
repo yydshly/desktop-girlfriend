@@ -1,6 +1,6 @@
 # Desktop Girlfriend Release Candidate v0
 
-Version: `0.1.0-rc.0`
+Version: `0.1.0-rc.1`
 
 Stage: `release-candidate`
 
@@ -11,13 +11,25 @@ Main capabilities:
 - V11 Product Experience v0
 - V12 Release Candidate Smoke Pack v0
 
+## RC changelog
+
+### v0.1.0-rc.1
+
+- Fixed: the "状态" button did not open the product status panel on Windows/PySide6.
+- Added: offscreen Qt probe for product status button wiring.
+- Added: product status button wiring tests.
+
+### v0.1.0-rc.0
+
+- First release candidate.
+
 ## Tag plan
 
-After merging this branch into `main`, create the release candidate tag:
+After merging into `main`, create the release candidate tag:
 
 ```powershell
-git tag v0.1.0-rc.0
-git push origin v0.1.0-rc.0
+git tag v0.1.0-rc.1
+git push origin v0.1.0-rc.1
 ```
 
 ## 当前版本能力
