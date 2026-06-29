@@ -181,6 +181,36 @@ class DesktopWindow(QMainWindow):
 
         layout.addWidget(header_widget)
 
+        # Phase 3-B: Onboarding card — shown at first run
+        self._onboarding_card = QWidget()
+        self._onboarding_card.setStyleSheet(window_style.ONBOARDING_CARD_STYLE)
+        self._onboarding_card_layout = QVBoxLayout(self._onboarding_card)
+        self._onboarding_card_layout.setContentsMargins(10, 8, 10, 8)
+        self._onboarding_title = QLabel()
+        self._onboarding_title.setStyleSheet(window_style.ONBOARDING_TITLE_STYLE)
+        self._onboarding_card_layout.addWidget(self._onboarding_title)
+        self._onboarding_subtitle = QLabel()
+        self._onboarding_subtitle.setStyleSheet(window_style.ONBOARDING_SUBTITLE_STYLE)
+        self._onboarding_card_layout.addWidget(self._onboarding_subtitle)
+        self._onboarding_bullets = QLabel()
+        self._onboarding_bullets.setStyleSheet(window_style.ONBOARDING_BULLET_STYLE)
+        self._onboarding_bullets.setWordWrap(True)
+        self._onboarding_card_layout.addWidget(self._onboarding_bullets)
+        onboarding_button_row = QWidget()
+        onboarding_button_layout = QHBoxLayout(onboarding_button_row)
+        onboarding_button_layout.setContentsMargins(0, 4, 0, 0)
+        self._onboarding_dismiss_button = QPushButton("知道了")
+        self._onboarding_dismiss_button.setStyleSheet(window_style.PRIMARY_BUTTON_STYLE)
+        self._onboarding_dismiss_button.clicked.connect(self._on_onboarding_dismiss)
+        onboarding_button_layout.addWidget(self._onboarding_dismiss_button)
+        self._onboarding_settings_button = QPushButton("打开设置")
+        self._onboarding_settings_button.setStyleSheet(window_style.SECONDARY_BUTTON_STYLE)
+        self._onboarding_settings_button.clicked.connect(self._on_onboarding_open_settings)
+        onboarding_button_layout.addWidget(self._onboarding_settings_button)
+        onboarding_button_layout.addStretch()
+        self._onboarding_card_layout.addWidget(onboarding_button_row)
+        layout.addWidget(self._onboarding_card)
+
         # V11-A: Product status panel — card style (Phase 2-C)
         self._product_status_panel = QWidget()
         self._product_status_panel.setStyleSheet(
@@ -414,6 +444,16 @@ class DesktopWindow(QMainWindow):
         if self._on_hide_requested:
             self._on_hide_requested()
 
+    def _on_onboarding_dismiss(self) -> None:
+        """Handle '知道了' button click (Phase 3-B)."""
+        self._view_model.dismiss_onboarding()
+        self.update_from_view_model()
+
+    def _on_onboarding_open_settings(self) -> None:
+        """Handle '打开设置' button click (Phase 3-B)."""
+        self._view_model.open_settings_from_onboarding()
+        self.update_from_view_model()
+
     def _handle_product_status_clicked(self) -> None:
         """Handle product status button click (Phase 2-D).
 
@@ -473,6 +513,20 @@ class DesktopWindow(QMainWindow):
         self._compact_button.setText(render_compact_button_text(self._view_model.compact_mode))
         # Phase 2-D: Sync compact mode layout
         self._aux_button_row.setVisible(not self._view_model.compact_mode)
+
+        # Phase 3-B: Update onboarding card visibility and content
+        self._onboarding_card.setVisible(self._view_model.onboarding_visible)
+        if self._view_model.onboarding_text:
+            # Parse and display the onboarding text
+            onboarding_text = self._view_model.onboarding_text
+            onboarding_lines = onboarding_text.split("\n", 2)
+            if len(onboarding_lines) >= 1:
+                self._onboarding_title.setText(onboarding_lines[0])
+            if len(onboarding_lines) >= 2:
+                self._onboarding_subtitle.setText(onboarding_lines[1])
+            if len(onboarding_lines) >= 3:
+                self._onboarding_bullets.setText(onboarding_lines[2])
+
         self._chat_history.setPlainText(
             render_chat_messages(self._view_model.chat_messages)
         )

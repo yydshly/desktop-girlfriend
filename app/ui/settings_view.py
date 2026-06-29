@@ -108,6 +108,7 @@ def build_settings_view(
     behavior_lines = (
         "关闭窗口时，小云会尽量隐藏到托盘；",
         "如需退出，请从托盘菜单选择「退出」。",
+        "首次打开时，小云会显示一张简短引导卡。",
     )
 
     # Section 2: Chat settings

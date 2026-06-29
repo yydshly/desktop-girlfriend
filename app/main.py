@@ -61,6 +61,7 @@ from app.input.asr.controller import VoiceInputController
 from app.input.asr.providers import ASRProviderError, create_asr_provider
 from app.input.audio import MicrophoneRecorder, MicrophoneRecorderLike
 from app.ui.close_behavior import decide_close_behavior
+from app.ui.onboarding_view import build_onboarding_view, render_onboarding_text
 from app.ui.product_status_builder import build_product_status_view
 from app.ui.qt_event_bridge import QtEventBridge
 from app.ui.settings_view import build_settings_view, render_settings_view_text
@@ -134,6 +135,10 @@ def main() -> None:
     # Phase 2-E: Pre-build settings view text
     view_model.set_settings_text(
         render_settings_view_text(build_settings_view(config, app_version=app_version))
+    )
+    # Phase 3-B: Initialize onboarding text
+    view_model.set_onboarding_text(
+        render_onboarding_text(build_onboarding_view(companion_name="小云"))
     )
 
     # Callback to submit user text via EventBus

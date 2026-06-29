@@ -95,3 +95,23 @@ DESTRUCTIVE_BUTTON_STYLE = (
     "background-color: #fdecea; color: #c0392b; "
     "border: none; border-radius: 5px;"
 )
+
+# ---------------------------------------------------------------------------
+# Onboarding card (Phase 3-B)
+# ---------------------------------------------------------------------------
+
+# Onboarding card — light card, subtle border, compact
+ONBOARDING_CARD_STYLE = (
+    "background-color: #f0f7ff; border-radius: 8px; padding: 12px; "
+    "border: 1px solid #c8d9f0;"
+)
+
+# Onboarding title — bold, welcoming
+ONBOARDING_TITLE_STYLE = "font-size: 16px; font-weight: 700; color: #2c3e50;"
+
+# Onboarding subtitle — secondary text
+ONBOARDING_SUBTITLE_STYLE = "font-size: 13px; color: #555; padding: 4px 0;"
+
+# Onboarding bullet text — readable list
+ONBOARDING_BULLET_STYLE = "font-size: 12px; color: #444; line-height: 1.7;"
+
