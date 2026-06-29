@@ -394,6 +394,10 @@ def main() -> None:
                 idle_seconds=config.proactive_idle_seconds,
                 cooldown_seconds=config.proactive_cooldown_seconds,
                 max_per_session=config.proactive_max_per_session,
+                quiet_hours_enabled=config.proactive_quiet_hours_enabled,
+                quiet_start_hour=config.proactive_quiet_start_hour,
+                quiet_end_hour=config.proactive_quiet_end_hour,
+                feedback_pause_seconds=config.proactive_feedback_pause_seconds,
             )
         )
         proactive_controller = ProactiveController(

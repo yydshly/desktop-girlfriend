@@ -1,4 +1,4 @@
-"""Proactive nudge controller (V9-A)."""
+"""Proactive nudge controller (V9-A / V9-C)."""
 
 from __future__ import annotations
 
@@ -32,9 +32,16 @@ class ProactiveController:
         self._started = False
 
     def _on_user_text_submitted(self, event: BaseEvent) -> None:
-        """Handle user.text_submitted to record user activity."""
+        """Handle user.text_submitted to record user activity/suppress phrases.
+
+        V9-C: Uses record_user_message to detect suppress phrases.
+        """
         if event.event_type == USER_TEXT_SUBMITTED:
-            self._service.record_user_activity(event.timestamp)
+            text = event.payload.get("text")
+            if isinstance(text, str):
+                self._service.record_user_message(text)
+            else:
+                self._service.record_user_activity()
 
     def start(self) -> None:
         """Start the controller (idempotent)."""

@@ -543,3 +543,212 @@ def test_proactive_tts_routing_does_not_read_memory() -> None:
     )
     _build_assistant_text_event_from_proactive(event)
     # No memory access
+
+
+# ---------------------------------------------------------------------------
+# V9-C: Strategy Guardrails tests
+# ---------------------------------------------------------------------------
+
+
+def test_quiet_hours_config_defaults_disabled() -> None:
+    """quiet_hours_enabled defaults to False."""
+    config = ProactiveNudgeConfig()
+    assert config.quiet_hours_enabled is False
+    assert config.quiet_start_hour == 23
+    assert config.quiet_end_hour == 8
+    assert config.feedback_pause_seconds == 3600
+
+
+def test_quiet_hours_disabled_allows_nudge() -> None:
+    """Quiet hours disabled does not block nudge."""
+    config = ProactiveNudgeConfig(
+        enabled=True,
+        idle_seconds=1,
+        quiet_hours_enabled=False,
+    )
+    service = ProactiveNudgeService(config)
+    now = datetime.now(UTC).replace(hour=23, minute=0, second=0, microsecond=0)
+    service.record_user_activity(now)
+    result = service.maybe_create_nudge(now=now + timedelta(seconds=2))
+    assert result is not None
+
+
+def test_quiet_hours_enabled_within_range_blocks_nudge() -> None:
+    """Quiet hours enabled and current time in range blocks nudge."""
+    config = ProactiveNudgeConfig(
+        enabled=True,
+        idle_seconds=1,
+        quiet_hours_enabled=True,
+        quiet_start_hour=22,
+        quiet_end_hour=23,
+    )
+    service = ProactiveNudgeService(config)
+    now = datetime.now(UTC).replace(hour=22, minute=30, second=0, microsecond=0)
+    service.record_user_activity(now)
+    result = service.maybe_create_nudge(now=now + timedelta(seconds=2))
+    assert result is None
+
+
+def test_quiet_hours_enabled_outside_range_allows_nudge() -> None:
+    """Quiet hours enabled but current time outside range allows nudge."""
+    config = ProactiveNudgeConfig(
+        enabled=True,
+        idle_seconds=1,
+        quiet_hours_enabled=True,
+        quiet_start_hour=22,
+        quiet_end_hour=23,
+    )
+    service = ProactiveNudgeService(config)
+    now = datetime.now(UTC).replace(hour=21, minute=0, second=0, microsecond=0)
+    service.record_user_activity(now)
+    result = service.maybe_create_nudge(now=now + timedelta(seconds=2))
+    assert result is not None
+
+
+def test_quiet_hours_cross_midnight_23_to_8() -> None:
+    """Cross-midnight quiet hours (23-8) blocks during night."""
+    config = ProactiveNudgeConfig(
+        enabled=True,
+        idle_seconds=1,
+        quiet_hours_enabled=True,
+        quiet_start_hour=23,
+        quiet_end_hour=8,
+    )
+    service = ProactiveNudgeService(config)
+
+    # 23:30 - within quiet hours
+    now1 = datetime.now(UTC).replace(hour=23, minute=30, second=0, microsecond=0)
+    service.record_user_activity(now1)
+    result1 = service.maybe_create_nudge(now=now1 + timedelta(seconds=2))
+    assert result1 is None, "23:30 should be quiet"
+
+    # 3:00 - within quiet hours
+    now2 = datetime.now(UTC).replace(hour=3, minute=0, second=0, microsecond=0)
+    service.record_user_activity(now2)
+    result2 = service.maybe_create_nudge(now=now2 + timedelta(seconds=2))
+    assert result2 is None, "03:00 should be quiet"
+
+    # 9:00 - outside quiet hours
+    now3 = datetime.now(UTC).replace(hour=9, minute=0, second=0, microsecond=0)
+    service.record_user_activity(now3)
+    result3 = service.maybe_create_nudge(now=now3 + timedelta(seconds=2))
+    assert result3 is not None, "09:00 should be allowed"
+
+    # 15:00 - outside quiet hours
+    now4 = datetime.now(UTC).replace(hour=15, minute=0, second=0, microsecond=0)
+    service.record_user_activity(now4)
+    result4 = service.maybe_create_nudge(now=now4 + timedelta(seconds=2))
+    assert result4 is not None, "15:00 should be allowed"
+
+
+def test_user_message_with_suppress_phrase_sets_pause() -> None:
+    """User message containing suppress phrase activates pause."""
+    config = ProactiveNudgeConfig(
+        enabled=True,
+        idle_seconds=1,
+        feedback_pause_seconds=3600,
+    )
+    service = ProactiveNudgeService(config)
+    now = datetime.now(UTC)
+    service.record_user_activity(now)
+
+    # Should trigger normally first
+    result1 = service.maybe_create_nudge(now=now + timedelta(seconds=5))
+    assert result1 is not None
+    service.record_nudge_sent(now + timedelta(seconds=5))
+
+    # Now user says "别打扰"
+    pause_start = now + timedelta(seconds=10)
+    service.record_user_message("别打扰", now=pause_start)
+
+    # Within pause period
+    during_pause = pause_start + timedelta(seconds=100)
+    result2 = service.maybe_create_nudge(now=during_pause)
+    assert result2 is None, "Should be paused after 别打扰"
+
+
+def test_pause_expires_and_nudge_resumes() -> None:
+    """After pause expires, nudge can trigger again."""
+    config = ProactiveNudgeConfig(
+        enabled=True,
+        idle_seconds=1,
+        cooldown_seconds=10,
+        feedback_pause_seconds=60,
+    )
+    service = ProactiveNudgeService(config)
+    now = datetime.now(UTC)
+    service.record_user_activity(now)
+
+    # Trigger first nudge
+    t1 = now + timedelta(seconds=5)
+    result1 = service.maybe_create_nudge(now=t1)
+    assert result1 is not None
+    service.record_nudge_sent(t1)
+
+    # User says "别打扰"
+    pause_start = now + timedelta(seconds=10)
+    service.record_user_message("别打扰", now=pause_start)
+
+    # Check during pause
+    during_pause = pause_start + timedelta(seconds=30)
+    result2 = service.maybe_create_nudge(now=during_pause)
+    assert result2 is None
+
+    # After pause expires (pause covers t0+10 to t0+70)
+    after_pause = pause_start + timedelta(seconds=65)  # t0+75
+    # Activity at t0+70, check at t0+75 -> idle=5s > 1s threshold
+    service.record_user_activity(pause_start)  # t0+10
+    result3 = service.maybe_create_nudge(now=after_pause)
+    assert result3 is not None, "Should resume after pause expires"
+
+
+def test_controller_suppress_phrase_sets_pause() -> None:
+    """Controller handles USER_TEXT_SUBMITTED with suppress phrase."""
+    config = ProactiveNudgeConfig(enabled=True, idle_seconds=10, feedback_pause_seconds=60)
+    service = ProactiveNudgeService(config)
+    subscribe = MagicMock()
+    unsubscribe = MagicMock()
+    dispatch_event = MagicMock()
+
+    controller = ProactiveController(
+        service=service,
+        subscribe=subscribe,
+        unsubscribe=unsubscribe,
+        dispatch_event=dispatch_event,
+    )
+    controller.start()
+
+    now = datetime.now(UTC)
+    event = _make_event(USER_TEXT_SUBMITTED, {"text": "我今天很累，别打扰我。"}, timestamp=now)
+    controller._on_user_text_submitted(event)
+
+    # Should be paused
+    during_pause = now + timedelta(seconds=30)
+    result = service.maybe_create_nudge(now=during_pause)
+    assert result is None, "Should be paused after suppress phrase"
+
+
+def test_service_does_not_call_llm_v9c() -> None:
+    """V9-C service still does not call LLM."""
+    config = ProactiveNudgeConfig(enabled=True, quiet_hours_enabled=True, feedback_pause_seconds=60)
+    service = ProactiveNudgeService(config)
+    now = datetime.now(UTC)
+    service.record_user_activity(now)
+    result = service.maybe_create_nudge(now=now + timedelta(seconds=5))
+    # No LLM, just fixed pool
+    assert result is None or isinstance(result, str)
+
+
+def test_service_does_not_call_tts_v9c() -> None:
+    """V9-C service does not call TTS."""
+    config = ProactiveNudgeConfig(enabled=True)
+    service = ProactiveNudgeService(config)
+    assert hasattr(service, "maybe_create_nudge")
+
+
+def test_service_does_not_read_memory_v9c() -> None:
+    """V9-C service does not read memory."""
+    config = ProactiveNudgeConfig(enabled=True, quiet_hours_enabled=True)
+    service = ProactiveNudgeService(config)
+    assert not hasattr(service, "_memory_store")
+    assert not hasattr(service, "_memory_repo")

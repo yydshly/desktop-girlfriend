@@ -165,6 +165,19 @@ class AppConfig:
         self.proactive_tts_enabled: bool = _env_bool_or_default(
             "PROACTIVE_TTS_ENABLED", "false"
         )
+        # Proactive strategy guardrails configuration (V9-C)
+        self.proactive_quiet_hours_enabled: bool = _env_bool_or_default(
+            "PROACTIVE_QUIET_HOURS_ENABLED", "false"
+        )
+        self.proactive_quiet_start_hour: int = _env_int_or_default(
+            "PROACTIVE_QUIET_START_HOUR", "23"
+        )
+        self.proactive_quiet_end_hour: int = _env_int_or_default(
+            "PROACTIVE_QUIET_END_HOUR", "8"
+        )
+        self.proactive_feedback_pause_seconds: int = _env_int_or_default(
+            "PROACTIVE_FEEDBACK_PAUSE_SECONDS", "3600"
+        )
 
         # ASR recording configuration (V6-B1)
         self.asr_recording_output_dir: str = _env_or_default(
