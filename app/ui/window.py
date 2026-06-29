@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 
 from app.contracts.states import AppState
 from app.core.config import get_config
+from app.ui import window_style
 from app.ui.chat_message import ChatMessage
 from app.ui.conversation_view import (
     get_input_placeholder,
@@ -99,10 +100,11 @@ class DesktopWindow(QMainWindow):
         self.setCentralWidget(central)
         layout = QVBoxLayout(central)
 
-        # Companion header
+        # Companion header — subtle card background (Phase 2-C)
         header_widget = QWidget()
+        header_widget.setStyleSheet(window_style.HEADER_CARD_STYLE)
         header_layout = QHBoxLayout(header_widget)
-        header_layout.setContentsMargins(10, 10, 10, 10)
+        header_layout.setContentsMargins(12, 10, 12, 10)
 
         self._avatar_label = QLabel(self._view_model.effective_avatar_text)
         self._avatar_label.setToolTip(self._view_model.effective_avatar_label)
@@ -115,29 +117,30 @@ class DesktopWindow(QMainWindow):
         info_layout.setSpacing(2)
 
         self._name_label = QLabel(self._view_model.companion_name)
-        self._name_label.setStyleSheet("font-size: 20px; font-weight: 700; color: #333;")
+        self._name_label.setStyleSheet(window_style.NAME_LABEL_STYLE)
         info_layout.addWidget(self._name_label)
 
         self._subtitle_label = QLabel(self._view_model.companion_subtitle)
-        self._subtitle_label.setStyleSheet("font-size: 12px; color: #666;")
+        self._subtitle_label.setStyleSheet(window_style.SUBTITLE_LABEL_STYLE)
         info_layout.addWidget(self._subtitle_label)
 
         # Phase 2-A: Natural companion status text
         self._companion_status_label = QLabel(self._view_model.companion_status_text)
-        self._companion_status_label.setStyleSheet("font-size: 14px; color: #555; padding-top: 2px;")
+        self._companion_status_label.setStyleSheet(window_style.STATUS_LABEL_STYLE)
         info_layout.addWidget(self._companion_status_label)
 
         # Phase 2-A: Version and release stage
         version_text = f"{self._view_model.companion_version_text} · {self._view_model.companion_release_stage_text}"
         self._version_label = QLabel(version_text)
-        self._version_label.setStyleSheet("font-size: 11px; color: #999;")
+        self._version_label.setStyleSheet(window_style.VERSION_LABEL_STYLE)
         info_layout.addWidget(self._version_label)
 
         header_layout.addWidget(info_widget, stretch=1)
 
-        # V11-A: Product status button
+        # V11-A: Product status button — subdued access point (Phase 2-C)
         self._product_status_button = QPushButton("状态")
         self._product_status_button.setToolTip("查看小云的能力状态")
+        self._product_status_button.setStyleSheet(window_style.STATUS_BUTTON_STYLE)
         self._product_status_button.pressed.connect(
             self._handle_product_status_clicked
         )
@@ -145,18 +148,21 @@ class DesktopWindow(QMainWindow):
 
         layout.addWidget(header_widget)
 
-        # V11-A: Product status panel (between header and chat history)
+        # V11-A: Product status panel — card style (Phase 2-C)
         self._product_status_panel = QWidget()
+        self._product_status_panel.setStyleSheet(
+            "background-color: #f0f4f8; border-radius: 6px; padding: 4px;"
+        )
         self._product_status_panel_layout = QVBoxLayout(self._product_status_panel)
-        self._product_status_panel_layout.setContentsMargins(8, 8, 8, 8)
+        self._product_status_panel_layout.setContentsMargins(10, 8, 10, 8)
         self._product_status_text = QLabel()
         self._product_status_text.setWordWrap(True)
-        self._product_status_text.setStyleSheet("color: #333; font-size: 13px;")
+        self._product_status_text.setStyleSheet(window_style.PRODUCT_STATUS_TEXT_STYLE)
         self._product_status_panel_layout.addWidget(self._product_status_text)
         # V11-C: Startup diagnostics details in product status panel
         self._startup_diagnostics_text = QLabel()
         self._startup_diagnostics_text.setWordWrap(True)
-        self._startup_diagnostics_text.setStyleSheet("font-size: 12px; color: #777; padding-top: 4px;")
+        self._startup_diagnostics_text.setStyleSheet(window_style.STARTUP_DIAGNOSTICS_TEXT_STYLE)
         self._product_status_panel_layout.addWidget(self._startup_diagnostics_text)
         self._product_status_panel.setVisible(False)
         layout.addWidget(self._product_status_panel)
@@ -164,29 +170,32 @@ class DesktopWindow(QMainWindow):
         # Chat history display
         self._chat_history = QTextEdit()
         self._chat_history.setReadOnly(True)
-        self._chat_history.setStyleSheet("padding: 12px; background-color: #fafafa;")
+        self._chat_history.setStyleSheet(window_style.CHAT_HISTORY_STYLE)
         self._chat_history.setPlainText(render_chat_messages(self._view_model.chat_messages))
         layout.addWidget(self._chat_history, stretch=1)
 
         # Error display
         self._error_label = QLabel(self._view_model.error_text)
         self._error_label.setWordWrap(True)
-        self._error_label.setStyleSheet("color: #b00020; padding: 8px;")
+        self._error_label.setStyleSheet(window_style.ERROR_LABEL_STYLE)
         self._error_label.setVisible(bool(self._view_model.error_text))
         layout.addWidget(self._error_label)
 
-        # Memory suggestion widget (V8-I)
+        # Memory suggestion widget (V8-I) — card style (Phase 2-C)
         self._memory_suggestion_widget = QWidget()
+        self._memory_suggestion_widget.setStyleSheet(
+            "background-color: #f0f7ff; border-radius: 6px; padding: 4px;"
+        )
         self._memory_suggestion_layout = QVBoxLayout(self._memory_suggestion_widget)
-        self._memory_suggestion_layout.setContentsMargins(8, 8, 8, 8)
+        self._memory_suggestion_layout.setContentsMargins(10, 8, 10, 8)
 
         self._memory_suggestion_title = QLabel("要我记住这件事吗？")
-        self._memory_suggestion_title.setStyleSheet("font-size: 14px; font-weight: 600;")
+        self._memory_suggestion_title.setStyleSheet(window_style.MEMORY_SUGGESTION_TITLE_STYLE)
         self._memory_suggestion_layout.addWidget(self._memory_suggestion_title)
 
         self._memory_suggestion_text = QLabel("")
         self._memory_suggestion_text.setWordWrap(True)
-        self._memory_suggestion_text.setStyleSheet("padding: 4px 0; color: #333;")
+        self._memory_suggestion_text.setStyleSheet(window_style.MEMORY_SUGGESTION_TEXT_STYLE)
         self._memory_suggestion_layout.addWidget(self._memory_suggestion_text)
 
         memory_button_row = QWidget()
@@ -194,10 +203,12 @@ class DesktopWindow(QMainWindow):
         memory_button_layout.setContentsMargins(0, 0, 0, 0)
 
         self._memory_confirm_button = QPushButton("记住")
+        self._memory_confirm_button.setStyleSheet(window_style.PRIMARY_BUTTON_STYLE)
         self._memory_confirm_button.clicked.connect(self._on_memory_confirm_clicked)
         memory_button_layout.addWidget(self._memory_confirm_button)
 
         self._memory_reject_button = QPushButton("不记")
+        self._memory_reject_button.setStyleSheet(window_style.SECONDARY_BUTTON_STYLE)
         self._memory_reject_button.clicked.connect(self._on_memory_reject_clicked)
         memory_button_layout.addWidget(self._memory_reject_button)
 
@@ -205,21 +216,25 @@ class DesktopWindow(QMainWindow):
         self._memory_suggestion_widget.setVisible(False)
         layout.addWidget(self._memory_suggestion_widget)
 
-        # Memory panel widget (V8-J)
+        # Memory panel widget (V8-J) — card style (Phase 2-C)
         self._memory_panel_widget = QWidget()
+        self._memory_panel_widget.setStyleSheet(
+            "background-color: #f0f7ff; border-radius: 6px; padding: 4px;"
+        )
         self._memory_panel_layout = QVBoxLayout(self._memory_panel_widget)
-        self._memory_panel_layout.setContentsMargins(8, 8, 8, 8)
+        self._memory_panel_layout.setContentsMargins(10, 8, 10, 8)
 
         self._memory_panel_title = QLabel("已保存的记忆")
-        self._memory_panel_title.setStyleSheet("font-size: 14px; font-weight: 600;")
+        self._memory_panel_title.setStyleSheet(window_style.MEMORY_PANEL_TITLE_STYLE)
         self._memory_panel_layout.addWidget(self._memory_panel_title)
 
         self._memory_panel_text = QLabel("")
         self._memory_panel_text.setWordWrap(True)
-        self._memory_panel_text.setStyleSheet("padding: 4px 0; color: #333;")
+        self._memory_panel_text.setStyleSheet(window_style.MEMORY_PANEL_TEXT_STYLE)
         self._memory_panel_layout.addWidget(self._memory_panel_text)
 
         self._memory_delete_first_button = QPushButton("删除第一条")
+        self._memory_delete_first_button.setStyleSheet(window_style.DESTRUCTIVE_BUTTON_STYLE)
         self._memory_delete_first_button.clicked.connect(self._on_memory_delete_first_clicked)
         self._memory_panel_layout.addWidget(self._memory_delete_first_button)
 
@@ -231,30 +246,37 @@ class DesktopWindow(QMainWindow):
         self._input_field.setPlaceholderText(get_input_placeholder())
         layout.addWidget(self._input_field)
 
-        # Button row
+        # Button row — primary (send) vs secondary (auxiliary) distinction (Phase 2-C)
         button_row = QWidget()
         button_layout = QHBoxLayout(button_row)
         button_layout.setContentsMargins(0, 0, 0, 0)
 
         self._new_conversation_button = QPushButton("新对话")
+        self._new_conversation_button.setStyleSheet(window_style.SECONDARY_BUTTON_STYLE)
         self._new_conversation_button.clicked.connect(self._on_new_conversation_clicked)
         button_layout.addWidget(self._new_conversation_button)
 
         self._voice_input_button = QPushButton("语音输入")
+        self._voice_input_button.setStyleSheet(window_style.SECONDARY_BUTTON_STYLE)
         self._voice_input_button.clicked.connect(self._on_voice_input_clicked)
         button_layout.addWidget(self._voice_input_button)
 
         self._memory_panel_button = QPushButton("记忆")
+        self._memory_panel_button.setStyleSheet(window_style.SECONDARY_BUTTON_STYLE)
         self._memory_panel_button.clicked.connect(self._on_memory_panel_clicked)
         self._memory_panel_button.setVisible(memory_management_enabled)
         button_layout.addWidget(self._memory_panel_button)
 
         self._stop_speaking_button = QPushButton("停止说话")
+        self._stop_speaking_button.setStyleSheet(window_style.SECONDARY_BUTTON_STYLE)
         self._stop_speaking_button.clicked.connect(self._on_tts_stop_clicked)
         self._stop_speaking_button.setEnabled(False)
         button_layout.addWidget(self._stop_speaking_button)
 
+        button_layout.addStretch()  # Push send button to the right
+
         self._send_button = QPushButton("发送")
+        self._send_button.setStyleSheet(window_style.PRIMARY_BUTTON_STYLE)
         self._send_button.clicked.connect(self._on_send_clicked)
         button_layout.addWidget(self._send_button)
 
