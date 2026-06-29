@@ -445,7 +445,6 @@ class DesktopViewModel:
 
     def toggle_memory_panel(self) -> None:
         """Toggle the memory panel visibility."""
-        was_visible = self.memory_panel_visible
         self.memory_panel_visible = not self.memory_panel_visible
         if self.memory_panel_visible:
             # Only clear stale feedback on re-open (not first open from manual add)

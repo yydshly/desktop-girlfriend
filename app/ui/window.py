@@ -341,6 +341,26 @@ class DesktopWindow(QMainWindow):
         self._memory_panel_privacy.setStyleSheet(window_style.MEMORY_PANEL_PRIVACY_STYLE)
         self._memory_panel_layout.addWidget(self._memory_panel_privacy)
 
+        # Phase 3-C: Manual memory add input row — placed before records for usability
+        self._memory_manual_input = QLineEdit()
+        self._memory_manual_input.setPlaceholderText("想让小云记住什么...")
+        self._memory_manual_input.setStyleSheet("padding: 4px; font-size: 13px;")
+        self._memory_manual_input.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self._memory_manual_input.setEnabled(True)
+        self._memory_manual_input.setReadOnly(False)
+        self._memory_manual_input.returnPressed.connect(self._on_memory_add_manual_clicked)
+        self._memory_panel_layout.addWidget(self._memory_manual_input)
+
+        memory_add_button_row = QWidget()
+        memory_add_button_layout = QHBoxLayout(memory_add_button_row)
+        memory_add_button_layout.setContentsMargins(0, 0, 0, 0)
+        self._memory_add_button = QPushButton("添加记忆")
+        self._memory_add_button.setStyleSheet(window_style.PRIMARY_BUTTON_STYLE)
+        self._memory_add_button.clicked.connect(self._on_memory_add_manual_clicked)
+        memory_add_button_layout.addWidget(self._memory_add_button)
+        memory_add_button_layout.addStretch()
+        self._memory_panel_layout.addWidget(memory_add_button_row)
+
         self._memory_panel_text = QLabel("")
         self._memory_panel_text.setWordWrap(True)
         self._memory_panel_text.setStyleSheet(window_style.MEMORY_PANEL_TEXT_STYLE)
@@ -359,23 +379,6 @@ class DesktopWindow(QMainWindow):
             self._memory_delete_record_buttons.append(button)
             self._memory_panel_layout.addWidget(button)
         self._memory_delete_first_button = self._memory_delete_record_buttons[0]
-
-        # Phase 3-C: Manual memory add input row
-        self._memory_manual_input = QLineEdit()
-        self._memory_manual_input.setPlaceholderText("想让小云记住什么...")
-        self._memory_manual_input.setStyleSheet("padding: 4px; font-size: 13px;")
-        self._memory_manual_input.returnPressed.connect(self._on_memory_add_manual_clicked)
-        self._memory_panel_layout.addWidget(self._memory_manual_input)
-
-        memory_add_button_row = QWidget()
-        memory_add_button_layout = QHBoxLayout(memory_add_button_row)
-        memory_add_button_layout.setContentsMargins(0, 0, 0, 0)
-        self._memory_add_button = QPushButton("添加记忆")
-        self._memory_add_button.setStyleSheet(window_style.PRIMARY_BUTTON_STYLE)
-        self._memory_add_button.clicked.connect(self._on_memory_add_manual_clicked)
-        memory_add_button_layout.addWidget(self._memory_add_button)
-        memory_add_button_layout.addStretch()
-        self._memory_panel_layout.addWidget(memory_add_button_row)
 
         self._memory_panel_widget.setVisible(False)
 
@@ -487,6 +490,8 @@ class DesktopWindow(QMainWindow):
         if self._view_model.memory_panel_visible and self._on_memory_list_requested:
             self._on_memory_list_requested()
         self.update_from_view_model()
+        if self._view_model.memory_panel_visible:
+            self._memory_manual_input.setFocus(Qt.FocusReason.OtherFocusReason)
 
     def _on_memory_delete_clicked(self, index: int) -> None:
         """Handle delete memory record button click."""

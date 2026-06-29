@@ -11,6 +11,8 @@ import sys
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import Qt
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
 from app.contracts.events import MEMORY_ADDED, BaseEvent
@@ -189,8 +191,8 @@ def main() -> int:
         print("memory delete per-record visibility: FAIL")
         return 1
 
-    # Click 2nd delete button, verify it calls record-2
-    window2._memory_delete_record_buttons[1].click()
+    # Click 2nd delete button using real mouse click, verify it calls record-2
+    QTest.mouseClick(window2._memory_delete_record_buttons[1], Qt.MouseButton.LeftButton)
     QApplication.instance().processEvents()
     if deleted == ["record-2"]:
         print("memory delete per-record index 2: OK")
@@ -198,44 +200,82 @@ def main() -> int:
         print(f"memory delete per-record index 2: FAIL (got {deleted})")
         return 1
 
-    # Test manual memory Enter shortcut
-    callback_results: list[str] = []
-
-    def on_add(text: str) -> None:
-        callback_results.append(text)
-
+    # Test manual memory keyboard input focus
     vm3 = DesktopViewModel()
     window3 = DesktopWindow(
         view_model=vm3,
         on_user_text_submitted=lambda t: None,
         on_conversation_cleared=lambda: None,
-        on_add_manual_memory_requested=on_add,
     )
     window3.show()
     window3._on_memory_panel_clicked()
     QApplication.instance().processEvents()
-    window3._memory_manual_input.setText("我喜欢短回复")
-    window3._memory_manual_input.returnPressed.emit()
-    QApplication.instance().processEvents()
-    if callback_results == ["我喜欢短回复"] and window3._memory_manual_input.text() == "":
-        print("manual add enter shortcut: OK")
+    if QApplication.focusWidget() is window3._memory_manual_input:
+        print("memory manual input focus: OK")
     else:
-        print(f"manual add enter shortcut: FAIL (callback={callback_results}, input={window3._memory_manual_input.text()!r})")
+        print(f"memory manual input focus: FAIL (focus={QApplication.focusWidget()})")
         return 1
 
-    # Test chat Enter shortcut
-    submitted: list[str] = []
+    # Test real keyboard typing in memory input
+    QTest.mouseClick(window3._memory_manual_input, Qt.MouseButton.LeftButton)
+    QApplication.instance().processEvents()
+    QTest.keyClicks(window3._memory_manual_input, "test idol")
+    QApplication.instance().processEvents()
+    if window3._memory_manual_input.text() == "test idol":
+        print("memory manual input key typing: OK")
+    else:
+        print(f"memory manual input key typing: FAIL (got {window3._memory_manual_input.text()!r})")
+        return 1
+
+    # Test manual memory Enter shortcut with real keyboard
+    callback_results: list[str] = []
+
+    def on_add(text: str) -> None:
+        callback_results.append(text)
+
     vm4 = DesktopViewModel()
     window4 = DesktopWindow(
         view_model=vm4,
+        on_user_text_submitted=lambda t: None,
+        on_conversation_cleared=lambda: None,
+        on_add_manual_memory_requested=on_add,
+    )
+    window4.show()
+    window4._on_memory_panel_clicked()
+    QApplication.instance().processEvents()
+    input_widget = window4._memory_manual_input
+    QTest.mouseClick(input_widget, Qt.MouseButton.LeftButton)
+    QApplication.instance().processEvents()
+    QTest.keyClicks(input_widget, "test idol")
+    QApplication.instance().processEvents()
+    QTest.keyClick(input_widget, Qt.Key.Key_Return)
+    QApplication.instance().processEvents()
+    if callback_results == ["test idol"] and input_widget.text() == "":
+        print("memory manual input enter submit: OK")
+    else:
+        print(f"memory manual input enter submit: FAIL (callback={callback_results}, input={input_widget.text()!r})")
+        return 1
+
+    # Test chat Enter shortcut with real keyboard
+    submitted: list[str] = []
+    vm5 = DesktopViewModel()
+    window5 = DesktopWindow(
+        view_model=vm5,
         on_user_text_submitted=submitted.append,
         on_conversation_cleared=lambda: None,
     )
-    window4.show()
-    window4._input_field.setText("你好")
-    window4._input_field.returnPressed.emit()
+    window5.show()
+    window5.activateWindow()
+    window5.raise_()
     QApplication.instance().processEvents()
-    if submitted == ["你好"] and window4._input_field.text() == "":
+    chat_input = window5._input_field
+    QTest.mouseClick(chat_input, Qt.MouseButton.LeftButton)
+    QApplication.instance().processEvents()
+    QTest.keyClicks(chat_input, "hello")
+    QApplication.instance().processEvents()
+    QTest.keyClick(chat_input, Qt.Key.Key_Return)
+    QApplication.instance().processEvents()
+    if submitted == ["hello"] and chat_input.text() == "":
         print("chat enter shortcut: OK")
     else:
         print(f"chat enter shortcut: FAIL (submitted={submitted})")
