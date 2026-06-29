@@ -1,6 +1,6 @@
 # Desktop Girlfriend Release Candidate v0
 
-Version: `0.1.0-rc.1`
+Version: `0.1.0-rc.2`
 
 Stage: `release-candidate`
 
@@ -12,6 +12,12 @@ Main capabilities:
 - V12 Release Candidate Smoke Pack v0
 
 ## RC changelog
+
+### v0.1.0-rc.2
+
+- Fixed: the first click on the "状态" button after startup could have no visible effect.
+- Changed: product status view is prebuilt during startup.
+- Changed: status button uses first-click-safe mouse press handling.
 
 ### v0.1.0-rc.1
 
@@ -28,8 +34,8 @@ Main capabilities:
 After merging into `main`, create the release candidate tag:
 
 ```powershell
-git tag v0.1.0-rc.1
-git push origin v0.1.0-rc.1
+git tag v0.1.0-rc.2
+git push origin v0.1.0-rc.2
 ```
 
 ## 当前版本能力

@@ -131,8 +131,8 @@ class DesktopWindow(QMainWindow):
         # V11-A: Product status button
         self._product_status_button = QPushButton("状态")
         self._product_status_button.setToolTip("查看小云的能力状态")
-        self._product_status_button.clicked.connect(
-            lambda _checked=False: self._handle_product_status_clicked()
+        self._product_status_button.pressed.connect(
+            self._handle_product_status_clicked
         )
         header_layout.addWidget(self._product_status_button)
 
