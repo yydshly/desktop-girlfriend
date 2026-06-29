@@ -555,3 +555,238 @@ def test_persona_user_address_empty_string_falls_back_to_default(
     monkeypatch.setenv("PERSONA_USER_ADDRESS", "")
     config = AppConfig()
     assert config.persona_user_address == "你"
+
+
+# Memory config tests (V8-G)
+
+
+def test_default_memory_context_enabled_is_false(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test default memory_context_enabled is False."""
+    clear_config_env(monkeypatch)
+    config = AppConfig()
+    assert config.memory_context_enabled is False
+
+
+def test_memory_context_enabled_true(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_CONTEXT_ENABLED=true parses to True."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_CONTEXT_ENABLED", "true")
+    config = AppConfig()
+    assert config.memory_context_enabled is True
+
+
+def test_memory_context_enabled_false(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_CONTEXT_ENABLED=false parses to False."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_CONTEXT_ENABLED", "false")
+    config = AppConfig()
+    assert config.memory_context_enabled is False
+
+
+def test_memory_context_enabled_yes(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_CONTEXT_ENABLED=yes parses to True."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_CONTEXT_ENABLED", "yes")
+    config = AppConfig()
+    assert config.memory_context_enabled is True
+
+
+def test_memory_context_enabled_1(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_CONTEXT_ENABLED=1 parses to True."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_CONTEXT_ENABLED", "1")
+    config = AppConfig()
+    assert config.memory_context_enabled is True
+
+
+def test_memory_context_enabled_on(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_CONTEXT_ENABLED=on parses to True."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_CONTEXT_ENABLED", "on")
+    config = AppConfig()
+    assert config.memory_context_enabled is True
+
+
+def test_memory_context_enabled_0(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_CONTEXT_ENABLED=0 parses to False."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_CONTEXT_ENABLED", "0")
+    config = AppConfig()
+    assert config.memory_context_enabled is False
+
+
+def test_memory_context_enabled_invalid_raises(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test invalid MEMORY_CONTEXT_ENABLED value raises ValueError."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_CONTEXT_ENABLED", "maybe")
+    with pytest.raises(ValueError, match="MEMORY_CONTEXT_ENABLED must be a boolean"):
+        AppConfig()
+
+
+def test_default_memory_store_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test default memory_store_path is .tmp/memory.json."""
+    clear_config_env(monkeypatch)
+    config = AppConfig()
+    assert config.memory_store_path == ".tmp/memory.json"
+
+
+def test_memory_store_path_override(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_STORE_PATH env var overrides default."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_STORE_PATH", "/custom/path/memory.json")
+    config = AppConfig()
+    assert config.memory_store_path == "/custom/path/memory.json"
+
+
+# Memory suggestion config tests (V8-H)
+
+
+def test_default_memory_suggestions_enabled_is_false(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test default memory_suggestions_enabled is False."""
+    clear_config_env(monkeypatch)
+    config = AppConfig()
+    assert config.memory_suggestions_enabled is False
+
+
+def test_memory_suggestions_enabled_true(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_SUGGESTIONS_ENABLED=true parses to True."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_SUGGESTIONS_ENABLED", "true")
+    config = AppConfig()
+    assert config.memory_suggestions_enabled is True
+
+
+def test_memory_suggestions_enabled_false(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_SUGGESTIONS_ENABLED=false parses to False."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_SUGGESTIONS_ENABLED", "false")
+    config = AppConfig()
+    assert config.memory_suggestions_enabled is False
+
+
+def test_memory_suggestions_enabled_yes(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_SUGGESTIONS_ENABLED=yes parses to True."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_SUGGESTIONS_ENABLED", "yes")
+    config = AppConfig()
+    assert config.memory_suggestions_enabled is True
+
+
+def test_memory_suggestions_enabled_1(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_SUGGESTIONS_ENABLED=1 parses to True."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_SUGGESTIONS_ENABLED", "1")
+    config = AppConfig()
+    assert config.memory_suggestions_enabled is True
+
+
+def test_memory_suggestions_enabled_0(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_SUGGESTIONS_ENABLED=0 parses to False."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_SUGGESTIONS_ENABLED", "0")
+    config = AppConfig()
+    assert config.memory_suggestions_enabled is False
+
+
+def test_memory_suggestions_enabled_invalid_raises(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test invalid MEMORY_SUGGESTIONS_ENABLED value raises ValueError."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_SUGGESTIONS_ENABLED", "maybe")
+    with pytest.raises(ValueError, match="MEMORY_SUGGESTIONS_ENABLED must be a boolean"):
+        AppConfig()
+
+
+# Memory management config tests (V8-J Patch)
+
+
+def test_default_memory_management_enabled_is_false(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test default memory_management_enabled is False."""
+    clear_config_env(monkeypatch)
+    config = AppConfig()
+    assert config.memory_management_enabled is False
+
+
+def test_memory_management_enabled_true(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_MANAGEMENT_ENABLED=true parses to True."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_MANAGEMENT_ENABLED", "true")
+    config = AppConfig()
+    assert config.memory_management_enabled is True
+
+
+def test_memory_management_enabled_false(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_MANAGEMENT_ENABLED=false parses to False."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_MANAGEMENT_ENABLED", "false")
+    config = AppConfig()
+    assert config.memory_management_enabled is False
+
+
+def test_memory_management_enabled_yes(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_MANAGEMENT_ENABLED=yes parses to True."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_MANAGEMENT_ENABLED", "yes")
+    config = AppConfig()
+    assert config.memory_management_enabled is True
+
+
+def test_memory_management_enabled_on(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_MANAGEMENT_ENABLED=on parses to True."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_MANAGEMENT_ENABLED", "on")
+    config = AppConfig()
+    assert config.memory_management_enabled is True
+
+
+def test_memory_management_enabled_1(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_MANAGEMENT_ENABLED=1 parses to True."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_MANAGEMENT_ENABLED", "1")
+    config = AppConfig()
+    assert config.memory_management_enabled is True
+
+
+def test_memory_management_enabled_no(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_MANAGEMENT_ENABLED=no parses to False."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_MANAGEMENT_ENABLED", "no")
+    config = AppConfig()
+    assert config.memory_management_enabled is False
+
+
+def test_memory_management_enabled_off(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_MANAGEMENT_ENABLED=off parses to False."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_MANAGEMENT_ENABLED", "off")
+    config = AppConfig()
+    assert config.memory_management_enabled is False
+
+
+def test_memory_management_enabled_0(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test MEMORY_MANAGEMENT_ENABLED=0 parses to False."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_MANAGEMENT_ENABLED", "0")
+    config = AppConfig()
+    assert config.memory_management_enabled is False
+
+
+def test_memory_management_enabled_invalid_raises(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test invalid MEMORY_MANAGEMENT_ENABLED value raises ValueError."""
+    reset_config()
+    monkeypatch.setenv("MEMORY_MANAGEMENT_ENABLED", "maybe")
+    with pytest.raises(ValueError, match="MEMORY_MANAGEMENT_ENABLED must be a boolean"):
+        AppConfig()

@@ -5,6 +5,12 @@ from app.contracts.events import (
     ASR_TEXT_RECOGNIZED,
     ASSISTANT_TEXT_RECEIVED,
     CONVERSATION_CLEARED,
+    MEMORY_CONFIRMED,
+    MEMORY_DELETED,
+    MEMORY_ERROR,
+    MEMORY_LISTED,
+    MEMORY_REJECTED,
+    MEMORY_SUGGESTIONS_DETECTED,
     STATE_CHANGED,
     SYSTEM_ERROR,
     USER_TEXT_SUBMITTED,
@@ -14,6 +20,8 @@ from app.contracts.events import (
 )
 from app.contracts.states import AppState
 from app.ui.chat_message import ChatMessage
+from app.ui.memory_record_view import MemoryRecordView
+from app.ui.memory_suggestion import MemorySuggestionView
 
 # Mapping from AppState to display text
 _STATE_DISPLAY_TEXT: dict[AppState, str] = {
@@ -45,6 +53,10 @@ class DesktopViewModel:
         self.companion_subtitle: str = COMPANION_SUBTITLE
         self.companion_avatar_text: str = COMPANION_AVATAR_TEXT
         self.voice_status_text: str = ""
+        self.memory_suggestion: MemorySuggestionView | None = None
+        self.memory_status_text: str = ""
+        self.memory_records: list[MemoryRecordView] = []
+        self.memory_panel_visible: bool = False
 
     def handle_state_changed(self, event: BaseEvent) -> None:
         """Handle state.changed event and update display text.
@@ -127,6 +139,9 @@ class DesktopViewModel:
         self.assistant_text = ""
         self.error_text = ""
         self.voice_status_text = ""
+        self.memory_suggestion = None
+        self.memory_status_text = ""
+        self.memory_panel_visible = False
         self.state = AppState.IDLE
         self.display_text = _STATE_DISPLAY_TEXT[AppState.IDLE]
 
@@ -145,6 +160,154 @@ class DesktopViewModel:
             self.voice_status_text = "当前状态：正在识别语音"
         elif event_type == ASR_TEXT_RECOGNIZED:
             self.voice_status_text = "当前状态：正在想你说的话"
+
+    def handle_memory_suggestions_detected(self, event: BaseEvent) -> None:
+        """Handle memory.suggestions_detected event and store first suggestion.
+
+        Args:
+            event: The memory.suggestions_detected event.
+        """
+        if event.event_type != MEMORY_SUGGESTIONS_DETECTED:
+            return
+
+        suggestions = event.payload.get("suggestions")
+        if not isinstance(suggestions, list) or len(suggestions) == 0:
+            self.memory_suggestion = None
+            self.memory_status_text = ""
+            return
+
+        first = suggestions[0]
+        if not isinstance(first, dict):
+            return
+
+        pending_id = first.get("pending_id")
+        kind = first.get("kind")
+        importance = first.get("importance")
+        text = first.get("text")
+
+        if (
+            not isinstance(pending_id, str)
+            or not isinstance(kind, str)
+            or not isinstance(importance, str)
+            or not isinstance(text, str)
+        ):
+            return
+
+        self.memory_suggestion = MemorySuggestionView(
+            pending_id=pending_id,
+            kind=kind,
+            importance=importance,
+            text=text,
+        )
+        self.memory_status_text = "小云发现一条可能值得记住的信息"
+
+    def handle_memory_confirmed(self, event: BaseEvent) -> None:
+        """Handle memory.confirmed event and clear suggestion.
+
+        Args:
+            event: The memory.confirmed event.
+        """
+        if event.event_type != MEMORY_CONFIRMED:
+            return
+
+        self.memory_suggestion = None
+        self.memory_status_text = "已记住"
+
+    def handle_memory_rejected(self, event: BaseEvent) -> None:
+        """Handle memory.rejected event and clear suggestion.
+
+        Args:
+            event: The memory.rejected event.
+        """
+        if event.event_type != MEMORY_REJECTED:
+            return
+
+        self.memory_suggestion = None
+        self.memory_status_text = "已忽略"
+
+    def handle_memory_error(self, event: BaseEvent) -> None:
+        """Handle memory.error event and set status text.
+
+        Args:
+            event: The memory.error event.
+        """
+        if event.event_type != MEMORY_ERROR:
+            return
+
+        message = event.payload.get("message")
+        if isinstance(message, str) and message.strip():
+            self.memory_status_text = message.strip()
+        else:
+            self.memory_status_text = "记忆处理失败"
+
+    def handle_memory_listed(self, event: BaseEvent) -> None:
+        """Handle memory.listed event and store memory records.
+
+        Args:
+            event: The memory.listed event.
+        """
+        if event.event_type != MEMORY_LISTED:
+            return
+
+        records = event.payload.get("records")
+        if not isinstance(records, list):
+            self.memory_records = []
+            self.memory_panel_visible = True
+            self.memory_status_text = "已加载记忆"
+            return
+
+        self.memory_records = []
+        for r in records:
+            if not isinstance(r, dict):
+                continue
+            record_id = r.get("record_id")
+            kind = r.get("kind")
+            importance = r.get("importance")
+            text = r.get("text")
+            created_at = r.get("created_at")
+            updated_at = r.get("updated_at")
+
+            if (
+                isinstance(record_id, str)
+                and isinstance(kind, str)
+                and isinstance(importance, str)
+                and isinstance(text, str)
+                and isinstance(created_at, str)
+                and isinstance(updated_at, str)
+            ):
+                self.memory_records.append(
+                    MemoryRecordView(
+                        record_id=record_id,
+                        kind=kind,
+                        importance=importance,
+                        text=text,
+                        created_at=created_at,
+                        updated_at=updated_at,
+                    )
+                )
+
+        self.memory_panel_visible = True
+        self.memory_status_text = "已加载记忆"
+
+    def handle_memory_deleted(self, event: BaseEvent) -> None:
+        """Handle memory.deleted event and remove the deleted record.
+
+        Args:
+            event: The memory.deleted event.
+        """
+        if event.event_type != MEMORY_DELETED:
+            return
+
+        record_id = event.payload.get("record_id")
+        if isinstance(record_id, str):
+            self.memory_records = [
+                r for r in self.memory_records if r.record_id != record_id
+            ]
+        self.memory_status_text = "已删除记忆"
+
+    def toggle_memory_panel(self) -> None:
+        """Toggle the memory panel visibility."""
+        self.memory_panel_visible = not self.memory_panel_visible
 
     @property
     def effective_display_text(self) -> str:

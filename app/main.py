@@ -18,6 +18,16 @@ from app.contracts.events import (
     ASR_TEXT_RECOGNIZED,
     ASSISTANT_TEXT_RECEIVED,
     CONVERSATION_CLEARED,
+    MEMORY_CONFIRM_REQUESTED,
+    MEMORY_CONFIRMED,
+    MEMORY_DELETE_REQUESTED,
+    MEMORY_DELETED,
+    MEMORY_ERROR,
+    MEMORY_LIST_REQUESTED,
+    MEMORY_LISTED,
+    MEMORY_REJECT_REQUESTED,
+    MEMORY_REJECTED,
+    MEMORY_SUGGESTIONS_DETECTED,
     STATE_CHANGED,
     SYSTEM_ERROR,
     TTS_STOP_REQUESTED,
@@ -27,7 +37,13 @@ from app.contracts.events import (
     VOICE_RECORDING_STARTED,
     BaseEvent,
 )
-from app.contracts.payloads import UserTextSubmittedPayload
+from app.contracts.payloads import (
+    MemoryConfirmRequestedPayload,
+    MemoryDeleteRequestedPayload,
+    MemoryListRequestedPayload,
+    MemoryRejectRequestedPayload,
+    UserTextSubmittedPayload,
+)
 from app.core.config import get_config
 from app.core.event_bus import EventBus
 from app.core.logging import setup_logging
@@ -129,12 +145,64 @@ def main() -> None:
             )
         )
 
+    # Callback to request memory confirm (V8-I)
+    def request_memory_confirm(pending_id: str) -> None:
+        event_bus.publish(
+            BaseEvent(
+                event_type=MEMORY_CONFIRM_REQUESTED,
+                request_id=str(uuid.uuid4()),
+                source="desktop_window",
+                payload=MemoryConfirmRequestedPayload(pending_id=pending_id).to_event_payload(),
+            )
+        )
+
+    # Callback to request memory reject (V8-I)
+    def request_memory_reject(pending_id: str) -> None:
+        event_bus.publish(
+            BaseEvent(
+                event_type=MEMORY_REJECT_REQUESTED,
+                request_id=str(uuid.uuid4()),
+                source="desktop_window",
+                payload=MemoryRejectRequestedPayload(
+                    pending_id=pending_id,
+                    reason="user_rejected",
+                ).to_event_payload(),
+            )
+        )
+
+    # Callback to request memory list (V8-J)
+    def request_memory_list() -> None:
+        event_bus.publish(
+            BaseEvent(
+                event_type=MEMORY_LIST_REQUESTED,
+                request_id=str(uuid.uuid4()),
+                source="desktop_window",
+                payload=MemoryListRequestedPayload().to_event_payload(),
+            )
+        )
+
+    # Callback to request memory delete (V8-J)
+    def request_memory_delete(record_id: str) -> None:
+        event_bus.publish(
+            BaseEvent(
+                event_type=MEMORY_DELETE_REQUESTED,
+                request_id=str(uuid.uuid4()),
+                source="desktop_window",
+                payload=MemoryDeleteRequestedPayload(record_id=record_id).to_event_payload(),
+            )
+        )
+
     window = DesktopWindow(
         view_model,
         on_user_text_submitted=submit_user_text,
         on_conversation_cleared=clear_conversation,
         on_tts_stop_requested=request_tts_stop,
         on_voice_input_requested=request_voice_input,
+        on_memory_confirm_requested=request_memory_confirm,
+        on_memory_reject_requested=request_memory_reject,
+        on_memory_list_requested=request_memory_list,
+        on_memory_delete_requested=request_memory_delete,
+        memory_management_enabled=config.memory_management_enabled,
     )
 
     # Initialize StateController and wire EventBus + StateMachine
@@ -186,6 +254,44 @@ def main() -> None:
 
     event_bus.subscribe(CONVERSATION_CLEARED, on_conversation_cleared)
 
+    # Register ViewModel subscription to memory events (V8-I)
+    def on_memory_suggestions_detected(event: BaseEvent) -> None:
+        view_model.handle_memory_suggestions_detected(event)
+        window.update_from_view_model()
+
+    event_bus.subscribe(MEMORY_SUGGESTIONS_DETECTED, on_memory_suggestions_detected)
+
+    def on_memory_confirmed(event: BaseEvent) -> None:
+        view_model.handle_memory_confirmed(event)
+        window.update_from_view_model()
+
+    event_bus.subscribe(MEMORY_CONFIRMED, on_memory_confirmed)
+
+    def on_memory_rejected(event: BaseEvent) -> None:
+        view_model.handle_memory_rejected(event)
+        window.update_from_view_model()
+
+    event_bus.subscribe(MEMORY_REJECTED, on_memory_rejected)
+
+    def on_memory_error(event: BaseEvent) -> None:
+        view_model.handle_memory_error(event)
+        window.update_from_view_model()
+
+    event_bus.subscribe(MEMORY_ERROR, on_memory_error)
+
+    # Register ViewModel subscription to memory management events (V8-J)
+    def on_memory_listed(event: BaseEvent) -> None:
+        view_model.handle_memory_listed(event)
+        window.update_from_view_model()
+
+    event_bus.subscribe(MEMORY_LISTED, on_memory_listed)
+
+    def on_memory_deleted(event: BaseEvent) -> None:
+        view_model.handle_memory_deleted(event)
+        window.update_from_view_model()
+
+    event_bus.subscribe(MEMORY_DELETED, on_memory_deleted)
+
     # Initialize Dialogue components
     persona_profile = replace(
         DEFAULT_XIAOYUN_PERSONA,
@@ -210,6 +316,40 @@ def main() -> None:
     # Create Qt event bridge for thread-safe event dispatch
     event_bridge = QtEventBridge(event_bus.publish)
 
+    # V8-G: Create read-only memory context provider if enabled
+    session_memory_context_provider = None
+    if config.memory_context_enabled:
+        from app.brain.memory.integration import (
+            create_memory_context_provider_from_config,
+        )
+
+        session_memory_context_provider = create_memory_context_provider_from_config(config)
+
+    # V8-H / V8-J Patch: Create memory controller if suggestions or management is enabled
+    memory_suggestion_controller = None
+    memory_runtime = None
+
+    memory_runtime_enabled = (
+        config.memory_suggestions_enabled
+        or config.memory_management_enabled
+    )
+
+    if memory_runtime_enabled:
+        from pathlib import Path
+
+        from app.brain.memory.controller import MemorySuggestionController
+        from app.brain.memory.repository import LocalJsonMemoryRepository
+        from app.brain.memory.runtime import create_local_memory_runtime
+
+        memory_repository = LocalJsonMemoryRepository(Path(config.memory_store_path))
+        memory_runtime = create_local_memory_runtime(memory_repository)
+        memory_suggestion_controller = MemorySuggestionController(
+            runtime=memory_runtime,
+            subscribe=event_bus.subscribe,
+            unsubscribe=event_bus.unsubscribe,
+            dispatch_event=event_bridge.event_ready.emit,
+        )
+
     dialogue_controller = AsyncDialogueController(
         event_bus=event_bus,
         provider=provider,
@@ -217,6 +357,7 @@ def main() -> None:
         dispatch_event=event_bridge.event_ready.emit,
         session_history=session_history,
         complete_state_after_assistant_response=False,
+        session_memory_context_provider=session_memory_context_provider,
     )
 
     # Initialize TTS components
@@ -273,13 +414,18 @@ def main() -> None:
     tts_controller.start()
     dialogue_controller.start()
     voice_input_controller.start()
-    _wire_shutdown(
-        app,
+    if memory_suggestion_controller is not None:
+        memory_suggestion_controller.start()
+
+    shutdown_components: list[object] = [
         voice_input_controller,
         tts_controller,
         dialogue_controller,
         state_controller,
-    )
+    ]
+    if memory_suggestion_controller is not None:
+        shutdown_components.append(memory_suggestion_controller)
+    _wire_shutdown(app, *shutdown_components)  # type: ignore[arg-type]
 
     window.show()
 
