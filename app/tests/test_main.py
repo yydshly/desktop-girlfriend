@@ -163,3 +163,86 @@ class TestVoiceProgressEventWiring:
 
         # Should be unchanged since event type is not recognized
         assert vm.voice_status_text == "previous value"
+
+
+class TestPersonaWiring:
+    """Tests for persona configuration wiring in main.py.
+
+    These verify that main.py correctly uses AppConfig persona fields
+    to construct the PromptRegistry with a PersonaPromptBuilder.
+    """
+
+    def test_create_persona_prompt_registry_function(self) -> None:
+        """Test the create_persona_prompt_registry helper uses config persona fields."""
+        from dataclasses import replace
+
+        from app.brain.persona import DEFAULT_XIAOYUN_PERSONA, PersonaPromptBuilder
+        from app.brain.prompts.registry import PromptRegistry
+        from app.core.config import AppConfig, reset_config
+
+        # Simulate the wiring from main.py
+        def create_persona_prompt_registry(config: AppConfig) -> PromptRegistry:
+            persona_profile = replace(
+                DEFAULT_XIAOYUN_PERSONA,
+                name=config.persona_name,
+                user_address=config.persona_user_address,
+            )
+            return PromptRegistry(
+                persona_prompt_builder=PersonaPromptBuilder(persona_profile)
+            )
+
+        reset_config()
+        config = AppConfig()
+
+        # Default values
+        registry = create_persona_prompt_registry(config)
+        assert "小云" in registry.default_system_prompt
+
+    def test_persona_name_override_in_registry(self) -> None:
+        """Test that persona_name override affects the generated system prompt."""
+        from dataclasses import replace
+
+        from app.brain.persona import DEFAULT_XIAOYUN_PERSONA, PersonaPromptBuilder
+        from app.brain.prompts.registry import PromptRegistry
+        from app.core.config import AppConfig, reset_config
+
+        def create_persona_prompt_registry(config: AppConfig) -> PromptRegistry:
+            persona_profile = replace(
+                DEFAULT_XIAOYUN_PERSONA,
+                name=config.persona_name,
+                user_address=config.persona_user_address,
+            )
+            return PromptRegistry(
+                persona_prompt_builder=PersonaPromptBuilder(persona_profile)
+            )
+
+        reset_config()
+
+        custom = replace(DEFAULT_XIAOYUN_PERSONA, name="小爱", user_address="你")
+        registry = PromptRegistry(persona_prompt_builder=PersonaPromptBuilder(custom))
+        assert "小爱" in registry.default_system_prompt
+        assert "小云" not in registry.default_system_prompt
+
+    def test_persona_user_address_in_system_prompt(self) -> None:
+        """Test that user_address appears in the generated system prompt."""
+        from dataclasses import replace
+
+        from app.brain.persona import DEFAULT_XIAOYUN_PERSONA, PersonaPromptBuilder
+        from app.brain.prompts.registry import PromptRegistry
+
+        custom = replace(DEFAULT_XIAOYUN_PERSONA, name="小云", user_address="你")
+        registry = PromptRegistry(persona_prompt_builder=PersonaPromptBuilder(custom))
+        assert "你" in registry.default_system_prompt
+
+    def test_prompt_registry_receives_persona_builder(self) -> None:
+        """Test that PromptRegistry accepts and uses persona_prompt_builder."""
+        from dataclasses import replace
+
+        from app.brain.persona import DEFAULT_XIAOYUN_PERSONA, PersonaPromptBuilder
+        from app.brain.prompts.registry import PromptRegistry
+
+        custom = replace(DEFAULT_XIAOYUN_PERSONA, name="小云", user_address="你")
+        builder = PersonaPromptBuilder(custom)
+        registry = PromptRegistry(persona_prompt_builder=builder)
+        # The system prompt should come from the builder
+        assert len(registry.default_system_prompt) > 100

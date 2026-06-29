@@ -3,6 +3,12 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from app.brain.persona import (
+    DEFAULT_XIAOYUN_PERSONA,
+    PersonaProfile,
+    PersonaPromptBuilder,
+)
+
 if TYPE_CHECKING:
     from app.brain.prompts.history import DialogueTurn
 
@@ -46,10 +52,33 @@ class PromptMessage:
 
 
 class PromptRegistry:
-    """Central registry for prompt text and chat message assembly."""
+    """Central registry for prompt text and chat message assembly.
 
-    def __init__(self, default_system_prompt: str = DEFAULT_SYSTEM_PROMPT) -> None:
-        self.default_system_prompt = default_system_prompt
+    Supports three ways to provide the system prompt (in priority order):
+    1. Explicit ``default_system_prompt`` string (backward compatible).
+    2. Explicit ``persona_prompt_builder`` instance.
+    3. Explicit ``persona_profile``, from which a builder is created.
+    4. Falls back to ``DEFAULT_XIAOYUN_PERSONA``.
+    """
+
+    def __init__(
+        self,
+        default_system_prompt: str | None = None,
+        persona_profile: PersonaProfile | None = None,
+        persona_prompt_builder: PersonaPromptBuilder | None = None,
+    ) -> None:
+        if default_system_prompt is not None:
+            self.default_system_prompt: str = default_system_prompt
+        elif persona_prompt_builder is not None:
+            self.default_system_prompt = persona_prompt_builder.build_system_prompt()
+        elif persona_profile is not None:
+            self.default_system_prompt = PersonaPromptBuilder(
+                persona_profile
+            ).build_system_prompt()
+        else:
+            self.default_system_prompt = PersonaPromptBuilder(
+                DEFAULT_XIAOYUN_PERSONA
+            ).build_system_prompt()
 
     def build_chat_messages(
         self,

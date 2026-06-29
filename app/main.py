@@ -3,11 +3,13 @@
 import logging
 import sys
 import uuid
+from dataclasses import replace
 from typing import Protocol
 
 from PySide6.QtWidgets import QApplication
 
 from app.brain.async_dialogue_controller import AsyncDialogueController
+from app.brain.persona import DEFAULT_XIAOYUN_PERSONA, PersonaPromptBuilder
 from app.brain.prompts.history import CurrentSessionHistory
 from app.brain.prompts.registry import PromptRegistry
 from app.brain.providers import ChatProviderError, create_chat_provider
@@ -185,7 +187,14 @@ def main() -> None:
     event_bus.subscribe(CONVERSATION_CLEARED, on_conversation_cleared)
 
     # Initialize Dialogue components
-    prompt_registry = PromptRegistry()
+    persona_profile = replace(
+        DEFAULT_XIAOYUN_PERSONA,
+        name=config.persona_name,
+        user_address=config.persona_user_address,
+    )
+    prompt_registry = PromptRegistry(
+        persona_prompt_builder=PersonaPromptBuilder(persona_profile)
+    )
     try:
         provider = create_chat_provider(config)
     except ChatProviderError:

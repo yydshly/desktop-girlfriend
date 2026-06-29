@@ -109,6 +109,10 @@ class AppConfig:
             "MIMO_ASR_TIMEOUT_SECONDS", "30.0"
         )
 
+        # Persona configuration (V7-A)
+        self.persona_name: str = _env_or_default("PERSONA_NAME", "小云")
+        self.persona_user_address: str = _env_or_default("PERSONA_USER_ADDRESS", "你")
+
         # ASR recording configuration (V6-B1)
         self.asr_recording_output_dir: str = _env_or_default(
             "ASR_RECORDING_OUTPUT_DIR", ".tmp/asr"

@@ -494,3 +494,64 @@ def test_asr_recording_default_seconds_exceeds_max_raises(
         ValueError, match="ASR_RECORDING_DEFAULT_SECONDS must be <= ASR_RECORDING_MAX_SECONDS"
     ):
         AppConfig()
+
+
+# Persona config tests (V7-A)
+
+
+def test_default_persona_name(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test default persona name is 小云."""
+    clear_config_env(monkeypatch)
+    config = AppConfig()
+    assert config.persona_name == "小云"
+
+
+def test_default_persona_user_address(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test default persona user address is 你."""
+    clear_config_env(monkeypatch)
+    config = AppConfig()
+    assert config.persona_user_address == "你"
+
+
+def test_env_vars_override_persona_name(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test PERSONA_NAME env var is used."""
+    reset_config()
+    monkeypatch.setenv("PERSONA_NAME", "小爱")
+    config = AppConfig()
+    assert config.persona_name == "小爱"
+
+
+def test_env_vars_override_persona_user_address(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test PERSONA_USER_ADDRESS env var is used."""
+    reset_config()
+    monkeypatch.setenv("PERSONA_USER_ADDRESS", "你")
+    config = AppConfig()
+    assert config.persona_user_address == "你"
+
+
+def test_persona_name_empty_string_falls_back_to_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test PERSONA_NAME='' falls back to default 小云."""
+    reset_config()
+    monkeypatch.setenv("PERSONA_NAME", "")
+    config = AppConfig()
+    assert config.persona_name == "小云"
+
+
+def test_persona_user_address_empty_string_falls_back_to_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test PERSONA_USER_ADDRESS='' falls back to default 你."""
+    reset_config()
+    monkeypatch.setenv("PERSONA_USER_ADDRESS", "")
+    config = AppConfig()
+    assert config.persona_user_address == "你"
