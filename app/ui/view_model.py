@@ -72,6 +72,8 @@ class DesktopViewModel:
         self.product_status_visible: bool = False
         self.product_status_view: ProductStatusView = ProductStatusView(items=())
         self.product_status_text: str = ""
+        # Startup diagnostics state (V11-C)
+        self.startup_diagnostics_text: str = ""
 
     def handle_state_changed(self, event: BaseEvent) -> None:
         """Handle state.changed event and update display text.
@@ -390,6 +392,14 @@ class DesktopViewModel:
         """
         self.product_status_view = view
         self.product_status_text = render_status_view(view)
+
+    def set_startup_diagnostics_text(self, text: str) -> None:
+        """Set the startup diagnostics detail text.
+
+        Args:
+            text: The rendered startup diagnostics details.
+        """
+        self.startup_diagnostics_text = text
 
     @property
     def effective_avatar_text(self) -> str:

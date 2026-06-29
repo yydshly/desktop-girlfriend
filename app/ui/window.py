@@ -144,6 +144,11 @@ class DesktopWindow(QMainWindow):
         self._product_status_text.setWordWrap(True)
         self._product_status_text.setStyleSheet("color: #333; font-size: 13px;")
         self._product_status_panel_layout.addWidget(self._product_status_text)
+        # V11-C: Startup diagnostics details in product status panel
+        self._startup_diagnostics_text = QLabel()
+        self._startup_diagnostics_text.setWordWrap(True)
+        self._startup_diagnostics_text.setStyleSheet("font-size: 12px; color: #777; padding-top: 4px;")
+        self._product_status_panel_layout.addWidget(self._startup_diagnostics_text)
         self._product_status_panel.setVisible(False)
         layout.addWidget(self._product_status_panel)
 
@@ -349,6 +354,8 @@ class DesktopWindow(QMainWindow):
         # Update product status panel (V11-A)
         self._product_status_panel.setVisible(self._view_model.product_status_visible)
         self._product_status_text.setText(self._view_model.product_status_text)
+        # V11-C: Startup diagnostics details
+        self._startup_diagnostics_text.setText(self._view_model.startup_diagnostics_text)
 
         is_listening = self._view_model.state == AppState.LISTENING
         is_thinking = self._view_model.state == AppState.THINKING
