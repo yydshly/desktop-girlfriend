@@ -87,7 +87,7 @@ class TestProductStatusButton:
                 ProductStatusView(
                     items=(
                         ProductStatusItem("对话", True, "已启用"),
-                        ProductStatusItem("版本", True, "0.1.0-rc.0"),
+                        ProductStatusItem("版本", True, "0.1.0-rc.1"),
                     )
                 )
             )
@@ -102,7 +102,7 @@ class TestProductStatusButton:
 
         window._product_status_button.click()
         assert "版本" in view_model.product_status_text
-        assert "0.1.0-rc.0" in view_model.product_status_text
+        assert "0.1.0-rc.1" in view_model.product_status_text
 
     @staticmethod
     def test_toggle_off_after_second_click(qapp: QApplication) -> None:
