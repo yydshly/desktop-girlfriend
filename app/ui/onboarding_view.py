@@ -41,7 +41,7 @@ def build_onboarding_view(
     """
     return OnboardingView(
         title=f"你好，我是{companion_name}",
-        subtitle="我会在桌面上陪你聊天、倾听，也可以在你空闲时轻轻出现。",
+        subtitle="我会在你空闲时轻轻出现；你也可以说「别打扰」让我安静一会儿。",
         bullets=(
             "直接在输入框里和我说话。",
             "点击「语音输入」可以用语音和我交流。",
