@@ -79,16 +79,14 @@ class DeterministicMemoryExtractor:
         ]
         for trigger in triggers:
             if trigger in text:
-                # Use only the portion from the trigger onwards as evidence
-                # to avoid including sensitive content that appears before the trigger
-                idx = text.index(trigger)
-                evidence = text[idx:]
+                # Evidence is only the trigger itself to avoid including
+                # sensitive content that the user explicitly asked not to remember
                 return [
                     MemoryCandidate(
                         kind=MemoryKind.BOUNDARY,
                         importance=MemoryImportance.HIGH,
                         text="用户请求不要记住特定内容",
-                        evidence=self._truncate(evidence),
+                        evidence=f"用户触发边界请求：{trigger}",
                         confidence=0.85,
                     )
                 ]

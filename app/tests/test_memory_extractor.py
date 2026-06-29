@@ -182,3 +182,25 @@ class TestDeterministicMemoryExtractor:
         boundary = boundary_candidates[0]
         assert "红红" not in boundary.text
         assert "红红" not in boundary.evidence
+
+    def test_boundary_trigger_at_start_sanitizes_evidence(self) -> None:
+        """Boundary trigger at start should still sanitize evidence."""
+        extractor = self._make()
+        candidates = extractor.extract("不要记住我女朋友叫红红。")
+        assert len(candidates) >= 1
+        boundary_candidates = [c for c in candidates if c.kind == MemoryKind.BOUNDARY]
+        assert len(boundary_candidates) == 1
+        boundary = boundary_candidates[0]
+        assert "红红" not in boundary.text
+        assert "红红" not in boundary.evidence
+
+    def test_boundary_trigger_at_start_sanitizes_health(self) -> None:
+        """Boundary trigger at start should sanitize health-related content."""
+        extractor = self._make()
+        candidates = extractor.extract("不要记住我最近睡不着。")
+        assert len(candidates) >= 1
+        boundary_candidates = [c for c in candidates if c.kind == MemoryKind.BOUNDARY]
+        assert len(boundary_candidates) == 1
+        boundary = boundary_candidates[0]
+        assert "睡不着" not in boundary.text
+        assert "睡不着" not in boundary.evidence
