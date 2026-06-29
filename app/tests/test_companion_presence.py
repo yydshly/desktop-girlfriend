@@ -154,14 +154,14 @@ class TestViewModelCompanionPresence:
         assert vm.companion_status_text == "我在这里，想聊就叫我。"
 
     def test_companion_version_text(self) -> None:
-        """ViewModel companion_version_text is 0.1.0-rc.3."""
+        """ViewModel companion_version_text is 0.2.0-alpha.1."""
         vm = DesktopViewModel()
-        assert vm.companion_version_text == "0.1.0-rc.3"
+        assert vm.companion_version_text == "0.2.0-alpha.1"
 
     def test_companion_release_stage_text(self) -> None:
-        """ViewModel companion_release_stage_text is release-candidate."""
+        """ViewModel companion_release_stage_text is alpha."""
         vm = DesktopViewModel()
-        assert vm.companion_release_stage_text == "release-candidate"
+        assert vm.companion_release_stage_text == "alpha"
 
     def test_companion_name(self) -> None:
         """ViewModel companion_name is 小云."""
@@ -190,7 +190,7 @@ class TestWindowCompanionPresence:
         # Verify header labels are present
         assert window._name_label.text() == "小云"
         assert "你的桌面 AI 伙伴" in window._subtitle_label.text()
-        assert "0.1.0-rc.3" in window._version_label.text()
+        assert "0.2.0-alpha.1" in window._version_label.text()
 
     @staticmethod
     def test_status_button_first_click_opens_panel(qapp: QApplication) -> None:

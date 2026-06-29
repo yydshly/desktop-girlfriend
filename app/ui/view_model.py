@@ -20,6 +20,7 @@ from app.contracts.events import (
     BaseEvent,
 )
 from app.contracts.states import AppState
+from app.core.version import get_app_version
 from app.ui.avatar_action import (
     AvatarAction,
     avatar_label_for_action,
@@ -43,12 +44,13 @@ _STATE_DISPLAY_TEXT: dict[AppState, str] = {
 
 _DEFAULT_ASSISTANT_TEXT = ""
 
-# Companion profile
+# Companion profile — version reads from VERSION file
+_companion_version_info = get_app_version()
 COMPANION_NAME = "小云"
 COMPANION_SUBTITLE = "你的桌面 AI 伙伴"
 COMPANION_AVATAR_TEXT = "☁️"
-COMPANION_VERSION = "0.1.0-rc.3"
-COMPANION_RELEASE_STAGE = "release-candidate"
+COMPANION_VERSION = _companion_version_info.version
+COMPANION_RELEASE_STAGE = _companion_version_info.release_stage
 
 
 class DesktopViewModel:
