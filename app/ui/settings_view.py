@@ -130,16 +130,17 @@ def build_settings_view(
         f"主动陪伴 TTS：{render_enabled(config.proactive_tts_enabled)}",
     ]
 
-    # Section 4: Memory settings
+    # Section 4: Memory settings (Phase 3-C)
+    from app.ui.memory_ux_view import build_memory_settings_copy
+    mem_copy = build_memory_settings_copy()
     memory_lines = [
-        f"记忆上下文：{render_enabled(config.memory_context_enabled)}",
-        f"记忆建议：{render_enabled(config.memory_suggestions_enabled)}",
-        f"记忆管理：{render_enabled(config.memory_management_enabled)}",
+        f"记忆上下文：{render_enabled(config.memory_context_enabled)} — {mem_copy.context_label}",
+        f"记忆建议：{render_enabled(config.memory_suggestions_enabled)} — {mem_copy.suggestions_label}",
+        f"记忆管理：{render_enabled(config.memory_management_enabled)} — {mem_copy.management_label}",
         f"记忆文件：{config.memory_store_path}",
+        "",
+        mem_copy.privacy_hint,
     ]
-    if not config.memory_context_enabled:
-        memory_lines.append("")
-        memory_lines.append("记忆默认关闭。开启后，小云只会保存你确认过的记忆。")
 
     # Section 5: Proactive settings
     proactive_lines = [
