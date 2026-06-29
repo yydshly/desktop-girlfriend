@@ -18,6 +18,12 @@ from app.contracts.events import (
     ASR_TEXT_RECOGNIZED,
     ASSISTANT_TEXT_RECEIVED,
     CONVERSATION_CLEARED,
+    MEMORY_CONFIRM_REQUESTED,
+    MEMORY_CONFIRMED,
+    MEMORY_ERROR,
+    MEMORY_REJECT_REQUESTED,
+    MEMORY_REJECTED,
+    MEMORY_SUGGESTIONS_DETECTED,
     STATE_CHANGED,
     SYSTEM_ERROR,
     TTS_STOP_REQUESTED,
@@ -27,7 +33,11 @@ from app.contracts.events import (
     VOICE_RECORDING_STARTED,
     BaseEvent,
 )
-from app.contracts.payloads import UserTextSubmittedPayload
+from app.contracts.payloads import (
+    MemoryConfirmRequestedPayload,
+    MemoryRejectRequestedPayload,
+    UserTextSubmittedPayload,
+)
 from app.core.config import get_config
 from app.core.event_bus import EventBus
 from app.core.logging import setup_logging
@@ -129,12 +139,39 @@ def main() -> None:
             )
         )
 
+    # Callback to request memory confirm (V8-I)
+    def request_memory_confirm(pending_id: str) -> None:
+        event_bus.publish(
+            BaseEvent(
+                event_type=MEMORY_CONFIRM_REQUESTED,
+                request_id=str(uuid.uuid4()),
+                source="desktop_window",
+                payload=MemoryConfirmRequestedPayload(pending_id=pending_id).to_event_payload(),
+            )
+        )
+
+    # Callback to request memory reject (V8-I)
+    def request_memory_reject(pending_id: str) -> None:
+        event_bus.publish(
+            BaseEvent(
+                event_type=MEMORY_REJECT_REQUESTED,
+                request_id=str(uuid.uuid4()),
+                source="desktop_window",
+                payload=MemoryRejectRequestedPayload(
+                    pending_id=pending_id,
+                    reason="user_rejected",
+                ).to_event_payload(),
+            )
+        )
+
     window = DesktopWindow(
         view_model,
         on_user_text_submitted=submit_user_text,
         on_conversation_cleared=clear_conversation,
         on_tts_stop_requested=request_tts_stop,
         on_voice_input_requested=request_voice_input,
+        on_memory_confirm_requested=request_memory_confirm,
+        on_memory_reject_requested=request_memory_reject,
     )
 
     # Initialize StateController and wire EventBus + StateMachine
@@ -185,6 +222,31 @@ def main() -> None:
         window.update_from_view_model()
 
     event_bus.subscribe(CONVERSATION_CLEARED, on_conversation_cleared)
+
+    # Register ViewModel subscription to memory events (V8-I)
+    def on_memory_suggestions_detected(event: BaseEvent) -> None:
+        view_model.handle_memory_suggestions_detected(event)
+        window.update_from_view_model()
+
+    event_bus.subscribe(MEMORY_SUGGESTIONS_DETECTED, on_memory_suggestions_detected)
+
+    def on_memory_confirmed(event: BaseEvent) -> None:
+        view_model.handle_memory_confirmed(event)
+        window.update_from_view_model()
+
+    event_bus.subscribe(MEMORY_CONFIRMED, on_memory_confirmed)
+
+    def on_memory_rejected(event: BaseEvent) -> None:
+        view_model.handle_memory_rejected(event)
+        window.update_from_view_model()
+
+    event_bus.subscribe(MEMORY_REJECTED, on_memory_rejected)
+
+    def on_memory_error(event: BaseEvent) -> None:
+        view_model.handle_memory_error(event)
+        window.update_from_view_model()
+
+    event_bus.subscribe(MEMORY_ERROR, on_memory_error)
 
     # Initialize Dialogue components
     persona_profile = replace(

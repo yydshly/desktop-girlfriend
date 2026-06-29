@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 from app.contracts.states import AppState
 from app.core.config import get_config
 from app.ui.chat_message import ChatMessage
+from app.ui.memory_suggestion import render_memory_suggestion_text
 from app.ui.view_model import DesktopViewModel
 
 
@@ -63,6 +64,8 @@ class DesktopWindow(QMainWindow):
         on_conversation_cleared: Callable[[], None],
         on_tts_stop_requested: Callable[[], None] | None = None,
         on_voice_input_requested: Callable[[], None] | None = None,
+        on_memory_confirm_requested: Callable[[str], None] | None = None,
+        on_memory_reject_requested: Callable[[str], None] | None = None,
     ) -> None:
         super().__init__()
         self._view_model = view_model
@@ -70,6 +73,8 @@ class DesktopWindow(QMainWindow):
         self._on_conversation_cleared = on_conversation_cleared
         self._on_tts_stop_requested = on_tts_stop_requested
         self._on_voice_input_requested = on_voice_input_requested
+        self._on_memory_confirm_requested = on_memory_confirm_requested
+        self._on_memory_reject_requested = on_memory_reject_requested
 
         config = get_config()
         self.setWindowTitle(config.app_name)
@@ -127,6 +132,36 @@ class DesktopWindow(QMainWindow):
         self._error_label.setVisible(bool(self._view_model.error_text))
         layout.addWidget(self._error_label)
 
+        # Memory suggestion widget (V8-I)
+        self._memory_suggestion_widget = QWidget()
+        self._memory_suggestion_layout = QVBoxLayout(self._memory_suggestion_widget)
+        self._memory_suggestion_layout.setContentsMargins(8, 8, 8, 8)
+
+        self._memory_suggestion_title = QLabel("要我记住这件事吗？")
+        self._memory_suggestion_title.setStyleSheet("font-size: 14px; font-weight: 600;")
+        self._memory_suggestion_layout.addWidget(self._memory_suggestion_title)
+
+        self._memory_suggestion_text = QLabel("")
+        self._memory_suggestion_text.setWordWrap(True)
+        self._memory_suggestion_text.setStyleSheet("padding: 4px 0; color: #333;")
+        self._memory_suggestion_layout.addWidget(self._memory_suggestion_text)
+
+        memory_button_row = QWidget()
+        memory_button_layout = QHBoxLayout(memory_button_row)
+        memory_button_layout.setContentsMargins(0, 0, 0, 0)
+
+        self._memory_confirm_button = QPushButton("记住")
+        self._memory_confirm_button.clicked.connect(self._on_memory_confirm_clicked)
+        memory_button_layout.addWidget(self._memory_confirm_button)
+
+        self._memory_reject_button = QPushButton("不记")
+        self._memory_reject_button.clicked.connect(self._on_memory_reject_clicked)
+        memory_button_layout.addWidget(self._memory_reject_button)
+
+        self._memory_suggestion_layout.addWidget(memory_button_row)
+        self._memory_suggestion_widget.setVisible(False)
+        layout.addWidget(self._memory_suggestion_widget)
+
         # Input field
         self._input_field = QLineEdit()
         self._input_field.setPlaceholderText("输入文字后点击发送...")
@@ -178,6 +213,22 @@ class DesktopWindow(QMainWindow):
         if self._on_voice_input_requested:
             self._on_voice_input_requested()
 
+    def _on_memory_confirm_clicked(self) -> None:
+        """Handle memory confirm button click."""
+        suggestion = self._view_model.memory_suggestion
+        if suggestion is None:
+            return
+        if self._on_memory_confirm_requested:
+            self._on_memory_confirm_requested(suggestion.pending_id)
+
+    def _on_memory_reject_clicked(self) -> None:
+        """Handle memory reject button click."""
+        suggestion = self._view_model.memory_suggestion
+        if suggestion is None:
+            return
+        if self._on_memory_reject_requested:
+            self._on_memory_reject_requested(suggestion.pending_id)
+
     def update_from_view_model(self) -> None:
         """Update UI from view model state."""
         self._name_label.setText(self._view_model.companion_name)
@@ -190,6 +241,17 @@ class DesktopWindow(QMainWindow):
         self._chat_history.moveCursor(QTextCursor.MoveOperation.End)
         self._error_label.setText(self._view_model.error_text)
         self._error_label.setVisible(bool(self._view_model.error_text))
+
+        # Update memory suggestion widget (V8-I)
+        suggestion = self._view_model.memory_suggestion
+        if suggestion is None:
+            self._memory_suggestion_widget.setVisible(False)
+        else:
+            self._memory_suggestion_widget.setVisible(True)
+            self._memory_suggestion_text.setText(
+                f"「{render_memory_suggestion_text(suggestion.text, max_chars=80)}」"
+            )
+
         is_listening = self._view_model.state == AppState.LISTENING
         is_thinking = self._view_model.state == AppState.THINKING
         is_speaking = self._view_model.state == AppState.SPEAKING
