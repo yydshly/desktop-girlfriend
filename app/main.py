@@ -64,6 +64,7 @@ from app.ui.product_status_builder import build_product_status_view
 from app.ui.qt_event_bridge import QtEventBridge
 from app.ui.settings_view import build_settings_view, render_settings_view_text
 from app.ui.startup_diagnostics_view import render_startup_diagnostics_details
+from app.ui.system_tray import DesktopSystemTrayController
 from app.ui.view_model import DesktopViewModel
 from app.ui.window import DesktopWindow
 
@@ -239,6 +240,19 @@ def main() -> None:
         # V12-rc2: update UI immediately so first click works before any events
         window.update_from_view_model()
 
+    # Phase 2-F: System tray controller (created after window)
+    tray_controller: DesktopSystemTrayController | None = None
+
+    def _on_hide_requested() -> None:
+        """Handle hide button click: hide window to tray."""
+        if tray_controller is not None and tray_controller.available:
+            tray_controller.hide_to_tray()
+            view_model.set_hidden_to_tray(True)
+
+    def _on_quit_from_tray() -> None:
+        """Handle quit from tray menu."""
+        app.quit()
+
     window = DesktopWindow(
         view_model,
         on_user_text_submitted=submit_user_text,
@@ -250,8 +264,16 @@ def main() -> None:
         on_memory_list_requested=request_memory_list,
         on_memory_delete_requested=request_memory_delete,
         on_product_status_requested=_on_product_status_requested,
+        on_hide_requested=_on_hide_requested,
         memory_management_enabled=config.memory_management_enabled,
     )
+
+    # Create tray controller after window exists
+    tray_controller = DesktopSystemTrayController(
+        window=window,
+        on_quit=_on_quit_from_tray,
+    )
+    view_model.set_tray_available(tray_controller.available)
 
     # Initialize StateController and wire EventBus + StateMachine
     state_controller = StateController(event_bus, state_machine)

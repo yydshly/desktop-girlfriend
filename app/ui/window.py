@@ -83,6 +83,7 @@ class DesktopWindow(QMainWindow):
         on_memory_list_requested: Callable[[], None] | None = None,
         on_memory_delete_requested: Callable[[str], None] | None = None,
         on_product_status_requested: Callable[[], None] | None = None,
+        on_hide_requested: Callable[[], None] | None = None,
         memory_management_enabled: bool = False,
     ) -> None:
         super().__init__()
@@ -96,6 +97,7 @@ class DesktopWindow(QMainWindow):
         self._on_memory_list_requested = on_memory_list_requested
         self._on_memory_delete_requested = on_memory_delete_requested
         self._on_product_status_requested = on_product_status_requested
+        self._on_hide_requested = on_hide_requested
         self._memory_management_enabled = memory_management_enabled
 
         config = get_config()
@@ -314,6 +316,13 @@ class DesktopWindow(QMainWindow):
         self._settings_button.clicked.connect(self._handle_settings_clicked)
         aux_button_layout.addWidget(self._settings_button)
 
+        # Phase 2-F: Hide button
+        self._hide_button = QPushButton("隐藏")
+        self._hide_button.setStyleSheet(window_style.SECONDARY_BUTTON_STYLE)
+        self._hide_button.clicked.connect(self._on_hide_clicked)
+        self._hide_button.setVisible(on_hide_requested is not None)
+        aux_button_layout.addWidget(self._hide_button)
+
         aux_button_layout.addStretch()
         layout.addWidget(self._aux_button_row)
 
@@ -393,6 +402,11 @@ class DesktopWindow(QMainWindow):
         if self._view_model.settings_visible and self._view_model.product_status_visible:
             self._view_model.product_status_visible = False
             self._product_status_panel.setVisible(False)
+
+    def _on_hide_clicked(self) -> None:
+        """Handle hide button click (Phase 2-F)."""
+        if self._on_hide_requested:
+            self._on_hide_requested()
 
     def _handle_product_status_clicked(self) -> None:
         """Handle product status button click (Phase 2-D).
