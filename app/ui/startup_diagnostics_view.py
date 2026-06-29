@@ -48,8 +48,10 @@ def render_startup_diagnostics_details(diagnostics: StartupDiagnostics) -> str:
         diagnostics: The startup diagnostics to render.
 
     Returns:
-        A newline-separated string of rendered issues.
+        A newline-separated string of rendered issues, or a note
+        that no problems were found (avoids duplicating the
+        "启动检查：OK" item already shown in the status panel).
     """
     if not diagnostics.issues:
-        return "✅ 启动检查：OK"
+        return "没有发现启动问题"
     return "\n".join(render_startup_diagnostic_issue(issue) for issue in diagnostics.issues)

@@ -110,21 +110,23 @@ class DesktopWindow(QMainWindow):
         info_layout.setSpacing(2)
 
         self._name_label = QLabel(self._view_model.companion_name)
-        self._name_label.setStyleSheet("font-size: 18px; font-weight: 600;")
+        self._name_label.setStyleSheet("font-size: 20px; font-weight: 700; color: #333;")
         info_layout.addWidget(self._name_label)
 
         self._subtitle_label = QLabel(self._view_model.companion_subtitle)
         self._subtitle_label.setStyleSheet("font-size: 12px; color: #666;")
         info_layout.addWidget(self._subtitle_label)
 
-        self._state_label = QLabel(self._view_model.display_text)
-        self._state_label.setStyleSheet("font-size: 13px; color: #444;")
-        info_layout.addWidget(self._state_label)
+        # Phase 2-A: Natural companion status text
+        self._companion_status_label = QLabel(self._view_model.companion_status_text)
+        self._companion_status_label.setStyleSheet("font-size: 14px; color: #555; padding-top: 2px;")
+        info_layout.addWidget(self._companion_status_label)
 
-        # V10-B: Avatar action status label
-        self._avatar_action_label = QLabel(self._view_model.effective_avatar_label)
-        self._avatar_action_label.setStyleSheet("font-size: 12px; color: #777;")
-        info_layout.addWidget(self._avatar_action_label)
+        # Phase 2-A: Version and release stage
+        version_text = f"{self._view_model.companion_version_text} · {self._view_model.companion_release_stage_text}"
+        self._version_label = QLabel(version_text)
+        self._version_label.setStyleSheet("font-size: 11px; color: #999;")
+        info_layout.addWidget(self._version_label)
 
         header_layout.addWidget(info_widget, stretch=1)
 
@@ -318,8 +320,10 @@ class DesktopWindow(QMainWindow):
         self._avatar_label.setText(self._view_model.effective_avatar_text)
         self._avatar_label.setToolTip(self._view_model.effective_avatar_label)
         self._avatar_label.setStyleSheet(self._view_model.effective_avatar_style)
-        self._avatar_action_label.setText(self._view_model.effective_avatar_label)
-        self._state_label.setText(self._view_model.effective_display_text)
+        # Phase 2-A: Update companion status text
+        self._companion_status_label.setText(self._view_model.companion_status_text)
+        version_text = f"{self._view_model.companion_version_text} · {self._view_model.companion_release_stage_text}"
+        self._version_label.setText(version_text)
         self._chat_history.setPlainText(
             render_chat_messages(self._view_model.chat_messages)
         )
