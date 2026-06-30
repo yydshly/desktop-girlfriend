@@ -60,6 +60,9 @@ function updateRendererStatus() {
     modelStatus.textContent = [
       `Live2D renderer: ${configuredModelUrl}.`,
       `renderer state: ${lastRendererStatus.loadState}.`,
+      lastRendererStatus.activeMotion?.group
+        ? `active motion: ${lastRendererStatus.activeMotion.group}[${lastRendererStatus.activeMotion.index}].`
+        : "",
       formatSdkStatus(sdk),
       lastRendererStatus.loadError ? `detail: ${lastRendererStatus.loadError}` : ""
     ].filter(Boolean).join(" ");

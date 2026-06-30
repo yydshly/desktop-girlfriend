@@ -17,6 +17,8 @@ export class Live2DRenderer {
     this.pointer = { x: 0, y: 0 };
     this.currentState = {};
     this.lastCommands = mapStateToLive2DCommands();
+    this.lastMotionKey = "";
+    this.activeMotion = { group: "", index: 0, source: "" };
   }
 
   start() {
@@ -43,6 +45,7 @@ export class Live2DRenderer {
     this.currentState = nextState;
     this.lastCommands = mapStateToLive2DCommands(nextState, this.pointer);
     this.applyLive2DCommands();
+    this.playLive2DMotion();
     this.draw();
     return this.lastCommands;
   }
@@ -109,6 +112,7 @@ export class Live2DRenderer {
       this.live2dModel = live2dModel;
       this.loadState = "live2d-ready";
       this.applyLive2DCommands();
+      this.playLive2DMotion({ force: true });
       this.emitStatus();
     } catch (error) {
       this.loadError = `SDK/model load failed, using texture preview: ${error.message}`;
@@ -202,12 +206,30 @@ export class Live2DRenderer {
     });
   }
 
+  playLive2DMotion(options = {}) {
+    if (!this.live2dModel?.motion) {
+      return;
+    }
+
+    const motion = mapCommandToHiyoriMotion(this.lastCommands);
+    const motionKey = `${motion.group}:${motion.index}:${motion.source}`;
+    if (!options.force && motionKey === this.lastMotionKey) {
+      return;
+    }
+
+    this.live2dModel.motion(motion.group, motion.index);
+    this.lastMotionKey = motionKey;
+    this.activeMotion = motion;
+    this.emitStatus();
+  }
+
   emitStatus() {
     this.onStatusChange({
       loadState: this.loadState,
       loadError: this.loadError,
       modelUrl: this.modelUrl,
-      hasLive2DModel: Boolean(this.live2dModel)
+      hasLive2DModel: Boolean(this.live2dModel),
+      activeMotion: this.activeMotion
     });
   }
 }
@@ -233,6 +255,16 @@ export function calculateLive2DPlacement(canvasSize, modelSize) {
     x: canvasSize.width / 2,
     y: canvasSize.height * 0.55
   };
+}
+
+export function mapCommandToHiyoriMotion(command = {}) {
+  const motion = command.motion || "idle";
+  const expressiveMotions = new Set(["greet", "happy", "reply", "comfort", "speak"]);
+  if (expressiveMotions.has(motion)) {
+    return { group: "TapBody", index: 0, source: motion };
+  }
+
+  return { group: "Idle", index: 0, source: motion };
 }
 
 function loadImage(src) {

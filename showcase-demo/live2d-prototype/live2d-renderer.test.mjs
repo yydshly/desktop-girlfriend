@@ -48,4 +48,45 @@ function testPlacementFillsStageMoreAssertively() {
 }
 
 testPlacementFillsStageMoreAssertively();
+
+function testSequenceTriggersTapBodyMotion() {
+  const renderer = new Live2DRenderer(createCanvasProbe());
+  const calls = [];
+  renderer.live2dModel = {
+    motion(group, index) {
+      calls.push({ group, index });
+    },
+    internalModel: {
+      coreModel: {
+        setParameterValueById() {}
+      }
+    }
+  };
+
+  renderer.applyState({ sequence: "greet", motion: "happy", emotion: "happy" });
+
+  assert.deepEqual(calls, [{ group: "TapBody", index: 0 }]);
+}
+
+function testIdleStateTriggersIdleMotion() {
+  const renderer = new Live2DRenderer(createCanvasProbe());
+  const calls = [];
+  renderer.live2dModel = {
+    motion(group, index) {
+      calls.push({ group, index });
+    },
+    internalModel: {
+      coreModel: {
+        setParameterValueById() {}
+      }
+    }
+  };
+
+  renderer.applyState({ motion: "idle", emotion: "neutral" });
+
+  assert.deepEqual(calls, [{ group: "Idle", index: 0 }]);
+}
+
+testSequenceTriggersTapBodyMotion();
+testIdleStateTriggersIdleMotion();
 console.log("live2d-renderer tests passed");
