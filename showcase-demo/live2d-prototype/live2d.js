@@ -31,6 +31,9 @@ rendererSelect.value = "live2d";
 let configuredModelUrl = modelUrl.value;
 let activeRendererMode = rendererSelect.value;
 let socket = null;
+let bridgeReconnectTimer = null;
+let bridgeReconnectEnabled = false;
+let bridgeConnectionId = 0;
 let lastRendererStatus = {
   loadState: "idle",
   loadError: "",
@@ -136,23 +139,47 @@ setModelUrl.addEventListener("click", () => {
 });
 
 connectBridge.addEventListener("click", () => {
+  connectBridgeSocket(bridgeUrl.value);
+});
+
+disconnectBridge.addEventListener("click", () => {
+  bridgeReconnectEnabled = false;
+  window.clearTimeout(bridgeReconnectTimer);
   if (socket) {
     socket.close();
   }
-  socket = new WebSocket(bridgeUrl.value);
+});
+
+function connectBridgeSocket(url, { reconnect = false } = {}) {
+  bridgeReconnectEnabled = reconnect;
+  const connectionId = bridgeConnectionId + 1;
+  bridgeConnectionId = connectionId;
+  window.clearTimeout(bridgeReconnectTimer);
+  if (socket) {
+    socket.close();
+  }
+  socket = new WebSocket(url);
   socket.addEventListener("message", (event) => {
     controller.handleBridgeMessage(JSON.parse(event.data));
   });
   socket.addEventListener("close", () => {
+    if (connectionId !== bridgeConnectionId) {
+      return;
+    }
     socket = null;
+    if (!bridgeReconnectEnabled) {
+      return;
+    }
+    window.clearTimeout(bridgeReconnectTimer);
+    bridgeReconnectTimer = window.setTimeout(() => {
+      connectBridgeSocket(url, { reconnect: true });
+    }, 1200);
   });
-});
+}
 
-disconnectBridge.addEventListener("click", () => {
-  if (socket) {
-    socket.close();
-  }
-});
+if (isDesktopMode) {
+  connectBridgeSocket(bridgeUrl.value, { reconnect: true });
+}
 
 if (isDesktopMode) {
   window.addEventListener("keydown", (event) => {

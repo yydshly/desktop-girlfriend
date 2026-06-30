@@ -11,6 +11,7 @@ from app.contracts.events import (
     BaseEvent,
 )
 from app.ui.live2d_bridge import Live2DBridgeEventMapper
+from app.ui.live2d_bridge import Live2DBridgeEventDispatcher
 
 
 def _event(event_type: str, payload: dict | None = None) -> BaseEvent:
@@ -105,3 +106,64 @@ def test_unknown_event_is_ignored() -> None:
     mapper = Live2DBridgeEventMapper()
 
     assert mapper.map_event(_event("memory.listed")) is None
+
+
+def test_dispatcher_subscribes_and_broadcasts_mapped_events() -> None:
+    """Dispatcher wires EventBus-style subscriptions to bridge broadcasts."""
+    subscriptions = []
+    broadcasts = []
+
+    def subscribe(event_type, handler):
+        subscriptions.append((event_type, handler))
+
+    def unsubscribe(event_type, handler):
+        subscriptions.remove((event_type, handler))
+
+    dispatcher = Live2DBridgeEventDispatcher(
+        subscribe=subscribe,
+        unsubscribe=unsubscribe,
+        broadcast=broadcasts.append,
+    )
+
+    dispatcher.start()
+    assert {event_type for event_type, _ in subscriptions} == {
+        USER_TEXT_SUBMITTED,
+        ASSISTANT_TEXT_RECEIVED,
+        STATE_CHANGED,
+        SYSTEM_ERROR,
+        CONVERSATION_CLEARED,
+    }
+
+    handler = dict(subscriptions)[STATE_CHANGED]
+    handler(_event(STATE_CHANGED, {"current_state": "speaking"}))
+
+    assert broadcasts[-1]["type"] == "avatar.state"
+    assert broadcasts[-1]["payload"]["state"] == "speak"
+
+    dispatcher.stop()
+    assert subscriptions == []
+
+
+def test_dispatcher_start_stop_are_idempotent() -> None:
+    """Repeated start and stop calls do not duplicate subscriptions."""
+    subscriptions = []
+
+    def subscribe(event_type, handler):
+        subscriptions.append((event_type, handler))
+
+    def unsubscribe(event_type, handler):
+        subscriptions.remove((event_type, handler))
+
+    dispatcher = Live2DBridgeEventDispatcher(
+        subscribe=subscribe,
+        unsubscribe=unsubscribe,
+        broadcast=lambda message: None,
+    )
+
+    dispatcher.start()
+    dispatcher.start()
+    assert len(subscriptions) == 5
+
+    dispatcher.stop()
+    dispatcher.stop()
+    assert subscriptions == []

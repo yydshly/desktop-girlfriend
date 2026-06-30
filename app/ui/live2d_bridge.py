@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -21,6 +22,14 @@ _STATE_TO_AVATAR_STATE = {
     "speaking": "speak",
     "error": "sad",
 }
+
+_SUPPORTED_EVENT_TYPES = (
+    USER_TEXT_SUBMITTED,
+    ASSISTANT_TEXT_RECEIVED,
+    STATE_CHANGED,
+    SYSTEM_ERROR,
+    CONVERSATION_CLEARED,
+)
 
 
 @dataclass
@@ -107,3 +116,43 @@ class Live2DBridgeEventMapper:
                 **payload,
             },
         }
+
+
+class Live2DBridgeEventDispatcher:
+    """Subscribe to EventBus events and broadcast mapped Live2D messages."""
+
+    def __init__(
+        self,
+        subscribe: Callable[[str, Callable[[BaseEvent], None]], None],
+        unsubscribe: Callable[[str, Callable[[BaseEvent], None]], None],
+        broadcast: Callable[[dict[str, Any]], None],
+        mapper: Live2DBridgeEventMapper | None = None,
+    ) -> None:
+        self._subscribe = subscribe
+        self._unsubscribe = unsubscribe
+        self._broadcast = broadcast
+        self._mapper = mapper or Live2DBridgeEventMapper()
+        self._started = False
+
+    def start(self) -> None:
+        """Subscribe to supported app events."""
+
+        if self._started:
+            return
+        for event_type in _SUPPORTED_EVENT_TYPES:
+            self._subscribe(event_type, self._handle_event)
+        self._started = True
+
+    def stop(self) -> None:
+        """Unsubscribe from supported app events."""
+
+        if not self._started:
+            return
+        for event_type in _SUPPORTED_EVENT_TYPES:
+            self._unsubscribe(event_type, self._handle_event)
+        self._started = False
+
+    def _handle_event(self, event: BaseEvent) -> None:
+        message = self._mapper.map_event(event)
+        if message is not None:
+            self._broadcast(message)

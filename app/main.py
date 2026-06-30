@@ -64,6 +64,8 @@ from app.input.asr.controller import VoiceInputController
 from app.input.asr.providers import ASRProviderError, create_asr_provider
 from app.input.audio import MicrophoneRecorder, MicrophoneRecorderLike
 from app.ui.close_behavior import decide_close_behavior
+from app.ui.live2d_bridge import Live2DBridgeEventDispatcher
+from app.ui.live2d_bridge_server import Live2DBridgeServer
 from app.ui.onboarding_view import build_onboarding_view, render_onboarding_text
 from app.ui.product_status_builder import build_product_status_view
 from app.ui.qt_event_bridge import QtEventBridge
@@ -115,6 +117,12 @@ def main() -> None:
     # Initialize Core components
     event_bus = EventBus()
     state_machine = StateMachine()
+    live2d_bridge_server = Live2DBridgeServer()
+    live2d_bridge_dispatcher = Live2DBridgeEventDispatcher(
+        subscribe=event_bus.subscribe,
+        unsubscribe=event_bus.unsubscribe,
+        broadcast=live2d_bridge_server.broadcast,
+    )
 
     # Initialize UI components
     view_model = DesktopViewModel()
@@ -594,6 +602,8 @@ def main() -> None:
     # DialogueController (producer) so it is ready to transition to SPEAKING
     # before DialogueController would send IDLE.
     state_controller.start()
+    live2d_bridge_server.start()
+    live2d_bridge_dispatcher.start()
     tts_controller.start()
     dialogue_controller.start()
     voice_input_controller.start()
@@ -622,6 +632,8 @@ def main() -> None:
         tts_controller,
         dialogue_controller,
         state_controller,
+        live2d_bridge_dispatcher,
+        live2d_bridge_server,
     ]
     if memory_suggestion_controller is not None:
         shutdown_components.append(memory_suggestion_controller)
