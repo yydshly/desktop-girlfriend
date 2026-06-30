@@ -64,5 +64,34 @@ async function testWaitsForExistingSdkScript() {
   assert.deepEqual(status.missing, []);
 }
 
+async function testWaitsForSdkGlobalsAfterScriptLoad() {
+  const root = { PIXI: {}, Live2DCubismCore: {} };
+  const scripts = [];
+  root.document = {
+    head: {
+      appendChild(script) {
+        scripts.push(script);
+        queueMicrotask(() => script.dispatch("load"));
+      }
+    },
+    createElement() {
+      return new FakeScript("");
+    },
+    querySelector() {
+      return null;
+    }
+  };
+
+  setTimeout(() => {
+    root.PIXI.live2d = {};
+  }, 0);
+
+  const status = await ensureLive2DSdk(root);
+
+  assert.equal(status.ready, true);
+  assert.equal(scripts.length, 3);
+}
+
 await testWaitsForExistingSdkScript();
+await testWaitsForSdkGlobalsAfterScriptLoad();
 console.log("live2d-sdk-loader tests passed");

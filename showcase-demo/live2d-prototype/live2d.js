@@ -3,7 +3,7 @@ import { detectLive2DSdk, formatSdkStatus } from "./live2d-sdk-loader.js";
 import { inspectModelPackage } from "./model-package-inspector.js";
 import { createAvatarRenderer, getRendererLabel } from "./renderer-factory.js";
 
-const canvas = document.querySelector("#avatarCanvas");
+let canvas = document.querySelector("#avatarCanvas");
 const stage = document.querySelector("#avatarStage");
 const readout = document.querySelector("#stateReadout");
 const rendererMode = document.querySelector("#rendererMode");
@@ -17,6 +17,8 @@ const setModelUrl = document.querySelector("#setModelUrl");
 const bridgeUrl = document.querySelector("#bridgeUrl");
 const connectBridge = document.querySelector("#connectBridge");
 const disconnectBridge = document.querySelector("#disconnectBridge");
+
+rendererSelect.value = "live2d";
 
 let configuredModelUrl = modelUrl.value;
 let activeRendererMode = rendererSelect.value;
@@ -35,6 +37,14 @@ function createRenderer() {
       updateRendererStatus();
     }
   });
+}
+
+function resetAvatarCanvas() {
+  const nextCanvas = canvas.cloneNode(false);
+  nextCanvas.width = canvas.width;
+  nextCanvas.height = canvas.height;
+  canvas.replaceWith(nextCanvas);
+  canvas = nextCanvas;
 }
 
 const controller = new AvatarController(
@@ -81,6 +91,7 @@ updateModelPackageStatus();
 rendererSelect.addEventListener("change", () => {
   activeRendererMode = rendererSelect.value;
   lastRendererStatus = { loadState: "idle", loadError: "", hasLive2DModel: false };
+  resetAvatarCanvas();
   controller.setRenderer(createRenderer());
   updateRendererStatus();
   updateModelPackageStatus();
@@ -101,6 +112,7 @@ stage.addEventListener("pointermove", (event) => {
 setModelUrl.addEventListener("click", () => {
   configuredModelUrl = modelUrl.value.trim();
   lastRendererStatus = { loadState: "idle", loadError: "", hasLive2DModel: false };
+  resetAvatarCanvas();
   controller.setRenderer(createRenderer());
   updateRendererStatus();
   updateModelPackageStatus();

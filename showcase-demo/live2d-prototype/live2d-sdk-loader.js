@@ -10,6 +10,9 @@ const CDN_SCRIPTS = [
   "https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/index.min.js"
 ];
 
+const SDK_READY_TIMEOUT_MS = 5000;
+const SDK_READY_POLL_MS = 50;
+
 export function detectLive2DSdk(root = globalThis) {
   const globals = SDK_GLOBALS.map((entry) => ({
     ...entry,
@@ -43,7 +46,19 @@ export async function ensureLive2DSdk(root = globalThis) {
     await loadScriptOnce(src, root.document);
   }
 
-  return detectLive2DSdk(root);
+  return waitForSdkReady(root);
+}
+
+async function waitForSdkReady(root) {
+  const startedAt = Date.now();
+  let status = detectLive2DSdk(root);
+
+  while (!status.ready && Date.now() - startedAt < SDK_READY_TIMEOUT_MS) {
+    await delay(SDK_READY_POLL_MS);
+    status = detectLive2DSdk(root);
+  }
+
+  return status;
 }
 
 function loadScriptOnce(src, documentRef) {
@@ -91,5 +106,11 @@ function waitForScript(script, src) {
       script.dataset.live2dError = "true";
       reject(new Error(`Failed to load SDK script: ${src}`));
     });
+  });
+}
+
+function delay(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
   });
 }
