@@ -116,6 +116,9 @@ export class Live2DRenderer {
     if (this.live2dModel) {
       return;
     }
+    if (!this.shouldDrawFallback()) {
+      return;
+    }
     this.ctx = this.ctx || this.canvas.getContext("2d");
     const ctx = this.ctx;
     const w = this.canvas.width;
@@ -147,6 +150,10 @@ export class Live2DRenderer {
     }
 
     this.drawStatusText();
+  }
+
+  shouldDrawFallback() {
+    return Boolean(this.previewImage) || this.loadState === "ready" || this.loadState === "error";
   }
 
   drawStatusText() {
