@@ -10,7 +10,7 @@ export class Live2DRenderer {
   }
 
   async start() {
-    throw new Error("Live2DRenderer requires a Live2D SDK integration and a legal model asset.");
+    this.lastCommands = mapStateToLive2DCommands();
   }
 
   stop() {}

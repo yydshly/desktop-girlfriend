@@ -24,6 +24,12 @@
       <aside class="control-panel">
         <section class="panel-section">
           <h2>模型资产</h2>
+          <label class="field-label" for="rendererSelect">Renderer</label>
+          <select id="rendererSelect">
+            <option value="placeholder">Placeholder renderer</option>
+            <option value="live2d">Live2D adapter dry run</option>
+          </select>
+          <label class="field-label" for="modelUrl">Model URL</label>
           <div class="asset-row">
             <input id="modelUrl" value="./assets/models/custom/model.model3.json" />
             <button id="setModelUrl">设置模型路径</button>

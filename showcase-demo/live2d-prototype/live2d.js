@@ -1,9 +1,11 @@
 import { AvatarController } from "./avatar-controller.js";
-import { PlaceholderRenderer } from "./adapters/placeholder-renderer.js";
+import { createAvatarRenderer, getRendererLabel } from "./renderer-factory.js";
 
 const canvas = document.querySelector("#avatarCanvas");
 const stage = document.querySelector("#avatarStage");
 const readout = document.querySelector("#stateReadout");
+const rendererMode = document.querySelector("#rendererMode");
+const rendererSelect = document.querySelector("#rendererSelect");
 const modelUrl = document.querySelector("#modelUrl");
 const modelStatus = document.querySelector("#modelStatus");
 const setModelUrl = document.querySelector("#setModelUrl");
@@ -11,12 +13,34 @@ const bridgeUrl = document.querySelector("#bridgeUrl");
 const connectBridge = document.querySelector("#connectBridge");
 const disconnectBridge = document.querySelector("#disconnectBridge");
 
-const renderer = new PlaceholderRenderer(canvas);
-const controller = new AvatarController(renderer, readout);
-let socket = null;
 let configuredModelUrl = modelUrl.value;
+let activeRendererMode = rendererSelect.value;
+let socket = null;
+
+const controller = new AvatarController(
+  createAvatarRenderer(activeRendererMode, canvas, { modelUrl: configuredModelUrl }),
+  readout
+);
+
+function updateRendererStatus() {
+  rendererMode.textContent = getRendererLabel(activeRendererMode);
+  if (activeRendererMode === "live2d") {
+    modelStatus.textContent = `Live2D adapter dry run: ${configuredModelUrl}. The SDK loader is not connected yet.`;
+    return;
+  }
+  modelStatus.textContent = `Placeholder renderer is active. The model path is recorded as ${configuredModelUrl}.`;
+}
 
 controller.start();
+updateRendererStatus();
+
+rendererSelect.addEventListener("change", () => {
+  activeRendererMode = rendererSelect.value;
+  controller.setRenderer(
+    createAvatarRenderer(activeRendererMode, canvas, { modelUrl: configuredModelUrl })
+  );
+  updateRendererStatus();
+});
 
 document.querySelectorAll("[data-state]").forEach((button) => {
   button.addEventListener("click", () => controller.applyStateName(button.dataset.state));
@@ -32,7 +56,10 @@ stage.addEventListener("pointermove", (event) => {
 
 setModelUrl.addEventListener("click", () => {
   configuredModelUrl = modelUrl.value.trim();
-  modelStatus.textContent = `模型路径已记录：${configuredModelUrl}。当前仍使用占位渲染器，接入真实 Live2D SDK 后会从这里加载模型。`;
+  controller.setRenderer(
+    createAvatarRenderer(activeRendererMode, canvas, { modelUrl: configuredModelUrl })
+  );
+  updateRendererStatus();
 });
 
 connectBridge.addEventListener("click", () => {
@@ -58,5 +85,6 @@ window.live2dPrototype = {
   applyState: (state) => controller.applyStateName(state),
   playSequence: (name) => controller.playSequence(name),
   handleBridgeMessage: (message) => controller.handleBridgeMessage(message),
-  getModelUrl: () => configuredModelUrl
+  getModelUrl: () => configuredModelUrl,
+  getRendererMode: () => activeRendererMode
 };

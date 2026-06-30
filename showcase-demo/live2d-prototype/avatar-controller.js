@@ -19,6 +19,14 @@ export class AvatarController {
     this.renderReadout();
   }
 
+  setRenderer(renderer) {
+    this.renderer.stop();
+    this.renderer = renderer;
+    this.renderer.start();
+    this.renderer.applyState(this.currentState);
+    this.renderReadout();
+  }
+
   applyStateName(state) {
     this.applyMappedState(mapAvatarState({ state }));
   }
