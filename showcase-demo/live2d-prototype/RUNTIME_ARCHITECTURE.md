@@ -171,6 +171,7 @@ Record the model source in `assets/models/sample-model-manifest.json` before con
 Then implement the first real `Live2DRenderer` loader:
 
 ```text
+detect SDK runtime
 load SDK
 load .model3.json
 fit model to stage

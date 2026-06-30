@@ -1,4 +1,5 @@
 import { AvatarController } from "./avatar-controller.js";
+import { detectLive2DSdk, formatSdkStatus } from "./live2d-sdk-loader.js";
 import { createAvatarRenderer, getRendererLabel } from "./renderer-factory.js";
 
 const canvas = document.querySelector("#avatarCanvas");
@@ -8,6 +9,7 @@ const rendererMode = document.querySelector("#rendererMode");
 const rendererSelect = document.querySelector("#rendererSelect");
 const modelUrl = document.querySelector("#modelUrl");
 const modelStatus = document.querySelector("#modelStatus");
+const sdkStatus = document.querySelector("#sdkStatus");
 const setModelUrl = document.querySelector("#setModelUrl");
 const bridgeUrl = document.querySelector("#bridgeUrl");
 const connectBridge = document.querySelector("#connectBridge");
@@ -23,12 +25,14 @@ const controller = new AvatarController(
 );
 
 function updateRendererStatus() {
+  const sdk = detectLive2DSdk(window);
   rendererMode.textContent = getRendererLabel(activeRendererMode);
+  sdkStatus.textContent = JSON.stringify(sdk, null, 2);
   if (activeRendererMode === "live2d") {
-    modelStatus.textContent = `Live2D adapter dry run: ${configuredModelUrl}. The SDK loader is not connected yet.`;
+    modelStatus.textContent = `Live2D adapter dry run: ${configuredModelUrl}. ${formatSdkStatus(sdk)}`;
     return;
   }
-  modelStatus.textContent = `Placeholder renderer is active. The model path is recorded as ${configuredModelUrl}.`;
+  modelStatus.textContent = `Placeholder renderer is active. The model path is recorded as ${configuredModelUrl}. ${formatSdkStatus(sdk)}`;
 }
 
 controller.start();
@@ -86,5 +90,6 @@ window.live2dPrototype = {
   playSequence: (name) => controller.playSequence(name),
   handleBridgeMessage: (message) => controller.handleBridgeMessage(message),
   getModelUrl: () => configuredModelUrl,
-  getRendererMode: () => activeRendererMode
+  getRendererMode: () => activeRendererMode,
+  detectSdk: () => detectLive2DSdk(window)
 };
