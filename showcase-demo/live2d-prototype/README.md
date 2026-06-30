@@ -4,6 +4,8 @@ This directory is the new B-plan mainline for the desktop girlfriend project.
 
 The first version deliberately uses a placeholder renderer. That renderer is not the final visual target. It proves that the existing `avatar.state`, `avatar.sequence`, and `dialogue.turn` protocol can drive a model-shaped runtime before a real `.model3.json` file is available.
 
+Read `RUNTIME_ARCHITECTURE.md` for the mainline architecture and iteration order.
+
 The intended upgrade path is:
 
 1. Run placeholder renderer and validate state mapping.
