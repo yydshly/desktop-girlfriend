@@ -21,9 +21,24 @@ const disconnectBridge = document.querySelector("#disconnectBridge");
 let configuredModelUrl = modelUrl.value;
 let activeRendererMode = rendererSelect.value;
 let socket = null;
+let lastRendererStatus = {
+  loadState: "idle",
+  loadError: "",
+  hasLive2DModel: false
+};
+
+function createRenderer() {
+  return createAvatarRenderer(activeRendererMode, canvas, {
+    modelUrl: configuredModelUrl,
+    onStatusChange: (status) => {
+      lastRendererStatus = status;
+      updateRendererStatus();
+    }
+  });
+}
 
 const controller = new AvatarController(
-  createAvatarRenderer(activeRendererMode, canvas, { modelUrl: configuredModelUrl }),
+  createRenderer(),
   readout
 );
 
@@ -32,7 +47,12 @@ function updateRendererStatus() {
   rendererMode.textContent = getRendererLabel(activeRendererMode);
   sdkStatus.textContent = JSON.stringify(sdk, null, 2);
   if (activeRendererMode === "live2d") {
-    modelStatus.textContent = `Live2D adapter dry run: ${configuredModelUrl}. ${formatSdkStatus(sdk)}`;
+    modelStatus.textContent = [
+      `Live2D renderer: ${configuredModelUrl}.`,
+      `renderer state: ${lastRendererStatus.loadState}.`,
+      formatSdkStatus(sdk),
+      lastRendererStatus.loadError ? `detail: ${lastRendererStatus.loadError}` : ""
+    ].filter(Boolean).join(" ");
     return;
   }
   modelStatus.textContent = `Placeholder renderer is active. The model path is recorded as ${configuredModelUrl}. ${formatSdkStatus(sdk)}`;
@@ -60,9 +80,8 @@ updateModelPackageStatus();
 
 rendererSelect.addEventListener("change", () => {
   activeRendererMode = rendererSelect.value;
-  controller.setRenderer(
-    createAvatarRenderer(activeRendererMode, canvas, { modelUrl: configuredModelUrl })
-  );
+  lastRendererStatus = { loadState: "idle", loadError: "", hasLive2DModel: false };
+  controller.setRenderer(createRenderer());
   updateRendererStatus();
   updateModelPackageStatus();
 });
@@ -81,9 +100,8 @@ stage.addEventListener("pointermove", (event) => {
 
 setModelUrl.addEventListener("click", () => {
   configuredModelUrl = modelUrl.value.trim();
-  controller.setRenderer(
-    createAvatarRenderer(activeRendererMode, canvas, { modelUrl: configuredModelUrl })
-  );
+  lastRendererStatus = { loadState: "idle", loadError: "", hasLive2DModel: false };
+  controller.setRenderer(createRenderer());
   updateRendererStatus();
   updateModelPackageStatus();
 });

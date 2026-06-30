@@ -7,6 +7,7 @@ export class Live2DRenderer {
     this.canvas = canvas;
     this.ctx = null;
     this.modelUrl = options.modelUrl || "";
+    this.onStatusChange = options.onStatusChange || (() => {});
     this.app = null;
     this.model = null;
     this.live2dModel = null;
@@ -53,6 +54,7 @@ export class Live2DRenderer {
 
   async loadPreviewTexture() {
     this.loadState = "loading";
+    this.emitStatus();
     this.draw();
 
     try {
@@ -68,12 +70,14 @@ export class Live2DRenderer {
       this.loadError = error.message;
     }
 
+    this.emitStatus();
     this.draw();
   }
 
   async loadLive2DModel() {
     this.loadState = "loading-sdk";
     this.loadError = "";
+    this.emitStatus();
     this.draw();
 
     try {
@@ -83,6 +87,7 @@ export class Live2DRenderer {
       }
 
       this.loadState = "loading-model";
+      this.emitStatus();
       this.draw();
 
       const PIXI = window.PIXI;
@@ -102,8 +107,10 @@ export class Live2DRenderer {
       this.live2dModel = live2dModel;
       this.loadState = "live2d-ready";
       this.applyLive2DCommands();
+      this.emitStatus();
     } catch (error) {
       this.loadError = `SDK/model load failed, using texture preview: ${error.message}`;
+      this.emitStatus();
       await this.loadPreviewTexture();
     }
   }
@@ -183,6 +190,15 @@ export class Live2DRenderer {
 
     Object.entries(this.lastCommands.parameters).forEach(([id, value]) => {
       coreModel.setParameterValueById(id, value);
+    });
+  }
+
+  emitStatus() {
+    this.onStatusChange({
+      loadState: this.loadState,
+      loadError: this.loadError,
+      modelUrl: this.modelUrl,
+      hasLive2DModel: Boolean(this.live2dModel)
     });
   }
 }
