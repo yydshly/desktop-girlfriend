@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
-import { calculateLive2DPlacement, Live2DRenderer } from "./adapters/live2d-renderer.js";
+import {
+  calculateAnimatedLive2DParameters,
+  calculateLive2DPlacement,
+  Live2DRenderer
+} from "./adapters/live2d-renderer.js";
 
 function createCanvasProbe() {
   return {
@@ -89,4 +93,28 @@ function testIdleStateTriggersIdleMotion() {
 
 testSequenceTriggersTapBodyMotion();
 testIdleStateTriggersIdleMotion();
+
+function testSpeakingStateAnimatesMouthOpen() {
+  const parameters = calculateAnimatedLive2DParameters(
+    { ParamMouthOpenY: 0.1, ParamAngleX: 2 },
+    { motion: "reply", expression: "speaking" },
+    1000
+  );
+
+  assert.ok(parameters.ParamMouthOpenY > 0.1);
+  assert.equal(parameters.ParamAngleX, 2);
+}
+
+function testIdleStateDoesNotAnimateMouthOpen() {
+  const parameters = calculateAnimatedLive2DParameters(
+    { ParamMouthOpenY: 0.1 },
+    { motion: "idle", expression: "neutral" },
+    1000
+  );
+
+  assert.equal(parameters.ParamMouthOpenY, 0.1);
+}
+
+testSpeakingStateAnimatesMouthOpen();
+testIdleStateDoesNotAnimateMouthOpen();
 console.log("live2d-renderer tests passed");

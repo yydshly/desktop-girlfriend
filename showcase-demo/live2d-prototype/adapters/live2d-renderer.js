@@ -19,6 +19,7 @@ export class Live2DRenderer {
     this.lastCommands = mapStateToLive2DCommands();
     this.lastMotionKey = "";
     this.activeMotion = { group: "", index: 0, source: "" };
+    this.raf = 0;
   }
 
   start() {
@@ -27,6 +28,10 @@ export class Live2DRenderer {
   }
 
   stop() {
+    if (this.raf) {
+      cancelAnimationFrame(this.raf);
+      this.raf = 0;
+    }
     if (this.app) {
       this.app.destroy(false, { children: true, texture: false, baseTexture: false });
       this.app = null;
@@ -113,6 +118,7 @@ export class Live2DRenderer {
       this.loadState = "live2d-ready";
       this.applyLive2DCommands();
       this.playLive2DMotion({ force: true });
+      this.startParameterLoop();
       this.emitStatus();
     } catch (error) {
       this.loadError = `SDK/model load failed, using texture preview: ${error.message}`;
@@ -201,9 +207,27 @@ export class Live2DRenderer {
       return;
     }
 
-    Object.entries(this.lastCommands.parameters).forEach(([id, value]) => {
+    const parameters = calculateAnimatedLive2DParameters(
+      this.lastCommands.parameters,
+      this.lastCommands,
+      performance.now()
+    );
+
+    Object.entries(parameters).forEach(([id, value]) => {
       coreModel.setParameterValueById(id, value);
     });
+  }
+
+  startParameterLoop() {
+    if (this.raf || typeof requestAnimationFrame !== "function") {
+      return;
+    }
+
+    const frame = () => {
+      this.applyLive2DCommands();
+      this.raf = requestAnimationFrame(frame);
+    };
+    this.raf = requestAnimationFrame(frame);
   }
 
   playLive2DMotion(options = {}) {
@@ -265,6 +289,23 @@ export function mapCommandToHiyoriMotion(command = {}) {
   }
 
   return { group: "Idle", index: 0, source: motion };
+}
+
+export function calculateAnimatedLive2DParameters(parameters = {}, command = {}, now = 0) {
+  const next = { ...parameters };
+  const motion = command.motion || "";
+  const speaking = motion === "reply" || motion === "speak" || command.expression === "speaking";
+
+  if (speaking) {
+    const pulse = 0.45 + Math.sin(now / 82) * 0.28 + Math.sin(now / 37) * 0.12;
+    next.ParamMouthOpenY = roundToThree(Math.max(Number(next.ParamMouthOpenY ?? 0), pulse));
+  }
+
+  return next;
+}
+
+function roundToThree(value) {
+  return Number(Math.min(1, Math.max(0, value)).toFixed(3));
 }
 
 function loadImage(src) {
