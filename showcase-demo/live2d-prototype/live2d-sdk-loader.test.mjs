@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import { ensureLive2DSdk } from "./live2d-sdk-loader.js";
+import { detectLive2DSdk, ensureLive2DSdk } from "./live2d-sdk-loader.js";
 
 const PIXI_SRC = "https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js";
-const LIVE2D_PLUGIN_SRC = "https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/index.min.js";
+const LIVE2D_PLUGIN_SRC = "https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism4.min.js";
 
 class FakeScript {
   constructor(src) {
@@ -32,7 +32,7 @@ function createDocumentWithPendingLive2DPlugin(root) {
           }
           if (script.src.includes("pixi-live2d-display")) {
             root.PIXI ||= {};
-            root.PIXI.live2d = {};
+            root.PIXI.live2d = { Live2DModel: { from: () => Promise.resolve({}) } };
           }
           script.dispatch("load");
         });
@@ -44,7 +44,7 @@ function createDocumentWithPendingLive2DPlugin(root) {
     querySelector(selector) {
       if (selector.includes(LIVE2D_PLUGIN_SRC)) {
         setTimeout(() => {
-          root.PIXI.live2d = {};
+          root.PIXI.live2d = { Live2DModel: { from: () => Promise.resolve({}) } };
           pendingPluginScript.dispatch("load");
         }, 0);
         return pendingPluginScript;
@@ -83,7 +83,7 @@ async function testWaitsForSdkGlobalsAfterScriptLoad() {
   };
 
   setTimeout(() => {
-    root.PIXI.live2d = {};
+    root.PIXI.live2d = { Live2DModel: { from: () => Promise.resolve({}) } };
   }, 0);
 
   const status = await ensureLive2DSdk(root);
@@ -92,6 +92,16 @@ async function testWaitsForSdkGlobalsAfterScriptLoad() {
   assert.equal(scripts.length, 3);
 }
 
+function testRequiresLive2DModelFactory() {
+  const root = { PIXI: { live2d: {} }, Live2DCubismCore: {} };
+
+  const status = detectLive2DSdk(root);
+
+  assert.equal(status.ready, false);
+  assert.deepEqual(status.missing, ["PIXI.live2d.Live2DModel.from"]);
+}
+
+testRequiresLive2DModelFactory();
 await testWaitsForExistingSdkScript();
 await testWaitsForSdkGlobalsAfterScriptLoad();
 console.log("live2d-sdk-loader tests passed");

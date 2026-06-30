@@ -88,13 +88,14 @@ export class Live2DRenderer {
       this.emitStatus();
 
       const PIXI = window.PIXI;
+      const Live2DModel = getLive2DModelFactory(PIXI);
       const app = new PIXI.Application({
         view: this.canvas,
         autoStart: true,
         backgroundAlpha: 0,
         antialias: true
       });
-      const live2dModel = await PIXI.live2d.Live2DModel.from(this.modelUrl);
+      const live2dModel = await Live2DModel.from(this.modelUrl);
       live2dModel.anchor.set(0.5, 0.5);
       live2dModel.scale.set(Math.min(this.canvas.width / live2dModel.width, this.canvas.height / live2dModel.height) * 0.82);
       live2dModel.position.set(this.canvas.width / 2, this.canvas.height / 2);
@@ -205,6 +206,14 @@ export class Live2DRenderer {
       hasLive2DModel: Boolean(this.live2dModel)
     });
   }
+}
+
+function getLive2DModelFactory(PIXI) {
+  const Live2DModel = PIXI?.live2d?.Live2DModel;
+  if (!Live2DModel?.from) {
+    throw new Error("PIXI Live2D Cubism 4 model loader is missing.");
+  }
+  return Live2DModel;
 }
 
 function loadImage(src) {

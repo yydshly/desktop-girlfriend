@@ -1,13 +1,17 @@
 const SDK_GLOBALS = [
   { key: "PIXI", label: "PIXI runtime" },
   { key: "Live2DCubismCore", label: "Live2D Cubism Core" },
-  { key: "PIXI.live2d", label: "PIXI Live2D plugin", getValue: (root) => root.PIXI?.live2d }
+  {
+    key: "PIXI.live2d.Live2DModel.from",
+    label: "PIXI Live2D Cubism 4 model loader",
+    getValue: (root) => root.PIXI?.live2d?.Live2DModel?.from
+  }
 ];
 
 const CDN_SCRIPTS = [
   "https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js",
   "https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js",
-  "https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/index.min.js"
+  "https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism4.min.js"
 ];
 
 const SDK_READY_TIMEOUT_MS = 5000;
