@@ -13,6 +13,10 @@ const modelStatus = document.querySelector("#modelStatus");
 const modelPackageStatus = document.querySelector("#modelPackageStatus");
 const modelTexturePreview = document.querySelector("#modelTexturePreview");
 const sdkStatus = document.querySelector("#sdkStatus");
+const summaryRenderer = document.querySelector("#summaryRenderer");
+const summaryModel = document.querySelector("#summaryModel");
+const summaryMotion = document.querySelector("#summaryMotion");
+const summarySdk = document.querySelector("#summarySdk");
 const setModelUrl = document.querySelector("#setModelUrl");
 const bridgeUrl = document.querySelector("#bridgeUrl");
 const connectBridge = document.querySelector("#connectBridge");
@@ -56,6 +60,12 @@ function updateRendererStatus() {
   const sdk = detectLive2DSdk(window);
   rendererMode.textContent = getRendererLabel(activeRendererMode);
   sdkStatus.textContent = JSON.stringify(sdk, null, 2);
+  summaryRenderer.textContent = getRendererLabel(activeRendererMode);
+  summaryModel.textContent = lastRendererStatus.hasLive2DModel ? "live" : lastRendererStatus.loadState;
+  summaryMotion.textContent = lastRendererStatus.activeMotion?.group
+    ? `${lastRendererStatus.activeMotion.group}[${lastRendererStatus.activeMotion.index}]`
+    : "none";
+  summarySdk.textContent = sdk.ready ? "ready" : `missing ${sdk.missing.length}`;
   if (activeRendererMode === "live2d") {
     modelStatus.textContent = [
       `Live2D renderer: ${configuredModelUrl}.`,

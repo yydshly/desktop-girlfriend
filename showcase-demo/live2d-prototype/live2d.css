@@ -192,6 +192,38 @@ pre {
   line-height: 1.6;
 }
 
+.runtime-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.summary-card {
+  min-height: 58px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: rgba(16, 22, 26, 0.82);
+}
+
+.summary-label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.summary-card strong {
+  display: block;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .sdk-status {
   min-height: 96px;
   max-height: 150px;
