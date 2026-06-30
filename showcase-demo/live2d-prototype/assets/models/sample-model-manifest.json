@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "status": "no-local-model-yet",
+  "sources": [
+    {
+      "model_id": "official-cubism-web-sample-candidate",
+      "display_name": "Live2D Cubism Web Samples candidate",
+      "source_url": "https://github.com/Live2D/CubismWebSamples",
+      "license_url": "https://github.com/Live2D/CubismWebSamples/blob/develop/LICENSE.md",
+      "allowed_use": "candidate for technical validation after license review",
+      "local_model_json": "",
+      "notes": "Do not mark this as integrated until the exact model package is downloaded or copied into assets/models/sample and its license terms are reviewed."
+    }
+  ]
+}

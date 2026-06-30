@@ -2,6 +2,8 @@
 
 Put legal Live2D runtime model folders here.
 
+Read `MODEL_SOURCES.md` before adding a sample or custom model.
+
 Expected custom model location for the prototype:
 
 ```text

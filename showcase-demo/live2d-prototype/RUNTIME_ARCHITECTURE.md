@@ -166,6 +166,8 @@ local websocket bridge to AI runtime
 
 Add a legal Live2D sample model under `assets/models/sample/`.
 
+Record the model source in `assets/models/sample-model-manifest.json` before connecting it to runtime code.
+
 Then implement the first real `Live2DRenderer` loader:
 
 ```text
