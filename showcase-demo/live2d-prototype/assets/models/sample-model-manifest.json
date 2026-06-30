@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "status": "no-local-model-yet",
+  "status": "sample-model-copied",
   "sources": [
     {
       "model_id": "official-cubism-web-samples",
@@ -9,7 +9,8 @@
       "license_url": "https://github.com/Live2D/CubismWebSamples/blob/develop/LICENSE.md",
       "sample_terms_url": "https://www.live2d.com/eula/live2d-sample-model-terms_en.html",
       "allowed_use": "technical validation only after accepting Live2D Free Material License and model-specific sample terms",
-      "local_model_json": "",
+      "local_model_json": "./assets/models/sample/Hiyori/Hiyori.model3.json",
+      "integrated_model": "Hiyori",
       "candidate_models": [
         "Haru",
         "Hiyori",
@@ -20,7 +21,7 @@
         "Rice",
         "Wanko"
       ],
-      "notes": "The official repository lists these Samples/Resources models under Free Material License. Do not mark a model as integrated until the exact model package is copied into assets/models/sample and the sample model terms are accepted."
+      "notes": "Hiyori has been copied from Samples/Resources/Hiyori for local technical validation. Use requires compliance with Live2D Free Material License and Live2D sample model terms."
     }
   ]
 }

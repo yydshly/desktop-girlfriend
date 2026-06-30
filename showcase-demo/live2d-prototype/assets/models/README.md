@@ -10,4 +10,10 @@ Expected custom model location for the prototype:
 showcase-demo/live2d-prototype/assets/models/custom/model.model3.json
 ```
 
+Current technical validation sample:
+
+```text
+showcase-demo/live2d-prototype/assets/models/sample/Hiyori/Hiyori.model3.json
+```
+
 The current page records this path but still uses `PlaceholderRenderer`. The next renderer step should load this path through a real Live2D SDK adapter.
