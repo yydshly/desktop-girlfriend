@@ -20,6 +20,25 @@ https://github.com/Live2D/CubismWebSamples/blob/develop/LICENSE.md
 
 Use this source for technical validation only after confirming the specific model asset and license terms are acceptable for the current project use.
 
+The official repository license lists these sample resource folders under Free Material License:
+
+```text
+Samples/Resources/Haru
+Samples/Resources/Hiyori
+Samples/Resources/Mao
+Samples/Resources/Mark
+Samples/Resources/Natori
+Samples/Resources/Ren
+Samples/Resources/Rice
+Samples/Resources/Wanko
+```
+
+Each selected model also requires accepting Live2D sample model terms:
+
+```text
+https://www.live2d.com/eula/live2d-sample-model-terms_en.html
+```
+
 ## Required Record
 
 Every model folder should include a source record with:

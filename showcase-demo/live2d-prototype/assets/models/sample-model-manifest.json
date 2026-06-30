@@ -3,13 +3,24 @@
   "status": "no-local-model-yet",
   "sources": [
     {
-      "model_id": "official-cubism-web-sample-candidate",
-      "display_name": "Live2D Cubism Web Samples candidate",
+      "model_id": "official-cubism-web-samples",
+      "display_name": "Live2D Cubism Web Samples Resources",
       "source_url": "https://github.com/Live2D/CubismWebSamples",
       "license_url": "https://github.com/Live2D/CubismWebSamples/blob/develop/LICENSE.md",
-      "allowed_use": "candidate for technical validation after license review",
+      "sample_terms_url": "https://www.live2d.com/eula/live2d-sample-model-terms_en.html",
+      "allowed_use": "technical validation only after accepting Live2D Free Material License and model-specific sample terms",
       "local_model_json": "",
-      "notes": "Do not mark this as integrated until the exact model package is downloaded or copied into assets/models/sample and its license terms are reviewed."
+      "candidate_models": [
+        "Haru",
+        "Hiyori",
+        "Mao",
+        "Mark",
+        "Natori",
+        "Ren",
+        "Rice",
+        "Wanko"
+      ],
+      "notes": "The official repository lists these Samples/Resources models under Free Material License. Do not mark a model as integrated until the exact model package is copied into assets/models/sample and the sample model terms are accepted."
     }
   ]
 }
