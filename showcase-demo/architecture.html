@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>桌面女友 - 渲染架构路线</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+        --bg: #071119;
+        --panel: rgba(8, 14, 20, 0.76);
+        --text: #f5f7fb;
+        --muted: #aeb7c2;
+        --line: rgba(255, 255, 255, 0.14);
+        --green: #75d6a1;
+        --blue: #7fb7ff;
+        --pink: #f6a4c9;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          linear-gradient(rgba(7, 17, 25, 0.6), rgba(7, 17, 25, 0.9)),
+          url("./assets/background/background-room-night.png") center / cover fixed;
+        color: var(--text);
+      }
+
+      main {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 36px 0 44px;
+      }
+
+      nav {
+        margin-bottom: 24px;
+      }
+
+      nav a {
+        color: var(--green);
+        text-decoration: none;
+        font-weight: 800;
+      }
+
+      .eyebrow {
+        margin: 0 0 10px;
+        color: var(--green);
+        text-transform: uppercase;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      h1 {
+        margin: 0 0 14px;
+        font-size: clamp(32px, 6vw, 58px);
+        line-height: 1.04;
+        letter-spacing: 0;
+      }
+
+      .lead {
+        max-width: 900px;
+        margin: 0 0 28px;
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.7;
+      }
+
+      .pipeline,
+      .stages,
+      .notes {
+        display: grid;
+        gap: 14px;
+      }
+
+      .pipeline {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        margin-bottom: 20px;
+      }
+
+      .node,
+      .stage,
+      .note {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        backdrop-filter: blur(16px);
+      }
+
+      .node {
+        min-height: 148px;
+        padding: 18px;
+      }
+
+      .node strong,
+      .stage strong {
+        display: block;
+        margin-bottom: 10px;
+        font-size: 18px;
+      }
+
+      .node span,
+      .stage span,
+      .note p {
+        color: var(--muted);
+        line-height: 1.58;
+      }
+
+      .stages {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin-top: 18px;
+      }
+
+      .stage {
+        min-height: 260px;
+        padding: 18px;
+      }
+
+      .stage b {
+        display: inline-block;
+        margin-bottom: 12px;
+        color: var(--blue);
+        font-size: 13px;
+      }
+
+      .stage.current b { color: var(--green); }
+      .stage.future b { color: var(--pink); }
+
+      .note {
+        margin-top: 18px;
+        padding: 20px;
+      }
+
+      .note h2 {
+        margin: 0 0 10px;
+        font-size: 22px;
+      }
+
+      code {
+        color: var(--green);
+        font-family: "Cascadia Mono", Consolas, monospace;
+      }
+
+      @media (max-width: 980px) {
+        .pipeline,
+        .stages {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 640px) {
+        .pipeline,
+        .stages {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <nav><a href="./home.html">返回入口</a></nav>
+
+      <p class="eyebrow">Renderer Architecture</p>
+      <h1>从图片素材到真实桌面女友</h1>
+      <p class="lead">
+        最终可以是 3D，但不能从“整张图片播放视频”直接跳过去。可靠路线是先固定 AI 状态协议，再让不同渲染器实现同一套接口：PNG Puppet、Live2D、VRM 3D 都只是呈现层替换。
+      </p>
+
+      <section class="pipeline" aria-label="运行时链路">
+        <div class="node">
+          <strong>AI State</strong>
+          <span>情绪、说话状态、注意力目标、亲密度、当前任务。</span>
+        </div>
+        <div class="node">
+          <strong>Motion Planner</strong>
+          <span>把状态翻译成动作、表情、口型、视线和强度。</span>
+        </div>
+        <div class="node">
+          <strong>Renderer Adapter</strong>
+          <span>统一接口：<code>applyState</code>、<code>setGaze</code>、<code>setMouth</code>。</span>
+        </div>
+        <div class="node">
+          <strong>Desktop Shell</strong>
+          <span>透明窗口、置顶、拖拽、缩放、点击穿透和托盘。</span>
+        </div>
+        <div class="node">
+          <strong>Interaction Loop</strong>
+          <span>用户点击、鼠标位置、语音输入、TTS 音量回流。</span>
+        </div>
+      </section>
+
+      <section class="stages" aria-label="迭代阶段">
+        <div class="stage current">
+          <b>当前</b>
+          <strong>PNG Puppet V1</strong>
+          <span>用参考图和前端叠加层验证控制协议。它不是最终真实驱动，但能证明眼神、嘴型、情绪和事件链路是否成立。</span>
+        </div>
+        <div class="stage">
+          <b>下一步</b>
+          <strong>真实分层 PNG</strong>
+          <span>把人物拆成透明底图、眼睛、瞳孔、嘴型、眼皮、手臂等素材。此时才开始接近“控制人物素材”。</span>
+        </div>
+        <div class="stage">
+          <b>中期</b>
+          <strong>Live2D</strong>
+          <span>保留同一套 AI 状态协议，替换渲染器。获得头部转动、呼吸、发丝摆动、表情参数和自然动作。</span>
+        </div>
+        <div class="stage future">
+          <b>最终</b>
+          <strong>VRM / Three.js 3D</strong>
+          <span>当需要空间感、转身、走动、坐在窗口边缘和真实光照时，引入 3D 模型与骨骼动画。</span>
+        </div>
+      </section>
+
+      <section class="note">
+        <h2>当前关键结论</h2>
+        <p>
+          现在不应该继续投入视频生成。视频适合短片展示，不适合长期桌面陪伴，因为它不能稳定响应鼠标、语音音量、对话状态和实时情绪。下一步应该产出真正的角色素材层：<code>base-body.png</code>、<code>eye-left.png</code>、<code>eye-right.png</code>、<code>pupil-left.png</code>、<code>pupil-right.png</code>、<code>mouth-*.png</code>、<code>eyelid-*.png</code>。
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

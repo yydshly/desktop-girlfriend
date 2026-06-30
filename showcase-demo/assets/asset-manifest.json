@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "backgrounds": {
+    "roomNight": "assets/background/background-room-night.png"
+  },
+  "references": {
+    "character": "assets/reference/character-reference.png"
+  },
+  "motions": {
+    "walking": "assets/motions/walking.webm",
+    "wave": "assets/motions/wave.webm",
+    "heart": "assets/motions/heart.webm",
+    "point": "assets/motions/point.webm",
+    "think": "assets/motions/think.webm",
+    "sing": "assets/motions/sing.webm",
+    "idleWave": "assets/motions/idle-wave.webm",
+    "idleStretch": "assets/motions/idle-stretch.webm",
+    "idleRead": "assets/motions/idle-read.webm",
+    "idleDrink": "assets/motions/idle-drink.webm"
+  },
+  "notes": {
+    "fallback": "If an asset is missing, app.js keeps CSS/Canvas placeholder animation visible.",
+    "firstPriority": [
+      "reference/character-reference.png",
+      "background/background-room-night.png",
+      "motions/wave.webm",
+      "motions/sing.webm",
+      "motions/walking.webm"
+    ]
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "type": "png-puppet.layers",
+  "canvas": {
+    "width": 1024,
+    "height": 1536
+  },
+  "notes": "This manifest defines the first real PNG puppet layer set. The demo falls back to pseudo-layer mode until every required PNG exists.",
+  "layers": [
+    {
+      "role": "shadow",
+      "file": "shadow.png",
+      "zIndex": 0,
+      "required": false
+    },
+    {
+      "role": "hair-back",
+      "file": "hair-back.png",
+      "zIndex": 10,
+      "required": false
+    },
+    {
+      "role": "base-body",
+      "file": "base-body.png",
+      "zIndex": 20,
+      "required": true
+    },
+    {
+      "role": "eye-left-white",
+      "file": "eye-left-white.png",
+      "zIndex": 30,
+      "required": true
+    },
+    {
+      "role": "eye-right-white",
+      "file": "eye-right-white.png",
+      "zIndex": 31,
+      "required": true
+    },
+    {
+      "role": "pupil-left",
+      "file": "pupil-left.png",
+      "zIndex": 40,
+      "required": true
+    },
+    {
+      "role": "pupil-right",
+      "file": "pupil-right.png",
+      "zIndex": 41,
+      "required": true
+    },
+    {
+      "role": "mouth-closed",
+      "file": "mouth-closed.png",
+      "zIndex": 50,
+      "required": true
+    },
+    {
+      "role": "mouth-small",
+      "file": "mouth-small.png",
+      "zIndex": 51,
+      "required": true
+    },
+    {
+      "role": "mouth-medium",
+      "file": "mouth-medium.png",
+      "zIndex": 52,
+      "required": true
+    },
+    {
+      "role": "mouth-large",
+      "file": "mouth-large.png",
+      "zIndex": 53,
+      "required": true
+    },
+    {
+      "role": "eyelid-left",
+      "file": "eyelid-left.png",
+      "zIndex": 60,
+      "required": true
+    },
+    {
+      "role": "eyelid-right",
+      "file": "eyelid-right.png",
+      "zIndex": 61,
+      "required": true
+    },
+    {
+      "role": "hair-front",
+      "file": "hair-front.png",
+      "zIndex": 70,
+      "required": false
+    },
+    {
+      "role": "blush",
+      "file": "blush.png",
+      "zIndex": 80,
+      "required": false
+    }
+  ]
+}

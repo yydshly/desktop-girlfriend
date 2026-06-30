@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>桌面女友 - Avatar Runtime Demo</title>
+    <link rel="stylesheet" href="./runtime.css" />
+  </head>
+  <body>
+    <main class="runtime-shell">
+      <section class="stage" data-emotion="calm" data-action="idle" data-speaking="false">
+        <canvas class="emotion-canvas" aria-hidden="true"></canvas>
+        <div class="companion" aria-label="桌面女友运行时角色">
+          <img class="companion-image" src="./assets/reference/character-reference.png" alt="桌面女友角色素材" />
+          <span class="eye-glint eye-left" aria-hidden="true"></span>
+          <span class="eye-glint eye-right" aria-hidden="true"></span>
+          <span class="mouth-layer" aria-hidden="true"></span>
+          <span class="thought-bubble" aria-hidden="true">...</span>
+        </div>
+        <div class="speech-line" aria-live="polite">我在这里，等你的状态事件。</div>
+      </section>
+
+      <aside class="control-panel">
+        <header>
+          <p class="eyebrow">Avatar Runtime</p>
+          <h1>桌面女友呈现层</h1>
+          <p>用人物素材和前端状态驱动，先验证桌面表现，再升级 Live2D / Spine。</p>
+        </header>
+
+        <div class="panel-section">
+          <h2>情绪</h2>
+          <div class="button-row">
+            <button type="button" data-emotion="happy">开心</button>
+            <button type="button" data-emotion="calm" class="active">平静</button>
+            <button type="button" data-emotion="excited">惊喜</button>
+            <button type="button" data-emotion="sad">低落</button>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <h2>动作</h2>
+          <div class="button-row">
+            <button type="button" data-action="idle" class="active">待机</button>
+            <button type="button" data-action="think">思考</button>
+            <button type="button" data-action="wave">打招呼</button>
+            <button type="button" data-action="sing">唱歌</button>
+            <button type="button" data-action="lookAtCursor">看鼠标</button>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <h2>AI 事件</h2>
+          <div class="button-row">
+            <button type="button" data-preset="greeting">模拟问候</button>
+            <button type="button" data-preset="thinking">模拟思考</button>
+            <button type="button" data-preset="speaking">模拟说话</button>
+            <button type="button" data-preset="idle">模拟待机</button>
+          </div>
+        </div>
+
+        <div class="state-readout" aria-label="当前状态">
+          <span>emotion: <b id="readout-emotion">calm</b></span>
+          <span>action: <b id="readout-action">idle</b></span>
+          <span>speaking: <b id="readout-speaking">false</b></span>
+        </div>
+
+        <div class="event-log" aria-label="事件日志">
+          <h2>事件日志</h2>
+          <ol id="event-log"></ol>
+        </div>
+      </aside>
+    </main>
+
+    <script src="./runtime.js"></script>
+  </body>
+</html>

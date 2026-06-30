@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>桌面女友 - Puppet Runtime V1</title>
+    <link rel="stylesheet" href="./puppet.css" />
+  </head>
+  <body>
+    <main class="puppet-shell">
+      <section class="puppet-stage" data-emotion="calm" data-action="idle" data-speaking="false">
+        <canvas class="fx-layer" aria-hidden="true"></canvas>
+
+        <div class="avatar-puppet" aria-label="可控人物素材运行时">
+          <img class="layer base-body" src="./assets/reference/character-reference.png" alt="人物参考底图" />
+          <div class="layer real-layer-stack" aria-hidden="true"></div>
+          <div class="layer head-control" aria-hidden="true">
+            <span class="eye-socket eye-left"><span class="pupil"></span></span>
+            <span class="eye-socket eye-right"><span class="pupil"></span></span>
+            <span class="mouth mouth-closed"></span>
+            <span class="blink blink-left"></span>
+            <span class="blink blink-right"></span>
+          </div>
+          <span class="emotion-aura" aria-hidden="true"></span>
+          <span class="thought-dot" aria-hidden="true"></span>
+        </div>
+
+        <div class="bubble" aria-live="polite">Puppet V1：参考图 + 可控眼睛/嘴型/情绪层。</div>
+      </section>
+
+      <aside class="puppet-panel">
+        <header>
+          <p class="eyebrow">Puppet Runtime V1</p>
+          <h1>可控人物素材</h1>
+          <p>
+            这一页不是最终形态，而是控制协议验证器。当前仍使用参考图做底图，前端叠加瞳孔、嘴型、眨眼和情绪层；下一步会替换为真正透明 PNG 分层素材，再升级 Live2D / VRM 3D。
+          </p>
+        </header>
+
+        <section class="panel-section">
+          <h2>状态</h2>
+          <div class="button-grid">
+            <button type="button" data-preset="idle" class="active">待机</button>
+            <button type="button" data-preset="happy">开心</button>
+            <button type="button" data-preset="think">思考</button>
+            <button type="button" data-preset="speak">说话</button>
+            <button type="button" data-preset="sing">唱歌</button>
+            <button type="button" data-preset="sad">低落</button>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <h2>口型</h2>
+          <div class="button-grid">
+            <button type="button" data-mouth="closed" class="active">闭合</button>
+            <button type="button" data-mouth="small">小开</button>
+            <button type="button" data-mouth="medium">中开</button>
+            <button type="button" data-mouth="large">大开</button>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <h2>注视</h2>
+          <div class="button-grid">
+            <button type="button" data-gaze="cursor" class="active">看鼠标</button>
+            <button type="button" data-gaze="center">看中间</button>
+            <button type="button" data-gaze="left">看左边</button>
+            <button type="button" data-gaze="right">看右边</button>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <h2>AI 事件序列</h2>
+          <div class="button-grid">
+            <button type="button" data-sequence="greet">打招呼</button>
+            <button type="button" data-sequence="listen">倾听</button>
+            <button type="button" data-sequence="reply">思考后回复</button>
+            <button type="button" data-sequence="comfort">安慰</button>
+          </div>
+          <p class="sequence-status" id="sequence-status">等待 AI 状态事件。</p>
+        </section>
+
+        <section class="panel-section">
+          <h2>Runtime Bridge</h2>
+          <div class="button-grid">
+            <button type="button" id="connect-bridge">连接本地桥接</button>
+            <button type="button" id="disconnect-bridge">断开</button>
+          </div>
+          <p class="sequence-status" id="bridge-status">WebSocket 未连接：ws://127.0.0.1:8765/avatar</p>
+        </section>
+
+        <section class="panel-section">
+          <h2>当前对话轮次</h2>
+          <div class="turn-card" id="dialogue-turn">
+            <span>turn: <b id="turn-id">-</b></span>
+            <span>intent: <b id="turn-intent">-</b></span>
+            <span>tts: <b id="turn-tts">-</b></span>
+            <span>user: <b id="turn-user">-</b></span>
+            <span>reply: <b id="turn-response">-</b></span>
+          </div>
+        </section>
+
+        <section class="panel-section calibrator">
+          <h2>部件校准</h2>
+          <label>眼睛高度 <input type="range" min="20" max="30" step="0.1" value="24.6" data-calibrate="eyeTop" /></label>
+          <label>左眼水平 <input type="range" min="36" max="48" step="0.1" value="42.2" data-calibrate="eyeLeft" /></label>
+          <label>右眼水平 <input type="range" min="48" max="60" step="0.1" value="53.9" data-calibrate="eyeRight" /></label>
+          <label>嘴巴高度 <input type="range" min="28" max="36" step="0.1" value="31.2" data-calibrate="mouthTop" /></label>
+          <label>嘴巴水平 <input type="range" min="46" max="54" step="0.1" value="49.8" data-calibrate="mouthLeft" /></label>
+          <button type="button" class="reset-button" id="reset-calibration">重置校准</button>
+        </section>
+
+        <div class="readout">
+          <span>renderer: <b id="r-renderer">png-puppet</b></span>
+          <span>asset: <b id="r-asset-mode">checking</b></span>
+          <span>emotion: <b id="r-emotion">calm</b></span>
+          <span>action: <b id="r-action">idle</b></span>
+          <span>mouth: <b id="r-mouth">closed</b></span>
+          <span>gaze: <b id="r-gaze">cursor</b></span>
+        </div>
+
+        <section class="panel-section">
+          <h2>当前部件配置</h2>
+          <pre class="config-output" id="config-output"></pre>
+        </section>
+
+        <section class="panel-section">
+          <h2>事件日志</h2>
+          <ol class="log-list" id="puppet-log"></ol>
+        </section>
+      </aside>
+    </main>
+
+    <script src="./puppet.js"></script>
+  </body>
+</html>

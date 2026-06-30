@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "desktop-girlfriend.avatar-state.v1",
+  "title": "Desktop Girlfriend Avatar State",
+  "type": "object",
+  "required": ["type", "version"],
+  "additionalProperties": false,
+  "properties": {
+    "type": {
+      "const": "avatar.state"
+    },
+    "version": {
+      "const": 1
+    },
+    "source": {
+      "type": "string",
+      "default": "ai-state"
+    },
+    "emotion": {
+      "type": "string",
+      "enum": ["neutral", "calm", "happy", "excited", "sad", "thinking", "shy"]
+    },
+    "action": {
+      "type": "string",
+      "enum": ["idle", "happy", "think", "speak", "sing", "wave", "point", "sad"]
+    },
+    "gaze": {
+      "type": "string",
+      "enum": ["cursor", "center", "left", "right", "user", "away"]
+    },
+    "mouth": {
+      "type": "string",
+      "enum": ["closed", "small", "medium", "large", "auto"]
+    },
+    "speaking": {
+      "type": "boolean"
+    },
+    "intensity": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "lookTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "x": { "type": "number", "minimum": -1, "maximum": 1 },
+        "y": { "type": "number", "minimum": -1, "maximum": 1 }
+      }
+    },
+    "tts": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "volume": { "type": "number", "minimum": 0, "maximum": 1 },
+        "viseme": {
+          "type": "string",
+          "enum": ["sil", "aa", "ih", "ou", "ee", "oh", "blink"]
+        }
+      }
+    }
+  }
+}

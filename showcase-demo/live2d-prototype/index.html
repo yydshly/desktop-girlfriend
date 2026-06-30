@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Live2D 主线原型</title>
+    <link rel="stylesheet" href="./live2d.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="stage-panel">
+        <div class="stage-header">
+          <div>
+            <p class="eyebrow">B 方案 / Live2D 主线</p>
+            <h1>模型驱动原型</h1>
+          </div>
+          <span id="rendererMode" class="status-pill">placeholder renderer</span>
+        </div>
+        <div id="avatarStage" class="avatar-stage" aria-label="Live2D avatar stage">
+          <canvas id="avatarCanvas" width="900" height="1200"></canvas>
+        </div>
+      </section>
+
+      <aside class="control-panel">
+        <section class="panel-section">
+          <h2>状态控制</h2>
+          <div class="button-grid">
+            <button data-state="idle">待机</button>
+            <button data-state="happy">开心</button>
+            <button data-state="think">思考</button>
+            <button data-state="sad">低落</button>
+            <button data-state="comfort">安慰</button>
+            <button data-state="speak">说话</button>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <h2>动作序列</h2>
+          <div class="button-grid">
+            <button data-sequence="greet">打招呼</button>
+            <button data-sequence="listen">倾听</button>
+            <button data-sequence="reply">回复</button>
+            <button data-sequence="comfort">安慰</button>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <h2>桥接状态</h2>
+          <div class="bridge-row">
+            <input id="bridgeUrl" value="ws://127.0.0.1:8879" />
+            <button id="connectBridge">连接</button>
+            <button id="disconnectBridge">断开</button>
+          </div>
+          <pre id="stateReadout">{}</pre>
+        </section>
+      </aside>
+    </main>
+
+    <script type="module" src="./live2d.js"></script>
+  </body>
+</html>

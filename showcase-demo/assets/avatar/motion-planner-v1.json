@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "type": "avatar.motion-planner",
+  "defaultSequence": "reply",
+  "sequences": {
+    "greet": [
+      {
+        "delay": 0,
+        "label": "AI: 发现用户靠近",
+        "event": { "emotion": "happy", "action": "wave", "mouth": "small", "gaze": "cursor", "speaking": false, "intensity": 0.7 }
+      },
+      {
+        "delay": 850,
+        "label": "AI: 开始打招呼",
+        "event": { "emotion": "happy", "action": "speak", "mouth": "medium", "gaze": "cursor", "speaking": true, "intensity": 0.78 }
+      },
+      {
+        "delay": 2400,
+        "label": "AI: 回到待机",
+        "event": { "emotion": "calm", "action": "idle", "mouth": "closed", "gaze": "cursor", "speaking": false, "intensity": 0.35 }
+      }
+    ],
+    "listen": [
+      {
+        "delay": 0,
+        "label": "AI: 进入倾听",
+        "event": { "emotion": "calm", "action": "idle", "mouth": "closed", "gaze": "cursor", "speaking": false, "intensity": 0.4 }
+      },
+      {
+        "delay": 700,
+        "label": "AI: 注视用户",
+        "event": { "emotion": "calm", "action": "think", "mouth": "closed", "gaze": "center", "speaking": false, "intensity": 0.45 }
+      }
+    ],
+    "reply": [
+      {
+        "delay": 0,
+        "label": "AI: 正在理解内容",
+        "event": { "emotion": "calm", "action": "think", "mouth": "closed", "gaze": "center", "speaking": false, "intensity": 0.5 }
+      },
+      {
+        "delay": 1200,
+        "label": "AI: 生成回复",
+        "event": { "emotion": "happy", "action": "speak", "mouth": "medium", "gaze": "cursor", "speaking": true, "intensity": 0.72 }
+      },
+      {
+        "delay": 3600,
+        "label": "AI: 回复完成",
+        "event": { "emotion": "calm", "action": "idle", "mouth": "closed", "gaze": "cursor", "speaking": false, "intensity": 0.35 }
+      }
+    ],
+    "comfort": [
+      {
+        "delay": 0,
+        "label": "AI: 感知到低落情绪",
+        "event": { "emotion": "sad", "action": "sad", "mouth": "small", "gaze": "center", "speaking": false, "intensity": 0.55 }
+      },
+      {
+        "delay": 1200,
+        "label": "AI: 温柔回应",
+        "event": { "emotion": "happy", "action": "speak", "mouth": "small", "gaze": "cursor", "speaking": true, "intensity": 0.62 }
+      },
+      {
+        "delay": 3400,
+        "label": "AI: 陪伴待机",
+        "event": { "emotion": "calm", "action": "idle", "mouth": "closed", "gaze": "cursor", "speaking": false, "intensity": 0.4 }
+      }
+    ]
+  }
+}

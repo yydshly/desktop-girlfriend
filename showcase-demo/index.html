@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>桌面女友 - 动作与效果展示</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <header class="page-header">
+        <p class="eyebrow">Desktop Companion Prototype</p>
+        <h1>桌面女友 - 动作与效果展示</h1>
+        <p class="subtitle">先用可交互 showcase 验证桌面呈现方式，再替换为真实角色素材和 AI 驱动。</p>
+      </header>
+
+      <section class="demo-grid" aria-label="动作与效果展示">
+        <article class="demo-card walk-card">
+          <div class="card-title">1. 走路效果</div>
+          <div class="scene room-scene">
+            <video class="motion-video walk-video" data-motion-video="walking" muted loop playsinline hidden></video>
+            <img class="character-asset character-walk character-walk-a" src="./assets/reference/character-reference.png" alt="" />
+            <img class="character-asset character-walk character-walk-b" src="./assets/reference/character-reference.png" alt="" />
+            <div class="desk"></div>
+            <div class="screen screen-left"></div>
+            <div class="screen screen-right"></div>
+            <div class="lamp"></div>
+            <div class="walker walker-a avatar">
+              <div class="hair"></div><div class="head"><span class="eye left"></span><span class="eye right"></span></div>
+              <div class="body"></div><div class="skirt"></div><div class="leg leg-left"></div><div class="leg leg-right"></div>
+            </div>
+            <div class="walker walker-b avatar">
+              <div class="hair"></div><div class="head"><span class="eye left"></span><span class="eye right"></span></div>
+              <div class="body"></div><div class="skirt"></div><div class="leg leg-left"></div><div class="leg leg-right"></div>
+            </div>
+          </div>
+          <p class="caption">角色平移 + 身体起伏 + 腿部循环，后续可替换 walking.webm 或序列帧。</p>
+        </article>
+
+        <article class="demo-card gesture-card">
+          <div class="card-title">2. 手势动作</div>
+          <div class="scene portrait-scene">
+            <video class="motion-video gesture-video" data-motion-video="wave" muted loop playsinline hidden></video>
+            <img class="character-asset character-portrait gesture-character" src="./assets/reference/character-reference.png" alt="" />
+            <div class="avatar big-avatar gesture-avatar" data-gesture="wave">
+              <div class="hair"></div><div class="head"><span class="eye left"></span><span class="eye right"></span></div>
+              <div class="body"></div><div class="arm arm-left"></div><div class="arm arm-right"></div><div class="hand"></div>
+            </div>
+            <div class="gesture-controls" aria-label="手势切换">
+              <button type="button" class="active" data-gesture="wave">挥手</button>
+              <button type="button" data-gesture="heart">比心</button>
+              <button type="button" data-gesture="point">指点</button>
+              <button type="button" data-gesture="think">思考</button>
+            </div>
+          </div>
+          <p class="caption">按钮切换动作状态，真实版本可以切 WebM、Spine 动作或 Live2D motion。</p>
+        </article>
+
+        <article class="demo-card gaze-card">
+          <div class="card-title">3. 眼神追踪</div>
+          <div class="scene room-scene gaze-scene">
+            <img class="character-asset character-portrait gaze-character" src="./assets/reference/character-reference.png" alt="" />
+            <div class="desk"></div>
+            <div class="screen screen-left"></div>
+            <div class="cursor-proxy">鼠标</div>
+            <div class="gaze-line"></div>
+            <div class="avatar big-avatar gaze-avatar">
+              <div class="hair"></div><div class="head"><span class="eye left"></span><span class="eye right"></span></div>
+              <div class="body"></div>
+            </div>
+          </div>
+          <p class="caption">移动鼠标，头部与眼睛会轻微跟随；后续需要分层眼睛素材。</p>
+        </article>
+
+        <article class="demo-card emotion-card">
+          <div class="card-title">4. 情绪粒子特效</div>
+          <div class="scene emotion-scene">
+            <div class="emotion-panel active" data-emotion="happy">
+              <canvas class="particle-canvas"></canvas>
+              <img class="character-asset emotion-character" src="./assets/reference/character-reference.png" alt="" />
+              <div class="mini-avatar avatar"><div class="hair"></div><div class="head"><span class="eye left"></span><span class="eye right"></span></div><div class="body"></div></div>
+              <span>开心</span>
+            </div>
+            <div class="emotion-panel" data-emotion="calm">
+              <canvas class="particle-canvas"></canvas>
+              <img class="character-asset emotion-character" src="./assets/reference/character-reference.png" alt="" />
+              <div class="mini-avatar avatar"><div class="hair"></div><div class="head"><span class="eye left"></span><span class="eye right"></span></div><div class="body"></div></div>
+              <span>平静</span>
+            </div>
+            <div class="emotion-panel" data-emotion="excited">
+              <canvas class="particle-canvas"></canvas>
+              <img class="character-asset emotion-character" src="./assets/reference/character-reference.png" alt="" />
+              <div class="mini-avatar avatar"><div class="hair"></div><div class="head"><span class="eye left"></span><span class="eye right"></span></div><div class="body"></div></div>
+              <span>惊喜</span>
+            </div>
+            <div class="emotion-panel" data-emotion="sad">
+              <canvas class="particle-canvas"></canvas>
+              <img class="character-asset emotion-character" src="./assets/reference/character-reference.png" alt="" />
+              <div class="mini-avatar avatar"><div class="hair"></div><div class="head"><span class="eye left"></span><span class="eye right"></span></div><div class="body"></div></div>
+              <span>低落</span>
+            </div>
+          </div>
+          <p class="caption">每种情绪对应不同粒子颜色、密度和运动方向。</p>
+        </article>
+
+        <article class="demo-card sing-card">
+          <div class="card-title">5. 唱歌效果</div>
+          <div class="scene sing-scene">
+            <video class="motion-video sing-video" data-motion-video="sing" muted loop playsinline hidden></video>
+            <canvas class="wave-canvas"></canvas>
+            <div class="music-notes"><span>♪</span><span>♫</span><span>♪</span><span>♬</span></div>
+            <img class="character-asset character-portrait singer-character" src="./assets/reference/character-reference.png" alt="" />
+            <span class="mouth-proxy" aria-hidden="true"></span>
+            <div class="avatar singer-avatar">
+              <div class="hair"></div><div class="head"><span class="eye left"></span><span class="eye right"></span><span class="mouth"></span></div>
+              <div class="body"></div><div class="microphone"></div>
+            </div>
+            <button type="button" class="play-toggle">暂停</button>
+          </div>
+          <p class="caption">口型跳动 + 音符 + 波形，后续接 TTS 音量分析做 lip-sync。</p>
+        </article>
+
+        <article class="demo-card idle-card">
+          <div class="card-title">6. 待机互动</div>
+          <div class="scene idle-scene">
+            <button type="button" class="idle-tile active" data-idle="wave"><video class="tile-video" muted loop playsinline hidden></video><span>打招呼</span><b>挥手</b></button>
+            <button type="button" class="idle-tile" data-idle="stretch"><video class="tile-video" muted loop playsinline hidden></video><span>休息</span><b>伸懒腰</b></button>
+            <button type="button" class="idle-tile" data-idle="read"><video class="tile-video" muted loop playsinline hidden></video><span>安静</span><b>看书</b></button>
+            <button type="button" class="idle-tile" data-idle="drink"><video class="tile-video" muted loop playsinline hidden></video><span>补水</span><b>喝饮料</b></button>
+          </div>
+          <p class="caption">待机动作库可以定时轮播，也可以由 AI 状态机主动触发。</p>
+        </article>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

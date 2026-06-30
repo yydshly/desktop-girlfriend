@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "baseImage": "assets/reference/character-reference.png",
+  "anchors": {
+    "eyes": {
+      "topPercent": 24.6,
+      "leftEyeXPercent": 42.2,
+      "rightEyeXPercent": 53.9
+    },
+    "mouth": {
+      "topPercent": 31.2,
+      "xPercent": 49.8
+    }
+  },
+  "mouthShapes": ["closed", "small", "medium", "large"],
+  "gazeModes": ["cursor", "center", "left", "right"],
+  "notes": "This is a pseudo-layer calibration profile for Puppet Runtime V1."
+}
