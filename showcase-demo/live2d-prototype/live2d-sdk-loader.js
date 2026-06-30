@@ -53,7 +53,7 @@ function loadScriptOnce(src, documentRef) {
 
   const existing = documentRef.querySelector(`script[data-live2d-sdk="${src}"]`);
   if (existing) {
-    return Promise.resolve();
+    return waitForScript(existing, src);
   }
 
   return new Promise((resolve, reject) => {
@@ -61,8 +61,35 @@ function loadScriptOnce(src, documentRef) {
     script.src = src;
     script.async = false;
     script.dataset.live2dSdk = src;
-    script.addEventListener("load", () => resolve());
-    script.addEventListener("error", () => reject(new Error(`Failed to load SDK script: ${src}`)));
+    script.addEventListener("load", () => {
+      script.dataset.live2dLoaded = "true";
+      resolve();
+    });
+    script.addEventListener("error", () => {
+      script.dataset.live2dError = "true";
+      reject(new Error(`Failed to load SDK script: ${src}`));
+    });
     documentRef.head.appendChild(script);
+  });
+}
+
+function waitForScript(script, src) {
+  if (script.dataset.live2dLoaded === "true") {
+    return Promise.resolve();
+  }
+
+  if (script.dataset.live2dError === "true") {
+    return Promise.reject(new Error(`Failed to load SDK script: ${src}`));
+  }
+
+  return new Promise((resolve, reject) => {
+    script.addEventListener("load", () => {
+      script.dataset.live2dLoaded = "true";
+      resolve();
+    });
+    script.addEventListener("error", () => {
+      script.dataset.live2dError = "true";
+      reject(new Error(`Failed to load SDK script: ${src}`));
+    });
   });
 }

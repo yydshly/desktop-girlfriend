@@ -1,0 +1,68 @@
+import assert from "node:assert/strict";
+import { ensureLive2DSdk } from "./live2d-sdk-loader.js";
+
+const PIXI_SRC = "https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js";
+const LIVE2D_PLUGIN_SRC = "https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/index.min.js";
+
+class FakeScript {
+  constructor(src) {
+    this.src = src;
+    this.dataset = { live2dSdk: src };
+    this.listeners = new Map();
+  }
+
+  addEventListener(type, listener) {
+    this.listeners.set(type, listener);
+  }
+
+  dispatch(type) {
+    this.listeners.get(type)?.();
+  }
+}
+
+function createDocumentWithPendingLive2DPlugin(root) {
+  const pendingPluginScript = new FakeScript(LIVE2D_PLUGIN_SRC);
+
+  return {
+    head: {
+      appendChild(script) {
+        queueMicrotask(() => {
+          if (script.src.includes("cubismcore")) {
+            root.Live2DCubismCore = {};
+          }
+          if (script.src.includes("pixi-live2d-display")) {
+            root.PIXI ||= {};
+            root.PIXI.live2d = {};
+          }
+          script.dispatch("load");
+        });
+      }
+    },
+    createElement() {
+      return new FakeScript("");
+    },
+    querySelector(selector) {
+      if (selector.includes(LIVE2D_PLUGIN_SRC)) {
+        setTimeout(() => {
+          root.PIXI.live2d = {};
+          pendingPluginScript.dispatch("load");
+        }, 0);
+        return pendingPluginScript;
+      }
+      return null;
+    }
+  };
+}
+
+async function testWaitsForExistingSdkScript() {
+  const root = { PIXI: {}, Live2DCubismCore: {} };
+  root.document = createDocumentWithPendingLive2DPlugin(root);
+
+  const status = await ensureLive2DSdk(root);
+
+  assert.equal(status.ready, true);
+  assert.deepEqual(status.missing, []);
+}
+
+await testWaitsForExistingSdkScript();
+console.log("live2d-sdk-loader tests passed");
