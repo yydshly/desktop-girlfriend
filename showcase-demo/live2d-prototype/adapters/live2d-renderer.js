@@ -22,7 +22,6 @@ export class Live2DRenderer {
   start() {
     this.lastCommands = mapStateToLive2DCommands();
     this.loadLive2DModel();
-    this.draw();
   }
 
   stop() {
@@ -78,7 +77,6 @@ export class Live2DRenderer {
     this.loadState = "loading-sdk";
     this.loadError = "";
     this.emitStatus();
-    this.draw();
 
     try {
       const sdk = await ensureLive2DSdk(window);
@@ -88,7 +86,6 @@ export class Live2DRenderer {
 
       this.loadState = "loading-model";
       this.emitStatus();
-      this.draw();
 
       const PIXI = window.PIXI;
       const app = new PIXI.Application({
