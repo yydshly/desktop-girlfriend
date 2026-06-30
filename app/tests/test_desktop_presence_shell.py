@@ -6,18 +6,43 @@ import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
+import pytest
+
+try:
+    from PySide6.QtWidgets import QApplication
+
+    HAS_PYSIDE6 = True
+except ModuleNotFoundError:
+    QApplication = object
+    HAS_PYSIDE6 = False
+
+HAS_PY311_ENUM = hasattr(__import__("enum"), "StrEnum")
 
 from app.ui.desktop_presence import (
     COMPACT_MODE_HEIGHT,
     COMPACT_MODE_WIDTH,
     DesktopPresenceState,
+    LIVE2D_DESKTOP_HEIGHT,
+    LIVE2D_DESKTOP_WIDTH,
+    LIVE2D_PROTOTYPE_ROUTE,
+    Live2DDesktopShellSpec,
+    build_live2d_desktop_shell_spec,
+    render_live2d_shell_summary,
     render_compact_button_text,
     render_pin_button_text,
 )
-from app.ui.product_status import ProductStatusItem, ProductStatusView
-from app.ui.view_model import DesktopViewModel
-from app.ui.window import DesktopWindow
+if HAS_PY311_ENUM:
+    from app.ui.product_status import ProductStatusItem, ProductStatusView
+    from app.ui.view_model import DesktopViewModel
+else:
+    ProductStatusItem = object
+    ProductStatusView = object
+    DesktopViewModel = object
+
+if HAS_PYSIDE6 and HAS_PY311_ENUM:
+    from app.ui.window import DesktopWindow
+else:
+    DesktopWindow = object
 
 
 class TestDesktopPresenceState:
@@ -66,8 +91,64 @@ class TestCompactModeDimensions:
         assert COMPACT_MODE_HEIGHT == 320
 
 
+class TestLive2DDesktopShellSpec:
+    """Tests for the Live2D desktop shell contract."""
+
+    def test_default_shell_spec_matches_desktop_overlay_target(self) -> None:
+        """Default spec uses a transparent interactive desktop overlay."""
+        spec = Live2DDesktopShellSpec(source_url="file:///tmp/live2d/index.html")
+
+        assert spec.width == LIVE2D_DESKTOP_WIDTH
+        assert spec.height == LIVE2D_DESKTOP_HEIGHT
+        assert spec.transparent_background is True
+        assert spec.frameless is True
+        assert spec.always_on_top is True
+        assert spec.click_through is False
+        assert spec.devtools_enabled is False
+
+    def test_build_shell_spec_points_to_live2d_prototype(self, tmp_path) -> None:
+        """Shell spec source URL points at the local Live2D runtime page."""
+        target = tmp_path / LIVE2D_PROTOTYPE_ROUTE
+        target.parent.mkdir(parents=True)
+        target.write_text("<!doctype html>", encoding="utf-8")
+
+        spec = build_live2d_desktop_shell_spec(tmp_path)
+
+        assert spec.source_url == target.resolve().as_uri()
+        assert spec.source_url.endswith("/showcase-demo/live2d-prototype/index.html")
+
+    def test_build_shell_spec_can_enable_desktop_debug_options(self, tmp_path) -> None:
+        """Debug options are explicit so production desktop mode stays clean."""
+        target = tmp_path / LIVE2D_PROTOTYPE_ROUTE
+        target.parent.mkdir(parents=True)
+        target.write_text("<!doctype html>", encoding="utf-8")
+
+        spec = build_live2d_desktop_shell_spec(
+            tmp_path,
+            devtools_enabled=True,
+            click_through=True,
+        )
+
+        assert spec.devtools_enabled is True
+        assert spec.click_through is True
+
+    def test_shell_summary_describes_window_capabilities(self) -> None:
+        """Summary makes the active desktop shell behavior visible."""
+        spec = Live2DDesktopShellSpec(source_url="file:///tmp/live2d/index.html")
+
+        assert render_live2d_shell_summary(spec) == (
+            "Live2D desktop shell 520x760: "
+            "transparent, frameless, top, interactive"
+        )
+
+
 class TestViewModelPresenceMethods:
     """Tests for ViewModel presence toggle methods."""
+
+    pytestmark = pytest.mark.skipif(
+        not HAS_PY311_ENUM,
+        reason="DesktopViewModel requires Python 3.11 StrEnum support",
+    )
 
     def test_toggle_always_on_top(self) -> None:
         """toggle_always_on_top flips always_on_top."""
@@ -102,6 +183,11 @@ class TestViewModelPresenceMethods:
 
 class TestWindowPresenceShell:
     """Tests for DesktopWindow presence shell features."""
+
+    pytestmark = pytest.mark.skipif(
+        not (HAS_PYSIDE6 and HAS_PY311_ENUM),
+        reason="DesktopWindow tests require PySide6 and Python 3.11 StrEnum support",
+    )
 
     @staticmethod
     def test_window_initializes_without_crash(qapp: QApplication) -> None:
