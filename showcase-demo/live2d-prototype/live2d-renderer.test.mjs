@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import {
   calculateAnimatedLive2DParameters,
   calculateLive2DPlacement,
-  Live2DRenderer
+  Live2DRenderer,
+  shouldAutoRotateIdleMotion
 } from "./adapters/live2d-renderer.js";
 
 function createCanvasProbe() {
@@ -117,4 +118,32 @@ function testIdleStateDoesNotAnimateMouthOpen() {
 
 testSpeakingStateAnimatesMouthOpen();
 testIdleStateDoesNotAnimateMouthOpen();
+
+function testIdleMotionAutoRotates() {
+  const renderer = new Live2DRenderer(createCanvasProbe());
+  const calls = [];
+  renderer.live2dModel = {
+    motion(group, index) {
+      calls.push({ group, index });
+    },
+    internalModel: {
+      coreModel: {
+        setParameterValueById() {}
+      }
+    }
+  };
+  renderer.lastCommands = { motion: "idle", parameters: {} };
+
+  renderer.advanceIdleMotion(7000);
+
+  assert.deepEqual(calls, [{ group: "Idle", index: 1 }]);
+}
+
+function testReplyMotionDoesNotAutoRotateIdle() {
+  assert.equal(shouldAutoRotateIdleMotion({ motion: "reply" }), false);
+  assert.equal(shouldAutoRotateIdleMotion({ motion: "idle" }), true);
+}
+
+testIdleMotionAutoRotates();
+testReplyMotionDoesNotAutoRotateIdle();
 console.log("live2d-renderer tests passed");

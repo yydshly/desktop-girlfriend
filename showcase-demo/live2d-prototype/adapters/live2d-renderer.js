@@ -20,6 +20,8 @@ export class Live2DRenderer {
     this.lastMotionKey = "";
     this.activeMotion = { group: "", index: 0, source: "" };
     this.raf = 0;
+    this.idleMotionIndex = 0;
+    this.nextIdleMotionAt = 0;
   }
 
   start() {
@@ -225,9 +227,27 @@ export class Live2DRenderer {
 
     const frame = () => {
       this.applyLive2DCommands();
+      this.advanceIdleMotion(performance.now());
       this.raf = requestAnimationFrame(frame);
     };
     this.raf = requestAnimationFrame(frame);
+  }
+
+  advanceIdleMotion(now) {
+    if (!this.live2dModel?.motion || !shouldAutoRotateIdleMotion(this.lastCommands)) {
+      return;
+    }
+
+    if (now < this.nextIdleMotionAt) {
+      return;
+    }
+
+    this.idleMotionIndex = (this.idleMotionIndex + 1) % HIYORI_IDLE_MOTION_COUNT;
+    this.nextIdleMotionAt = now + HIYORI_IDLE_MOTION_INTERVAL_MS;
+    this.playLive2DMotion({
+      force: true,
+      override: { group: "Idle", index: this.idleMotionIndex, source: "idle-auto" }
+    });
   }
 
   playLive2DMotion(options = {}) {
@@ -235,7 +255,7 @@ export class Live2DRenderer {
       return;
     }
 
-    const motion = mapCommandToHiyoriMotion(this.lastCommands);
+    const motion = options.override || mapCommandToHiyoriMotion(this.lastCommands);
     const motionKey = `${motion.group}:${motion.index}:${motion.source}`;
     if (!options.force && motionKey === this.lastMotionKey) {
       return;
@@ -257,6 +277,9 @@ export class Live2DRenderer {
     });
   }
 }
+
+const HIYORI_IDLE_MOTION_COUNT = 9;
+const HIYORI_IDLE_MOTION_INTERVAL_MS = 6500;
 
 function getLive2DModelFactory(PIXI) {
   const Live2DModel = PIXI?.live2d?.Live2DModel;
@@ -289,6 +312,11 @@ export function mapCommandToHiyoriMotion(command = {}) {
   }
 
   return { group: "Idle", index: 0, source: motion };
+}
+
+export function shouldAutoRotateIdleMotion(command = {}) {
+  const motion = command.motion || "idle";
+  return motion === "idle" || motion === "think" || motion === "sad";
 }
 
 export function calculateAnimatedLive2DParameters(parameters = {}, command = {}, now = 0) {
