@@ -1,34 +1,48 @@
 import { inspectModelPackage } from "../model-package-inspector.js";
+import { ensureLive2DSdk } from "../live2d-sdk-loader.js";
 import { mapStateToLive2DCommands } from "../live2d-parameter-mapper.js";
 
 export class Live2DRenderer {
   constructor(canvas, options = {}) {
     this.canvas = canvas;
-    this.ctx = canvas.getContext("2d");
+    this.ctx = null;
     this.modelUrl = options.modelUrl || "";
+    this.app = null;
     this.model = null;
+    this.live2dModel = null;
     this.previewImage = null;
     this.loadState = "idle";
     this.loadError = "";
     this.pointer = { x: 0, y: 0 };
+    this.currentState = {};
     this.lastCommands = mapStateToLive2DCommands();
   }
 
   start() {
     this.lastCommands = mapStateToLive2DCommands();
-    this.loadPreviewTexture();
+    this.loadLive2DModel();
     this.draw();
   }
 
-  stop() {}
+  stop() {
+    if (this.app) {
+      this.app.destroy(false, { children: true, texture: false, baseTexture: false });
+      this.app = null;
+      this.live2dModel = null;
+    }
+  }
 
   setPointer(x, y) {
     this.pointer = { x, y };
+    this.lastCommands = mapStateToLive2DCommands(this.currentState, this.pointer);
+    this.applyLive2DCommands();
     this.draw();
   }
 
   applyState(nextState) {
+    this.currentState = nextState;
     this.lastCommands = mapStateToLive2DCommands(nextState, this.pointer);
+    this.applyLive2DCommands();
     this.draw();
     return this.lastCommands;
   }
@@ -39,7 +53,6 @@ export class Live2DRenderer {
 
   async loadPreviewTexture() {
     this.loadState = "loading";
-    this.loadError = "";
     this.draw();
 
     try {
@@ -58,7 +71,48 @@ export class Live2DRenderer {
     this.draw();
   }
 
+  async loadLive2DModel() {
+    this.loadState = "loading-sdk";
+    this.loadError = "";
+    this.draw();
+
+    try {
+      const sdk = await ensureLive2DSdk(window);
+      if (!sdk.ready) {
+        throw new Error(`SDK incomplete after load: ${sdk.missing.join(", ")}`);
+      }
+
+      this.loadState = "loading-model";
+      this.draw();
+
+      const PIXI = window.PIXI;
+      const app = new PIXI.Application({
+        view: this.canvas,
+        autoStart: true,
+        backgroundAlpha: 0,
+        antialias: true
+      });
+      const live2dModel = await PIXI.live2d.Live2DModel.from(this.modelUrl);
+      live2dModel.anchor.set(0.5, 0.5);
+      live2dModel.scale.set(Math.min(this.canvas.width / live2dModel.width, this.canvas.height / live2dModel.height) * 0.82);
+      live2dModel.position.set(this.canvas.width / 2, this.canvas.height / 2);
+      app.stage.addChild(live2dModel);
+
+      this.app = app;
+      this.live2dModel = live2dModel;
+      this.loadState = "live2d-ready";
+      this.applyLive2DCommands();
+    } catch (error) {
+      this.loadError = `SDK/model load failed, using texture preview: ${error.message}`;
+      await this.loadPreviewTexture();
+    }
+  }
+
   draw() {
+    if (this.live2dModel) {
+      return;
+    }
+    this.ctx = this.ctx || this.canvas.getContext("2d");
     const ctx = this.ctx;
     const w = this.canvas.width;
     const h = this.canvas.height;
@@ -97,7 +151,7 @@ export class Live2DRenderer {
       "Live2D adapter dry run",
       `model: ${this.modelUrl || "not configured"}`,
       `state: ${this.loadState}`,
-      "SDK renderer not connected yet"
+      this.live2dModel ? "SDK renderer active" : "SDK renderer fallback preview"
     ];
     if (this.loadError) {
       lines.push(`error: ${this.loadError}`);
@@ -115,6 +169,21 @@ export class Live2DRenderer {
       ctx.fillText(line, 48, 70 + index * 28);
     });
     ctx.restore();
+  }
+
+  applyLive2DCommands() {
+    if (!this.live2dModel) {
+      return;
+    }
+
+    const coreModel = this.live2dModel.internalModel?.coreModel;
+    if (!coreModel?.setParameterValueById) {
+      return;
+    }
+
+    Object.entries(this.lastCommands.parameters).forEach(([id, value]) => {
+      coreModel.setParameterValueById(id, value);
+    });
   }
 }
 
