@@ -4,6 +4,9 @@ import { PlaceholderRenderer } from "./adapters/placeholder-renderer.js";
 const canvas = document.querySelector("#avatarCanvas");
 const stage = document.querySelector("#avatarStage");
 const readout = document.querySelector("#stateReadout");
+const modelUrl = document.querySelector("#modelUrl");
+const modelStatus = document.querySelector("#modelStatus");
+const setModelUrl = document.querySelector("#setModelUrl");
 const bridgeUrl = document.querySelector("#bridgeUrl");
 const connectBridge = document.querySelector("#connectBridge");
 const disconnectBridge = document.querySelector("#disconnectBridge");
@@ -11,6 +14,7 @@ const disconnectBridge = document.querySelector("#disconnectBridge");
 const renderer = new PlaceholderRenderer(canvas);
 const controller = new AvatarController(renderer, readout);
 let socket = null;
+let configuredModelUrl = modelUrl.value;
 
 controller.start();
 
@@ -24,6 +28,11 @@ document.querySelectorAll("[data-sequence]").forEach((button) => {
 
 stage.addEventListener("pointermove", (event) => {
   controller.setPointerFromEvent(event, stage);
+});
+
+setModelUrl.addEventListener("click", () => {
+  configuredModelUrl = modelUrl.value.trim();
+  modelStatus.textContent = `模型路径已记录：${configuredModelUrl}。当前仍使用占位渲染器，接入真实 Live2D SDK 后会从这里加载模型。`;
 });
 
 connectBridge.addEventListener("click", () => {
@@ -48,5 +57,6 @@ disconnectBridge.addEventListener("click", () => {
 window.live2dPrototype = {
   applyState: (state) => controller.applyStateName(state),
   playSequence: (name) => controller.playSequence(name),
-  handleBridgeMessage: (message) => controller.handleBridgeMessage(message)
+  handleBridgeMessage: (message) => controller.handleBridgeMessage(message),
+  getModelUrl: () => configuredModelUrl
 };

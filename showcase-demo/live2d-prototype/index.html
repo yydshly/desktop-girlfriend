@@ -23,6 +23,17 @@
 
       <aside class="control-panel">
         <section class="panel-section">
+          <h2>模型资产</h2>
+          <div class="asset-row">
+            <input id="modelUrl" value="./assets/models/custom/model.model3.json" />
+            <button id="setModelUrl">设置模型路径</button>
+          </div>
+          <p id="modelStatus" class="model-status">
+            当前使用占位渲染器。放入合法 Live2D 模型后，这个路径会交给真实 Live2D renderer 加载。
+          </p>
+        </section>
+
+        <section class="panel-section">
           <h2>状态控制</h2>
           <div class="button-grid">
             <button data-state="idle">待机</button>
