@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from app.ui.live2d_desktop_window import (
     Live2DDesktopDependencyStatus,
+    Live2DDesktopWindowPosition,
+    calculate_dragged_position,
+    load_live2d_window_position,
     probe_live2d_desktop_dependencies,
+    save_live2d_window_position,
 )
 
 
@@ -64,3 +68,37 @@ def test_current_environment_probe_is_explicit() -> None:
         assert status.detail.startswith("Missing Live2D desktop dependencies:")
     else:
         assert status.detail == "Live2D desktop dependencies ready"
+
+
+def test_window_position_round_trips(tmp_path) -> None:
+    """Live2D desktop window position can be persisted and restored."""
+    path = tmp_path / "window.json"
+
+    save_live2d_window_position(path, Live2DDesktopWindowPosition(x=120, y=240))
+
+    assert load_live2d_window_position(path) == Live2DDesktopWindowPosition(
+        x=120,
+        y=240,
+    )
+
+
+def test_missing_or_invalid_window_position_returns_none(tmp_path) -> None:
+    """Invalid window position files are ignored instead of crashing launch."""
+    missing = tmp_path / "missing.json"
+    invalid = tmp_path / "invalid.json"
+    invalid.write_text('{"x": "bad", "y": 3}', encoding="utf-8")
+
+    assert load_live2d_window_position(missing) is None
+    assert load_live2d_window_position(invalid) is None
+
+
+def test_calculate_dragged_position_uses_global_delta() -> None:
+    """Dragging moves the window by the global pointer delta."""
+    assert calculate_dragged_position(
+        window_x=100,
+        window_y=200,
+        press_global_x=10,
+        press_global_y=20,
+        move_global_x=40,
+        move_global_y=55,
+    ) == Live2DDesktopWindowPosition(x=130, y=235)

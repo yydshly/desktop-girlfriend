@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from dataclasses import dataclass
 from importlib import import_module
+from pathlib import Path
 
 from app.ui.desktop_presence import Live2DDesktopShellSpec
 
@@ -15,6 +17,8 @@ _REQUIRED_QT_MODULES = (
     "PySide6.QtWebEngineCore",
     "PySide6.QtWebEngineWidgets",
 )
+
+_POSITION_FILE_NAME = "live2d-desktop-window.json"
 
 
 @dataclass(frozen=True)
@@ -61,6 +65,66 @@ def require_live2d_desktop_dependencies() -> None:
         raise RuntimeError(status.detail)
 
 
+@dataclass(frozen=True)
+class Live2DDesktopWindowPosition:
+    """Persisted Live2D desktop window position."""
+
+    x: int
+    y: int
+
+
+def default_live2d_position_path() -> Path:
+    """Return the default local path for Live2D desktop window state."""
+
+    return Path(".tmp") / _POSITION_FILE_NAME
+
+
+def load_live2d_window_position(path: Path) -> Live2DDesktopWindowPosition | None:
+    """Load a saved window position from disk."""
+
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
+    x = data.get("x")
+    y = data.get("y")
+    if type(x) is not int or type(y) is not int:
+        return None
+    return Live2DDesktopWindowPosition(x=x, y=y)
+
+
+def save_live2d_window_position(
+    path: Path,
+    position: Live2DDesktopWindowPosition,
+) -> None:
+    """Save the Live2D desktop window position to disk."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps({"x": position.x, "y": position.y}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
+def calculate_dragged_position(
+    window_x: int,
+    window_y: int,
+    press_global_x: int,
+    press_global_y: int,
+    move_global_x: int,
+    move_global_y: int,
+) -> Live2DDesktopWindowPosition:
+    """Calculate window position after dragging from a global press point."""
+
+    return Live2DDesktopWindowPosition(
+        x=window_x + move_global_x - press_global_x,
+        y=window_y + move_global_y - press_global_y,
+    )
+
+
 def run_live2d_desktop_window(spec: Live2DDesktopShellSpec) -> int:
     """Run a transparent always-on-top WebView hosting the Live2D runtime."""
 
@@ -72,46 +136,98 @@ def run_live2d_desktop_window(spec: Live2DDesktopShellSpec) -> int:
     qt_webengine_core = import_module("PySide6.QtWebEngineCore")
     qt_webengine_widgets = import_module("PySide6.QtWebEngineWidgets")
 
-    QApplication = qt_widgets.QApplication
-    QWebEngineView = qt_webengine_widgets.QWebEngineView
-    Qt = qt_core.Qt
-    QUrl = qt_core.QUrl
-    QColor = qt_gui.QColor
-    QWebEngineSettings = qt_webengine_core.QWebEngineSettings
+    q_application = qt_widgets.QApplication
+    q_web_engine_view = qt_webengine_widgets.QWebEngineView
+    qt = qt_core.Qt
+    q_url = qt_core.QUrl
+    q_color = qt_gui.QColor
+    q_web_engine_settings = qt_webengine_core.QWebEngineSettings
+    position_path = default_live2d_position_path()
 
-    app = QApplication.instance() or QApplication([])
-    view = QWebEngineView()
+    class Live2DDesktopWebView(q_web_engine_view):
+        def __init__(self) -> None:
+            super().__init__()
+            self._drag_origin = None
+            self._window_origin = None
+
+        def mousePressEvent(self, event) -> None:  # noqa: N802
+            if event.button() == qt.MouseButton.LeftButton:
+                self._drag_origin = _event_global_position(event)
+                self._window_origin = self.pos()
+                event.accept()
+                return
+            super().mousePressEvent(event)
+
+        def mouseMoveEvent(self, event) -> None:  # noqa: N802
+            if self._drag_origin is not None and self._window_origin is not None:
+                current = _event_global_position(event)
+                next_position = calculate_dragged_position(
+                    self._window_origin.x(),
+                    self._window_origin.y(),
+                    self._drag_origin.x(),
+                    self._drag_origin.y(),
+                    current.x(),
+                    current.y(),
+                )
+                self.move(next_position.x, next_position.y)
+                event.accept()
+                return
+            super().mouseMoveEvent(event)
+
+        def mouseReleaseEvent(self, event) -> None:  # noqa: N802
+            if event.button() == qt.MouseButton.LeftButton:
+                self._drag_origin = None
+                self._window_origin = None
+                save_live2d_window_position(
+                    position_path,
+                    Live2DDesktopWindowPosition(x=self.x(), y=self.y()),
+                )
+                event.accept()
+                return
+            super().mouseReleaseEvent(event)
+
+    app = q_application.instance() or q_application([])
+    view = Live2DDesktopWebView()
     view.setWindowTitle("Live2D Desktop Girlfriend")
     view.resize(spec.width, spec.height)
+    saved_position = load_live2d_window_position(position_path)
+    if saved_position is not None:
+        view.move(saved_position.x, saved_position.y)
 
-    flags = Qt.WindowType.Window
+    flags = qt.WindowType.Window
     if spec.frameless:
-        flags |= Qt.WindowType.FramelessWindowHint
+        flags |= qt.WindowType.FramelessWindowHint
     if spec.always_on_top:
-        flags |= Qt.WindowType.WindowStaysOnTopHint
+        flags |= qt.WindowType.WindowStaysOnTopHint
     view.setWindowFlags(flags)
 
     if spec.transparent_background:
-        view.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-        view.page().setBackgroundColor(QColor(0, 0, 0, 0))
+        view.setAttribute(qt.WidgetAttribute.WA_TranslucentBackground, True)
+        view.page().setBackgroundColor(q_color(0, 0, 0, 0))
 
     settings = view.settings()
-    settings.setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, True)
+    settings.setAttribute(q_web_engine_settings.WebAttribute.JavascriptEnabled, True)
     settings.setAttribute(
-        QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls,
+        q_web_engine_settings.WebAttribute.LocalContentCanAccessFileUrls,
         True,
     )
     settings.setAttribute(
-        QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls,
+        q_web_engine_settings.WebAttribute.LocalContentCanAccessRemoteUrls,
         True,
     )
 
     if spec.devtools_enabled:
-        settings.setAttribute(QWebEngineSettings.WebAttribute.WebGLEnabled, True)
+        settings.setAttribute(q_web_engine_settings.WebAttribute.WebGLEnabled, True)
 
     if spec.click_through:
-        view.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        view.setAttribute(qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
 
-    view.setUrl(QUrl(spec.source_url))
+    view.setUrl(q_url(spec.source_url))
     view.show()
     return app.exec()
+
+
+def _event_global_position(event: object) -> object:
+    if hasattr(event, "globalPosition"):
+        return event.globalPosition().toPoint()
+    return event.globalPos()
