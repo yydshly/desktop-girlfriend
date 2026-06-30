@@ -98,8 +98,8 @@ h2 {
 }
 
 #avatarCanvas {
-  width: min(62vh, 72vw);
-  max-width: 760px;
+  width: min(86vh, 78vw);
+  max-width: 980px;
   height: auto;
   aspect-ratio: 3 / 4;
 }

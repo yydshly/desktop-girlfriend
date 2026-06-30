@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { Live2DRenderer } from "./adapters/live2d-renderer.js";
+import { calculateLive2DPlacement, Live2DRenderer } from "./adapters/live2d-renderer.js";
 
 function createCanvasProbe() {
   return {
@@ -35,4 +35,17 @@ function testStateDoesNotClaimCanvasWhileLoadingLive2D() {
 
 testPointerDoesNotClaimCanvasWhileLoadingLive2D();
 testStateDoesNotClaimCanvasWhileLoadingLive2D();
+
+function testPlacementFillsStageMoreAssertively() {
+  const placement = calculateLive2DPlacement(
+    { width: 900, height: 1200 },
+    { width: 300, height: 1000 }
+  );
+
+  assert.equal(placement.scale, 1.296);
+  assert.equal(placement.x, 450);
+  assert.equal(placement.y, 660);
+}
+
+testPlacementFillsStageMoreAssertively();
 console.log("live2d-renderer tests passed");
