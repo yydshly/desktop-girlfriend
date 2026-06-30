@@ -1,5 +1,6 @@
 import { AvatarController } from "./avatar-controller.js";
 import { detectLive2DSdk, formatSdkStatus } from "./live2d-sdk-loader.js";
+import { inspectModelPackage } from "./model-package-inspector.js";
 import { createAvatarRenderer, getRendererLabel } from "./renderer-factory.js";
 
 const canvas = document.querySelector("#avatarCanvas");
@@ -9,6 +10,8 @@ const rendererMode = document.querySelector("#rendererMode");
 const rendererSelect = document.querySelector("#rendererSelect");
 const modelUrl = document.querySelector("#modelUrl");
 const modelStatus = document.querySelector("#modelStatus");
+const modelPackageStatus = document.querySelector("#modelPackageStatus");
+const modelTexturePreview = document.querySelector("#modelTexturePreview");
 const sdkStatus = document.querySelector("#sdkStatus");
 const setModelUrl = document.querySelector("#setModelUrl");
 const bridgeUrl = document.querySelector("#bridgeUrl");
@@ -35,8 +38,25 @@ function updateRendererStatus() {
   modelStatus.textContent = `Placeholder renderer is active. The model path is recorded as ${configuredModelUrl}. ${formatSdkStatus(sdk)}`;
 }
 
+async function updateModelPackageStatus() {
+  try {
+    const packageInfo = await inspectModelPackage(configuredModelUrl);
+    modelPackageStatus.textContent = JSON.stringify(packageInfo, null, 2);
+    modelTexturePreview.src = packageInfo.firstTextureUrl;
+    modelTexturePreview.hidden = !packageInfo.firstTextureUrl;
+  } catch (error) {
+    modelPackageStatus.textContent = JSON.stringify({
+      error: error.message,
+      modelUrl: configuredModelUrl
+    }, null, 2);
+    modelTexturePreview.removeAttribute("src");
+    modelTexturePreview.hidden = true;
+  }
+}
+
 controller.start();
 updateRendererStatus();
+updateModelPackageStatus();
 
 rendererSelect.addEventListener("change", () => {
   activeRendererMode = rendererSelect.value;
@@ -44,6 +64,7 @@ rendererSelect.addEventListener("change", () => {
     createAvatarRenderer(activeRendererMode, canvas, { modelUrl: configuredModelUrl })
   );
   updateRendererStatus();
+  updateModelPackageStatus();
 });
 
 document.querySelectorAll("[data-state]").forEach((button) => {
@@ -64,6 +85,7 @@ setModelUrl.addEventListener("click", () => {
     createAvatarRenderer(activeRendererMode, canvas, { modelUrl: configuredModelUrl })
   );
   updateRendererStatus();
+  updateModelPackageStatus();
 });
 
 connectBridge.addEventListener("click", () => {
@@ -91,5 +113,6 @@ window.live2dPrototype = {
   handleBridgeMessage: (message) => controller.handleBridgeMessage(message),
   getModelUrl: () => configuredModelUrl,
   getRendererMode: () => activeRendererMode,
-  detectSdk: () => detectLive2DSdk(window)
+  detectSdk: () => detectLive2DSdk(window),
+  inspectModel: () => inspectModelPackage(configuredModelUrl)
 };

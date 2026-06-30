@@ -197,6 +197,26 @@ pre {
   max-height: 150px;
 }
 
+.model-preview {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 10px;
+}
+
+#modelTexturePreview {
+  width: 92px;
+  height: 92px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  object-fit: contain;
+  background: #0b0f12;
+}
+
+.model-package-status {
+  min-height: 92px;
+  max-height: 150px;
+}
+
 @media (max-width: 900px) {
   .app-shell {
     grid-template-columns: 1fr;
