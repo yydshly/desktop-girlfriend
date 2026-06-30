@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   calculateAnimatedLive2DParameters,
   calculateLive2DPlacement,
+  getReturnToIdleDelayMs,
   Live2DRenderer,
   shouldAutoRotateIdleMotion,
   smoothPointer
@@ -160,6 +161,37 @@ function testPointerSmoothingSnapsTinyDeltas() {
   assert.deepEqual(next, { x: 1, y: -1 });
 }
 
+function testExpressiveMotionSchedulesReturnToIdle() {
+  assert.equal(getReturnToIdleDelayMs({ motion: "reply" }), 4200);
+  assert.equal(getReturnToIdleDelayMs({ motion: "comfort" }), 4200);
+  assert.equal(getReturnToIdleDelayMs({ motion: "idle" }), 0);
+}
+
+function testAdvanceReturnToIdlePlaysIdleMotion() {
+  const renderer = new Live2DRenderer(createCanvasProbe());
+  const calls = [];
+  renderer.live2dModel = {
+    motion(group, index) {
+      calls.push({ group, index });
+    },
+    internalModel: {
+      coreModel: {
+        setParameterValueById() {}
+      }
+    }
+  };
+  renderer.returnToIdleAt = 100;
+  renderer.lastCommands = { motion: "reply", parameters: {} };
+
+  renderer.advanceReturnToIdle(101);
+
+  assert.deepEqual(calls, [{ group: "Idle", index: 0 }]);
+  assert.equal(renderer.currentState.motion, "idle");
+  assert.equal(renderer.returnToIdleAt, 0);
+}
+
 testPointerSmoothingMovesTowardTarget();
 testPointerSmoothingSnapsTinyDeltas();
+testExpressiveMotionSchedulesReturnToIdle();
+testAdvanceReturnToIdlePlaysIdleMotion();
 console.log("live2d-renderer tests passed");

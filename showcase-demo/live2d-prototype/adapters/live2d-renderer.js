@@ -24,6 +24,8 @@ export class Live2DRenderer {
     this.raf = 0;
     this.idleMotionIndex = 0;
     this.nextIdleMotionAt = 0;
+    this.returnToIdleAt = 0;
+    this.lastMotionPlayedAt = -Infinity;
   }
 
   start() {
@@ -53,6 +55,7 @@ export class Live2DRenderer {
     this.lastCommands = mapStateToLive2DCommands(nextState, this.pointer);
     this.applyLive2DCommands();
     this.playLive2DMotion();
+    this.scheduleReturnToIdle(performance.now());
     this.draw();
     return this.lastCommands;
   }
@@ -228,6 +231,7 @@ export class Live2DRenderer {
     const frame = () => {
       this.updateSmoothedPointer();
       this.applyLive2DCommands();
+      this.advanceReturnToIdle(performance.now());
       this.advanceIdleMotion(performance.now());
       this.raf = requestAnimationFrame(frame);
     };
@@ -257,8 +261,40 @@ export class Live2DRenderer {
     });
   }
 
+  scheduleReturnToIdle(now) {
+    const delay = getReturnToIdleDelayMs(this.lastCommands);
+    this.returnToIdleAt = delay > 0 ? now + delay : 0;
+  }
+
+  advanceReturnToIdle(now) {
+    if (!this.returnToIdleAt || now < this.returnToIdleAt) {
+      return;
+    }
+
+    this.returnToIdleAt = 0;
+    this.currentState = {
+      emotion: "neutral",
+      mouth: 0,
+      gaze: "cursor",
+      motion: "idle",
+      intensity: 0.25,
+      source: "visual.auto-idle"
+    };
+    this.lastCommands = mapStateToLive2DCommands(this.currentState, this.pointer);
+    this.applyLive2DCommands();
+    this.playLive2DMotion({
+      force: true,
+      override: { group: "Idle", index: 0, source: "auto-return" }
+    });
+  }
+
   playLive2DMotion(options = {}) {
     if (!this.live2dModel?.motion) {
+      return;
+    }
+
+    const now = performance.now();
+    if (!options.force && now - this.lastMotionPlayedAt < HIYORI_MOTION_COOLDOWN_MS) {
       return;
     }
 
@@ -269,6 +305,7 @@ export class Live2DRenderer {
     }
 
     this.live2dModel.motion(motion.group, motion.index);
+    this.lastMotionPlayedAt = now;
     this.lastMotionKey = motionKey;
     this.activeMotion = motion;
     this.emitStatus();
@@ -287,6 +324,8 @@ export class Live2DRenderer {
 
 const HIYORI_IDLE_MOTION_COUNT = 9;
 const HIYORI_IDLE_MOTION_INTERVAL_MS = 6500;
+const HIYORI_MOTION_COOLDOWN_MS = 650;
+const EXPRESSIVE_RETURN_TO_IDLE_MS = 4200;
 
 function getLive2DModelFactory(PIXI) {
   const Live2DModel = PIXI?.live2d?.Live2DModel;
@@ -324,6 +363,12 @@ export function mapCommandToHiyoriMotion(command = {}) {
 export function shouldAutoRotateIdleMotion(command = {}) {
   const motion = command.motion || "idle";
   return motion === "idle" || motion === "think" || motion === "sad";
+}
+
+export function getReturnToIdleDelayMs(command = {}) {
+  const motion = command.motion || "";
+  const expressiveMotions = new Set(["greet", "happy", "reply", "comfort", "speak"]);
+  return expressiveMotions.has(motion) ? EXPRESSIVE_RETURN_TO_IDLE_MS : 0;
 }
 
 export function calculateAnimatedLive2DParameters(parameters = {}, command = {}, now = 0) {
