@@ -24,6 +24,7 @@ from app.ui.desktop_presence import (
     DesktopPresenceState,
     LIVE2D_DESKTOP_HEIGHT,
     LIVE2D_DESKTOP_WIDTH,
+    LIVE2D_DESKTOP_QUERY,
     LIVE2D_PROTOTYPE_ROUTE,
     Live2DDesktopShellSpec,
     build_live2d_desktop_shell_spec,
@@ -114,8 +115,10 @@ class TestLive2DDesktopShellSpec:
 
         spec = build_live2d_desktop_shell_spec(tmp_path)
 
-        assert spec.source_url == target.resolve().as_uri()
-        assert spec.source_url.endswith("/showcase-demo/live2d-prototype/index.html")
+        assert spec.source_url == f"{target.resolve().as_uri()}?{LIVE2D_DESKTOP_QUERY}"
+        assert spec.source_url.endswith(
+            f"/showcase-demo/live2d-prototype/index.html?{LIVE2D_DESKTOP_QUERY}"
+        )
 
     def test_build_shell_spec_can_enable_desktop_debug_options(self, tmp_path) -> None:
         """Debug options are explicit so production desktop mode stays clean."""

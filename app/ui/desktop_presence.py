@@ -14,6 +14,7 @@ COMPACT_MODE_HEIGHT = 320
 LIVE2D_DESKTOP_WIDTH = 520
 LIVE2D_DESKTOP_HEIGHT = 760
 LIVE2D_PROTOTYPE_ROUTE = "showcase-demo/live2d-prototype/index.html"
+LIVE2D_DESKTOP_QUERY = "desktop=1"
 
 
 @dataclass
@@ -51,8 +52,9 @@ def build_live2d_desktop_shell_spec(
     """Build the desktop shell spec that points at the local Live2D runtime."""
 
     route = workspace_root / LIVE2D_PROTOTYPE_ROUTE
+    source_url = f"{route.resolve().as_uri()}?{LIVE2D_DESKTOP_QUERY}"
     return Live2DDesktopShellSpec(
-        source_url=route.resolve().as_uri(),
+        source_url=source_url,
         click_through=click_through,
         devtools_enabled=devtools_enabled,
     )

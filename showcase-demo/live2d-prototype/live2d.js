@@ -22,6 +22,10 @@ const bridgeUrl = document.querySelector("#bridgeUrl");
 const connectBridge = document.querySelector("#connectBridge");
 const disconnectBridge = document.querySelector("#disconnectBridge");
 
+const routeParams = new URLSearchParams(window.location.search);
+const isDesktopMode = routeParams.get("desktop") === "1";
+document.documentElement.dataset.mode = isDesktopMode ? "desktop" : "showcase";
+
 rendererSelect.value = "live2d";
 
 let configuredModelUrl = modelUrl.value;
@@ -154,6 +158,7 @@ window.live2dPrototype = {
   applyState: (state) => controller.applyStateName(state),
   playSequence: (name) => controller.playSequence(name),
   handleBridgeMessage: (message) => controller.handleBridgeMessage(message),
+  isDesktopMode: () => isDesktopMode,
   getModelUrl: () => configuredModelUrl,
   getRendererMode: () => activeRendererMode,
   detectSdk: () => detectLive2DSdk(window),
