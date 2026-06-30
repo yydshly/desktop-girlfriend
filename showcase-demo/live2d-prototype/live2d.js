@@ -154,6 +154,30 @@ disconnectBridge.addEventListener("click", () => {
   }
 });
 
+if (isDesktopMode) {
+  window.addEventListener("keydown", (event) => {
+    const key = event.key.toLowerCase();
+    const actionByKey = {
+      "1": () => controller.applyStateName("idle"),
+      "2": () => controller.applyStateName("happy"),
+      "3": () => controller.applyStateName("think"),
+      "4": () => controller.applyStateName("sad"),
+      "5": () => controller.applyStateName("comfort"),
+      "6": () => controller.applyStateName("speak"),
+      g: () => controller.playSequence("greet"),
+      l: () => controller.playSequence("listen"),
+      r: () => controller.playSequence("reply"),
+      c: () => controller.playSequence("comfort")
+    };
+    const action = actionByKey[key];
+    if (!action) {
+      return;
+    }
+    event.preventDefault();
+    action();
+  });
+}
+
 window.live2dPrototype = {
   applyState: (state) => controller.applyStateName(state),
   playSequence: (name) => controller.playSequence(name),
