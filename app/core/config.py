@@ -57,6 +57,9 @@ class AppConfig:
         self.app_name: str = "Desktop Girlfriend"
         self.window_width: int = 360
         self.window_height: int = 480
+        self.live2d_desktop_auto_launch: bool = _env_bool_or_default(
+            "LIVE2D_DESKTOP_AUTO_LAUNCH", "true"
+        )
 
         # Chat provider configuration
         self.chat_provider_mode: str = os.getenv("CHAT_PROVIDER_MODE", "fake")

@@ -52,6 +52,25 @@ def test_default_minimax_base_url_exists(
     assert config.minimax_base_url == "https://api.minimax.chat/v1"
 
 
+def test_live2d_desktop_auto_launch_defaults_to_true(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Live2D desktop window is launched with the main app by default."""
+    clear_config_env(monkeypatch)
+    config = AppConfig()
+    assert config.live2d_desktop_auto_launch is True
+
+
+def test_live2d_desktop_auto_launch_can_be_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """LIVE2D_DESKTOP_AUTO_LAUNCH=false disables automatic companion launch."""
+    clear_config_env(monkeypatch)
+    monkeypatch.setenv("LIVE2D_DESKTOP_AUTO_LAUNCH", "false")
+    config = AppConfig()
+    assert config.live2d_desktop_auto_launch is False
+
+
 def test_default_minimax_timeout_seconds(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

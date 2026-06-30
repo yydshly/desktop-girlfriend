@@ -9,6 +9,7 @@ from app.core.config import reset_config
 # All environment variables used by AppConfig that need isolation
 CONFIG_ENV_NAMES = [
     "APP_ENV",
+    "LIVE2D_DESKTOP_AUTO_LAUNCH",
     "CHAT_PROVIDER_MODE",
     "MINIMAX_API_KEY",
     "MINIMAX_GROUP_ID",

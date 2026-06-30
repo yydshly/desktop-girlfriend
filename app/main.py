@@ -66,6 +66,7 @@ from app.input.audio import MicrophoneRecorder, MicrophoneRecorderLike
 from app.ui.close_behavior import decide_close_behavior
 from app.ui.live2d_bridge import Live2DBridgeEventDispatcher
 from app.ui.live2d_bridge_server import Live2DBridgeServer
+from app.ui.live2d_desktop_process import Live2DDesktopProcess
 from app.ui.onboarding_view import build_onboarding_view, render_onboarding_text
 from app.ui.product_status_builder import build_product_status_view
 from app.ui.qt_event_bridge import QtEventBridge
@@ -122,6 +123,9 @@ def main() -> None:
         subscribe=event_bus.subscribe,
         unsubscribe=event_bus.unsubscribe,
         broadcast=live2d_bridge_server.broadcast,
+    )
+    live2d_desktop_process = (
+        Live2DDesktopProcess() if config.live2d_desktop_auto_launch else None
     )
 
     # Initialize UI components
@@ -604,6 +608,8 @@ def main() -> None:
     state_controller.start()
     live2d_bridge_server.start()
     live2d_bridge_dispatcher.start()
+    if live2d_desktop_process is not None:
+        live2d_desktop_process.start()
     tts_controller.start()
     dialogue_controller.start()
     voice_input_controller.start()
@@ -639,6 +645,8 @@ def main() -> None:
         shutdown_components.append(memory_suggestion_controller)
     if proactive_controller is not None:
         shutdown_components.append(proactive_controller)
+    if live2d_desktop_process is not None:
+        shutdown_components.append(live2d_desktop_process)
     _wire_shutdown(app, *shutdown_components)  # type: ignore[arg-type]
 
     window.show()
