@@ -7,6 +7,7 @@ export class Live2DRenderer {
     this.canvas = canvas;
     this.ctx = null;
     this.modelUrl = options.modelUrl || "";
+    this.allowTextureFallback = options.allowTextureFallback !== false;
     this.onStatusChange = options.onStatusChange || (() => {});
     this.app = null;
     this.model = null;
@@ -126,9 +127,17 @@ export class Live2DRenderer {
       this.startParameterLoop();
       this.emitStatus();
     } catch (error) {
-      this.loadError = `SDK/model load failed, using texture preview: ${error.message}`;
+      this.loadError = this.allowTextureFallback
+        ? `SDK/model load failed, using texture preview: ${error.message}`
+        : `SDK/model load failed: ${error.message}`;
       this.emitStatus();
-      await this.loadPreviewTexture();
+      if (this.allowTextureFallback) {
+        await this.loadPreviewTexture();
+        return;
+      }
+      this.loadState = "error";
+      this.emitStatus();
+      this.draw();
     }
   }
 
@@ -173,7 +182,8 @@ export class Live2DRenderer {
   }
 
   shouldDrawFallback() {
-    return Boolean(this.previewImage) || this.loadState === "ready" || this.loadState === "error";
+    return this.allowTextureFallback
+      && (Boolean(this.previewImage) || this.loadState === "ready" || this.loadState === "error");
   }
 
   drawStatusText() {

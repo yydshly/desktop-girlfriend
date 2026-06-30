@@ -95,13 +95,19 @@ def run_live2d_desktop_window(spec: Live2DDesktopShellSpec) -> int:
         view.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         view.page().setBackgroundColor(QColor(0, 0, 0, 0))
 
+    settings = view.settings()
+    settings.setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, True)
+    settings.setAttribute(
+        QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls,
+        True,
+    )
+    settings.setAttribute(
+        QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls,
+        True,
+    )
+
     if spec.devtools_enabled:
-        settings = view.settings()
-        settings.setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, True)
-        settings.setAttribute(
-            QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls,
-            True,
-        )
+        settings.setAttribute(QWebEngineSettings.WebAttribute.WebGLEnabled, True)
 
     if spec.click_through:
         view.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)

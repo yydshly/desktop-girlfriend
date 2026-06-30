@@ -43,6 +43,20 @@ function testStateDoesNotClaimCanvasWhileLoadingLive2D() {
 testPointerDoesNotClaimCanvasWhileLoadingLive2D();
 testStateDoesNotClaimCanvasWhileLoadingLive2D();
 
+function testDisabledTextureFallbackDoesNotClaimCanvasOnError() {
+  const canvas = createCanvasProbe();
+  const renderer = new Live2DRenderer(canvas, { allowTextureFallback: false });
+  renderer.loadState = "error";
+  renderer.previewImage = { width: 1024, height: 1024 };
+
+  renderer.draw();
+
+  assert.equal(canvas.contextRequests, 0);
+  assert.equal(renderer.shouldDrawFallback(), false);
+}
+
+testDisabledTextureFallbackDoesNotClaimCanvasOnError();
+
 function testPlacementFillsStageMoreAssertively() {
   const placement = calculateLive2DPlacement(
     { width: 900, height: 1200 },

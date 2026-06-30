@@ -8,10 +8,19 @@ const SDK_GLOBALS = [
   }
 ];
 
-const CDN_SCRIPTS = [
-  "https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js",
-  "https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js",
-  "https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism4.min.js"
+const SDK_SCRIPT_GROUPS = [
+  [
+    "./assets/vendor/live2d/pixi.min.js",
+    "https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js"
+  ],
+  [
+    "./assets/vendor/live2d/live2dcubismcore.min.js",
+    "https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"
+  ],
+  [
+    "./assets/vendor/live2d/pixi-live2d-display-cubism4.min.js",
+    "https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism4.min.js"
+  ]
 ];
 
 const SDK_READY_TIMEOUT_MS = 5000;
@@ -46,11 +55,24 @@ export async function ensureLive2DSdk(root = globalThis) {
     return before;
   }
 
-  for (const src of CDN_SCRIPTS) {
-    await loadScriptOnce(src, root.document);
+  for (const candidates of SDK_SCRIPT_GROUPS) {
+    await loadFirstAvailableScript(candidates, root.document);
   }
 
   return waitForSdkReady(root);
+}
+
+async function loadFirstAvailableScript(candidates, documentRef) {
+  const errors = [];
+  for (const src of candidates) {
+    try {
+      await loadScriptOnce(src, documentRef);
+      return;
+    } catch (error) {
+      errors.push(error.message);
+    }
+  }
+  throw new Error(`Failed to load SDK script candidates: ${errors.join(" | ")}`);
 }
 
 async function waitForSdkReady(root) {

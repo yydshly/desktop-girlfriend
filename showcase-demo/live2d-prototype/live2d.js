@@ -43,6 +43,7 @@ let lastRendererStatus = {
 function createRenderer() {
   return createAvatarRenderer(activeRendererMode, canvas, {
     modelUrl: configuredModelUrl,
+    allowTextureFallback: !isDesktopMode,
     onStatusChange: (status) => {
       lastRendererStatus = status;
       updateRendererStatus();
