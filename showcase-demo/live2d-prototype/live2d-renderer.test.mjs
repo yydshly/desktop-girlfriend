@@ -3,7 +3,8 @@ import {
   calculateAnimatedLive2DParameters,
   calculateLive2DPlacement,
   Live2DRenderer,
-  shouldAutoRotateIdleMotion
+  shouldAutoRotateIdleMotion,
+  smoothPointer
 } from "./adapters/live2d-renderer.js";
 
 function createCanvasProbe() {
@@ -146,4 +147,19 @@ function testReplyMotionDoesNotAutoRotateIdle() {
 
 testIdleMotionAutoRotates();
 testReplyMotionDoesNotAutoRotateIdle();
+
+function testPointerSmoothingMovesTowardTarget() {
+  const next = smoothPointer({ x: 0, y: 0 }, { x: 1, y: -1 }, 0.25);
+
+  assert.deepEqual(next, { x: 0.25, y: -0.25 });
+}
+
+function testPointerSmoothingSnapsTinyDeltas() {
+  const next = smoothPointer({ x: 0.999, y: -0.999 }, { x: 1, y: -1 }, 0.25);
+
+  assert.deepEqual(next, { x: 1, y: -1 });
+}
+
+testPointerSmoothingMovesTowardTarget();
+testPointerSmoothingSnapsTinyDeltas();
 console.log("live2d-renderer tests passed");

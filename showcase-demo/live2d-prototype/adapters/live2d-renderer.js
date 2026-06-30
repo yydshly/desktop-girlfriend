@@ -15,6 +15,8 @@ export class Live2DRenderer {
     this.loadState = "idle";
     this.loadError = "";
     this.pointer = { x: 0, y: 0 };
+    this.targetPointer = { x: 0, y: 0 };
+    this.smoothedPointer = { x: 0, y: 0 };
     this.currentState = {};
     this.lastCommands = mapStateToLive2DCommands();
     this.lastMotionKey = "";
@@ -42,9 +44,7 @@ export class Live2DRenderer {
   }
 
   setPointer(x, y) {
-    this.pointer = { x, y };
-    this.lastCommands = mapStateToLive2DCommands(this.currentState, this.pointer);
-    this.applyLive2DCommands();
+    this.targetPointer = { x, y };
     this.draw();
   }
 
@@ -226,11 +226,18 @@ export class Live2DRenderer {
     }
 
     const frame = () => {
+      this.updateSmoothedPointer();
       this.applyLive2DCommands();
       this.advanceIdleMotion(performance.now());
       this.raf = requestAnimationFrame(frame);
     };
     this.raf = requestAnimationFrame(frame);
+  }
+
+  updateSmoothedPointer() {
+    this.smoothedPointer = smoothPointer(this.smoothedPointer, this.targetPointer, 0.18);
+    this.pointer = this.smoothedPointer;
+    this.lastCommands = mapStateToLive2DCommands(this.currentState, this.pointer);
   }
 
   advanceIdleMotion(now) {
@@ -334,6 +341,21 @@ export function calculateAnimatedLive2DParameters(parameters = {}, command = {},
 
 function roundToThree(value) {
   return Number(Math.min(1, Math.max(0, value)).toFixed(3));
+}
+
+export function smoothPointer(current = { x: 0, y: 0 }, target = { x: 0, y: 0 }, alpha = 0.18) {
+  return {
+    x: smoothAxis(Number(current.x ?? 0), Number(target.x ?? 0), alpha),
+    y: smoothAxis(Number(current.y ?? 0), Number(target.y ?? 0), alpha)
+  };
+}
+
+function smoothAxis(current, target, alpha) {
+  const next = current + (target - current) * alpha;
+  if (Math.abs(next - target) < 0.002) {
+    return target;
+  }
+  return Number(next.toFixed(3));
 }
 
 function loadImage(src) {
