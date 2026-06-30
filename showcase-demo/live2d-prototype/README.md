@@ -11,3 +11,5 @@ The intended upgrade path is:
 3. Replace `placeholder-renderer.js` with `live2d-renderer.js` at runtime.
 4. Replace sample model with custom character model.
 5. Wrap the prototype in Electron for transparent desktop rendering.
+
+`live2d-parameter-mapper.js` is the bridge from product state to Cubism-style parameters. Keep AI/dialogue states stable and change this mapper when a real model uses different parameter names or ranges.
