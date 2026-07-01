@@ -358,7 +358,8 @@ export class Live2DRenderer {
       modelUrl: this.modelUrl,
       hasLive2DModel: Boolean(this.live2dModel),
       activeMotion: this.activeMotion,
-      activeExpression: this.activeExpression
+      activeExpression: this.activeExpression,
+      modelCapabilities: getModelCapabilities(this.model)
     });
   }
 }
@@ -437,6 +438,15 @@ export function resolveSupportedExpression(expression = "", expressionNames = nu
     return expression;
   }
   return expressionNames.includes(expression) ? expression : "";
+}
+
+export function getModelCapabilities(model = null) {
+  return {
+    expressionCount: Number(model?.expressionCount ?? 0),
+    expressionNames: Array.isArray(model?.expressionNames) ? model.expressionNames : [],
+    motionCount: Number(model?.motionCount ?? 0),
+    motionGroupCounts: model?.motionGroupCounts || {}
+  };
 }
 
 export function calculateAnimatedLive2DParameters(parameters = {}, command = {}, now = 0) {

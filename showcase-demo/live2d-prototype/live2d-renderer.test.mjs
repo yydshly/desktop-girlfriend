@@ -175,6 +175,28 @@ function testStateDoesNotRepeatSameLive2DExpression() {
   assert.deepEqual(expressions, ["happy"]);
 }
 
+function testStatusReportsModelCapabilities() {
+  const statuses = [];
+  const renderer = new Live2DRenderer(createCanvasProbe(), {
+    onStatusChange: (status) => statuses.push(status)
+  });
+  renderer.model = {
+    expressionCount: 2,
+    expressionNames: ["happy", "sad"],
+    motionCount: 3,
+    motionGroupCounts: { Idle: 2, TapBody: 1 }
+  };
+
+  renderer.emitStatus();
+
+  assert.deepEqual(statuses.at(-1).modelCapabilities, {
+    expressionCount: 2,
+    expressionNames: ["happy", "sad"],
+    motionCount: 3,
+    motionGroupCounts: { Idle: 2, TapBody: 1 }
+  });
+}
+
 function testAbstractMotionUsesAvailableModelMotionGroups() {
   assert.deepEqual(
     mapCommandToModelMotion({ motion: "reply" }, { TapBody: 1, Idle: 3 }),
@@ -192,6 +214,7 @@ testIdleStateTriggersIdleMotion();
 testStateAppliesLive2DExpression();
 testStateSkipsUnavailableLive2DExpression();
 testStateDoesNotRepeatSameLive2DExpression();
+testStatusReportsModelCapabilities();
 
 function testSpeakingStateAnimatesMouthOpen() {
   const parameters = calculateAnimatedLive2DParameters(

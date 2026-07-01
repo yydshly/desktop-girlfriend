@@ -20,6 +20,7 @@ const summaryRenderer = document.querySelector("#summaryRenderer");
 const summaryModel = document.querySelector("#summaryModel");
 const summaryMotion = document.querySelector("#summaryMotion");
 const summaryExpression = document.querySelector("#summaryExpression");
+const summaryCapabilities = document.querySelector("#summaryCapabilities");
 const summarySdk = document.querySelector("#summarySdk");
 const setModelUrl = document.querySelector("#setModelUrl");
 const bridgeUrl = document.querySelector("#bridgeUrl");
@@ -90,11 +91,15 @@ function updateRendererStatus() {
     ? `${lastRendererStatus.activeMotion.group}[${lastRendererStatus.activeMotion.index}]`
     : "none";
   summaryExpression.textContent = lastRendererStatus.activeExpression || "none";
+  summaryCapabilities.textContent = formatCapabilitySummary(lastRendererStatus.modelCapabilities);
   summarySdk.textContent = sdk.ready ? "ready" : `missing ${sdk.missing.length}`;
   if (activeRendererMode === "live2d") {
     modelStatus.textContent = [
       `Live2D renderer: ${configuredModelUrl}.`,
       `renderer state: ${lastRendererStatus.loadState}.`,
+      lastRendererStatus.modelCapabilities
+        ? `capabilities: ${formatCapabilitySummary(lastRendererStatus.modelCapabilities)}.`
+        : "",
       lastRendererStatus.activeMotion?.group
         ? `active motion: ${lastRendererStatus.activeMotion.group}[${lastRendererStatus.activeMotion.index}].`
         : "",
@@ -104,6 +109,21 @@ function updateRendererStatus() {
     return;
   }
   modelStatus.textContent = `Placeholder renderer is active. The model path is recorded as ${configuredModelUrl}. ${formatSdkStatus(sdk)}`;
+}
+
+function formatCapabilitySummary(capabilities = null) {
+  if (!capabilities) {
+    return "pending";
+  }
+  const motionGroups = Object.entries(capabilities.motionGroupCounts || {})
+    .map(([group, count]) => `${group}:${count}`)
+    .join(", ");
+  const expressionNames = Array.isArray(capabilities.expressionNames)
+    ? capabilities.expressionNames.join(", ")
+    : "";
+  const motionText = motionGroups || `${capabilities.motionCount || 0} motions`;
+  const expressionText = expressionNames || `${capabilities.expressionCount || 0} expressions`;
+  return `${motionText} / ${expressionText}`;
 }
 
 async function updateModelPackageStatus() {
