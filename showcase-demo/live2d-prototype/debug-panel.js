@@ -133,6 +133,8 @@ function queryDebugElements(document) {
     ambientGestureValue: document.querySelector("#ambientGestureValue"),
     resetInteractionTuning: document.querySelector("#resetInteractionTuning"),
     probeInteractionTuning: document.querySelector("#probeInteractionTuning"),
+    copyInteractionTuning: document.querySelector("#copyInteractionTuning"),
+    interactionTuningSnippet: document.querySelector("#interactionTuningSnippet"),
     interactionTuningStatus: document.querySelector("#interactionTuningStatus"),
     bridgeUrl: document.querySelector("#bridgeUrl"),
     connectBridge: document.querySelector("#connectBridge"),
@@ -173,6 +175,19 @@ function wireInteractionTuningControls(elements, runtime) {
     runtime.applyState("idle");
     renderInteractionTuning(elements, runtime, "Idle probe triggered.");
   });
+
+  elements.copyInteractionTuning?.addEventListener("click", async () => {
+    const text = formatInteractionTuningSnippet(runtime.getInteractionTuning());
+    try {
+      if (typeof globalThis.navigator?.clipboard?.writeText !== "function") {
+        throw new Error("Clipboard API unavailable.");
+      }
+      await globalThis.navigator.clipboard.writeText(text);
+      renderInteractionTuning(elements, runtime, "Profile JSON copied.");
+    } catch {
+      renderInteractionTuning(elements, runtime, "Copy unavailable; use the JSON snippet.");
+    }
+  });
 }
 
 function readInteractionTuning(elements) {
@@ -204,7 +219,26 @@ function renderInteractionTuning(elements, runtime, message = "") {
       output.textContent = digits > 0 ? value.toFixed(digits) : String(Math.round(value));
     }
   });
+  if (elements.interactionTuningSnippet) {
+    elements.interactionTuningSnippet.textContent = formatInteractionTuningSnippet(tuning);
+  }
   elements.interactionTuningStatus.textContent = message || "Profile tuning loaded.";
+}
+
+function formatInteractionTuningSnippet(tuning = {}) {
+  return JSON.stringify({
+    desktopPlacement: {
+      scaleMultiplier: tuning.scaleMultiplier ?? 1,
+      xOffsetRatio: tuning.xOffsetRatio ?? 0,
+      yRatio: tuning.yRatio ?? 0.55,
+      pointerFollowXRatio: tuning.pointerFollowXRatio ?? 0.0075,
+      pointerFollowYRatio: tuning.pointerFollowYRatio ?? 0.005,
+      headTrackingMultiplier: tuning.headTrackingMultiplier ?? 1,
+      eyeTrackingMultiplier: tuning.eyeTrackingMultiplier ?? 1,
+      bodyTrackingMultiplier: tuning.bodyTrackingMultiplier ?? 1,
+      ambientGestureIntervalMs: tuning.ambientGestureIntervalMs ?? 7200
+    }
+  }, null, 2);
 }
 
 function renderRendererStatus(elements, runtime, window) {

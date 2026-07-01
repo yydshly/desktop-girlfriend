@@ -413,6 +413,11 @@ pre {
   max-height: 130px;
 }
 
+.interaction-tuning-snippet {
+  min-height: 126px;
+  max-height: 180px;
+}
+
 .model-preview {
   display: grid;
   grid-template-columns: 92px minmax(0, 1fr);

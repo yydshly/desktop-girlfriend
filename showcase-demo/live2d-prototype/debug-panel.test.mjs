@@ -175,6 +175,8 @@ function createDebugElements() {
     "#ambientGestureValue": createElement(),
     "#resetInteractionTuning": createElement(),
     "#probeInteractionTuning": createElement(),
+    "#copyInteractionTuning": createElement(),
+    "#interactionTuningSnippet": createElement(),
     "#interactionTuningStatus": createElement(),
     "#bridgeUrl": createElement("ws://127.0.0.1:8879"),
     "#connectBridge": createElement(),
@@ -201,6 +203,7 @@ function testShowcasePanelAppliesInteractionTuning() {
   assert.equal(runtime.appliedInteractionTuning.eyeTrackingMultiplier, 1);
   assert.equal(elements["#headTrackingValue"].textContent, "1.25");
   assert.equal(elements["#interactionTuningStatus"].textContent, "Tuning applied and saved.");
+  assert.match(elements["#interactionTuningSnippet"].textContent, /"headTrackingMultiplier": 1.25/);
 }
 
 function testShowcasePanelResetsInteractionTuning() {
@@ -237,6 +240,67 @@ function testShowcasePanelProbesInteractionTuning() {
 
   assert.equal(runtime.appliedState, "idle");
   assert.equal(elements["#interactionTuningStatus"].textContent, "Idle probe triggered.");
+}
+
+async function testShowcasePanelCopiesInteractionTuningSnippet() {
+  const elements = createDebugElements();
+  const runtime = createRuntime();
+  const copied = [];
+  const previousNavigator = globalThis.navigator;
+  Object.defineProperty(globalThis, "navigator", {
+    configurable: true,
+    value: {
+      clipboard: {
+        async writeText(text) {
+          copied.push(text);
+        }
+      }
+    }
+  });
+
+  mountLive2DDebugPanel({
+    document: createDocument(elements),
+    window: { localStorage: { getItem: () => null, setItem: () => {} } },
+    runtime,
+    mode: "showcase"
+  });
+
+  await elements["#copyInteractionTuning"].listeners.click();
+
+  assert.match(copied[0], /"desktopPlacement"/);
+  assert.match(copied[0], /"ambientGestureIntervalMs": 7200/);
+  assert.equal(elements["#interactionTuningStatus"].textContent, "Profile JSON copied.");
+
+  Object.defineProperty(globalThis, "navigator", {
+    configurable: true,
+    value: previousNavigator
+  });
+}
+
+async function testShowcasePanelHandlesUnavailableClipboard() {
+  const elements = createDebugElements();
+  const runtime = createRuntime();
+  const previousNavigator = globalThis.navigator;
+  Object.defineProperty(globalThis, "navigator", {
+    configurable: true,
+    value: {}
+  });
+
+  mountLive2DDebugPanel({
+    document: createDocument(elements),
+    window: { localStorage: { getItem: () => null, setItem: () => {} } },
+    runtime,
+    mode: "showcase"
+  });
+
+  await elements["#copyInteractionTuning"].listeners.click();
+
+  assert.equal(elements["#interactionTuningStatus"].textContent, "Copy unavailable; use the JSON snippet.");
+
+  Object.defineProperty(globalThis, "navigator", {
+    configurable: true,
+    value: previousNavigator
+  });
 }
 
 function testShowcasePanelWiresRendererSelect() {
@@ -360,5 +424,7 @@ testShowcasePanelRendersModelCandidateEvaluation();
 testShowcasePanelAppliesInteractionTuning();
 testShowcasePanelResetsInteractionTuning();
 testShowcasePanelProbesInteractionTuning();
+await testShowcasePanelCopiesInteractionTuningSnippet();
+await testShowcasePanelHandlesUnavailableClipboard();
 testDesktopPanelDoesNotWireDebugControls();
 console.log("debug-panel tests passed");
