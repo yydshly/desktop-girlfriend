@@ -177,6 +177,8 @@ error
 - 如果人物动作看起来不明显，先看 `adapter:` 是否变化；如果 adapter 变了但人物没变，问题在模型能力或 profile 映射。
 - 点击“模型实验 / 运行固定情绪序列”，可以一次触发 `idle -> listening -> thinking -> speaking -> happy -> comfort -> idle`。
 - 实验输出会列出每一步的 motion / expression / mouth / intensity，用来判断模型动态效果是否符合“小云”规格。
+- 模型资产区会显示 candidate score。这个分数不是审美评分，而是模型包动态能力评分：actions、expressions、lip sync、eye blink、physics、idle motion 等是否满足小云规格。
+- 如果 candidate score 低，优先看 `missing`；它会说明缺少 expression 映射、动作映射、physics 或口型参数。
 
 桌面应用正常时：
 
