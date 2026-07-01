@@ -109,6 +109,47 @@ function testIdleStateTriggersIdleMotion() {
   assert.deepEqual(calls, [{ group: "Idle", index: 0 }]);
 }
 
+function testStateAppliesLive2DExpression() {
+  const renderer = new Live2DRenderer(createCanvasProbe());
+  const expressions = [];
+  renderer.live2dModel = {
+    expression(name) {
+      expressions.push(name);
+    },
+    motion() {},
+    internalModel: {
+      coreModel: {
+        setParameterValueById() {}
+      }
+    }
+  };
+
+  renderer.applyState({ motion: "happy", emotion: "happy" });
+
+  assert.deepEqual(expressions, ["happy"]);
+}
+
+function testStateDoesNotRepeatSameLive2DExpression() {
+  const renderer = new Live2DRenderer(createCanvasProbe());
+  const expressions = [];
+  renderer.live2dModel = {
+    expression(name) {
+      expressions.push(name);
+    },
+    motion() {},
+    internalModel: {
+      coreModel: {
+        setParameterValueById() {}
+      }
+    }
+  };
+
+  renderer.applyState({ motion: "happy", emotion: "happy" });
+  renderer.applyState({ motion: "happy", emotion: "happy" });
+
+  assert.deepEqual(expressions, ["happy"]);
+}
+
 function testAbstractMotionUsesAvailableModelMotionGroups() {
   assert.deepEqual(
     mapCommandToModelMotion({ motion: "reply" }, { TapBody: 1, Idle: 3 }),
@@ -123,6 +164,8 @@ function testAbstractMotionUsesAvailableModelMotionGroups() {
 testSequenceTriggersTapBodyMotion();
 testAbstractMotionUsesAvailableModelMotionGroups();
 testIdleStateTriggersIdleMotion();
+testStateAppliesLive2DExpression();
+testStateDoesNotRepeatSameLive2DExpression();
 
 function testSpeakingStateAnimatesMouthOpen() {
   const parameters = calculateAnimatedLive2DParameters(

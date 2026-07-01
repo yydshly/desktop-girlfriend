@@ -21,6 +21,7 @@ export class Live2DRenderer {
     this.currentState = {};
     this.lastCommands = mapStateToLive2DCommands();
     this.lastMotionKey = "";
+    this.lastExpressionKey = "";
     this.activeMotion = { group: "", index: 0, source: "" };
     this.raf = 0;
     this.idleMotionIndex = 0;
@@ -55,6 +56,7 @@ export class Live2DRenderer {
     this.currentState = nextState;
     this.lastCommands = mapStateToLive2DCommands(nextState, this.pointer);
     this.applyLive2DCommands();
+    this.applyLive2DExpression();
     this.playLive2DMotion();
     this.scheduleReturnToIdle(performance.now());
     this.draw();
@@ -242,6 +244,7 @@ export class Live2DRenderer {
     const frame = () => {
       this.updateSmoothedPointer();
       this.applyLive2DCommands();
+      this.applyLive2DExpression();
       this.advanceReturnToIdle(performance.now());
       this.advanceIdleMotion(performance.now());
       this.raf = requestAnimationFrame(frame);
@@ -295,6 +298,7 @@ export class Live2DRenderer {
     };
     this.lastCommands = mapStateToLive2DCommands(this.currentState, this.pointer);
     this.applyLive2DCommands();
+    this.applyLive2DExpression();
     this.playLive2DMotion({
       force: true,
       override: { group: "Idle", index: 0, source: "auto-return" }
@@ -325,6 +329,20 @@ export class Live2DRenderer {
     this.lastMotionKey = motionKey;
     this.activeMotion = motion;
     this.emitStatus();
+  }
+
+  applyLive2DExpression() {
+    if (!this.live2dModel?.expression) {
+      return;
+    }
+
+    const expression = this.lastCommands.expression || "";
+    if (!expression || expression === this.lastExpressionKey) {
+      return;
+    }
+
+    this.live2dModel.expression(expression);
+    this.lastExpressionKey = expression;
   }
 
   emitStatus() {
