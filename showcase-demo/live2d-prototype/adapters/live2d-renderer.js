@@ -33,6 +33,8 @@ export class Live2DRenderer {
     this.returnToIdleAt = 0;
     this.lastMotionPlayedAt = -Infinity;
     this.pointerReaction = { startedAt: 0, x: 0, y: 0 };
+    this.nextAmbientGestureAt = AMBIENT_GESTURE_INTERVAL_MS;
+    this.ambientGestureIndex = 0;
   }
 
   start() {
@@ -305,12 +307,14 @@ export class Live2DRenderer {
     }
 
     const frame = () => {
+      const now = performance.now();
       this.updateSmoothedPointer();
+      this.advanceAmbientGesture(now);
       this.applyLive2DPlacement();
       this.applyLive2DCommands();
       this.applyLive2DExpression();
-      this.advanceReturnToIdle(performance.now());
-      this.advanceIdleMotion(performance.now());
+      this.advanceReturnToIdle(now);
+      this.advanceIdleMotion(now);
       this.raf = requestAnimationFrame(frame);
     };
     this.raf = requestAnimationFrame(frame);
@@ -339,6 +343,31 @@ export class Live2DRenderer {
       force: true,
       override: { group: "Idle", index: this.idleMotionIndex, source: "idle-auto" }
     });
+  }
+
+  advanceAmbientGesture(now) {
+    if (!shouldAutoRotateIdleMotion(this.lastCommands)) {
+      this.nextAmbientGestureAt = now + AMBIENT_GESTURE_INTERVAL_MS;
+      return;
+    }
+
+    if (calculatePointerReactionEffect(this.pointerReaction, now).active) {
+      return;
+    }
+
+    if (now < this.nextAmbientGestureAt) {
+      return;
+    }
+
+    const gesture = AMBIENT_GESTURES[this.ambientGestureIndex % AMBIENT_GESTURES.length];
+    this.ambientGestureIndex += 1;
+    this.pointerReaction = {
+      startedAt: now,
+      durationMs: gesture.durationMs,
+      x: gesture.x,
+      y: gesture.y
+    };
+    this.nextAmbientGestureAt = now + AMBIENT_GESTURE_INTERVAL_MS;
   }
 
   scheduleReturnToIdle(now) {
@@ -451,6 +480,12 @@ const DEFAULT_IDLE_MOTION_COUNT = 9;
 const IDLE_MOTION_INTERVAL_MS = 6500;
 const MOTION_COOLDOWN_MS = 650;
 const EXPRESSIVE_RETURN_TO_IDLE_MS = 4200;
+const AMBIENT_GESTURE_INTERVAL_MS = 7200;
+const AMBIENT_GESTURES = [
+  { x: 0.28, y: -0.24, durationMs: 860 },
+  { x: -0.22, y: 0.08, durationMs: 920 },
+  { x: 0.12, y: -0.34, durationMs: 820 }
+];
 
 function getLive2DModelFactory(PIXI) {
   const Live2DModel = PIXI?.live2d?.Live2DModel;

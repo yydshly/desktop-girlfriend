@@ -797,9 +797,43 @@ function testReplyMotionDoesNotAutoRotateIdle() {
   assert.equal(shouldAutoRotateIdleMotion({ motion: "idle" }), true);
 }
 
+function testAmbientGestureStartsDuringIdle() {
+  const renderer = new Live2DRenderer(createCanvasProbe());
+  renderer.lastCommands = { motion: "idle", parameters: {} };
+
+  renderer.advanceAmbientGesture(7201);
+
+  assert.equal(renderer.pointerReaction.startedAt, 7201);
+  assert.equal(renderer.pointerReaction.x, 0.28);
+  assert.equal(renderer.pointerReaction.y, -0.24);
+}
+
+function testAmbientGestureDoesNotInterruptReply() {
+  const renderer = new Live2DRenderer(createCanvasProbe());
+  renderer.lastCommands = { motion: "reply", parameters: {} };
+
+  renderer.advanceAmbientGesture(7201);
+
+  assert.equal(renderer.pointerReaction.startedAt, 0);
+  assert.equal(renderer.nextAmbientGestureAt, 14401);
+}
+
+function testAmbientGestureDoesNotOverrideActiveTapReaction() {
+  const renderer = new Live2DRenderer(createCanvasProbe());
+  renderer.lastCommands = { motion: "idle", parameters: {} };
+  renderer.pointerReaction = { startedAt: 7000, x: 0.6, y: -0.4 };
+
+  renderer.advanceAmbientGesture(7201);
+
+  assert.deepEqual(renderer.pointerReaction, { startedAt: 7000, x: 0.6, y: -0.4 });
+}
+
 testIdleMotionAutoRotates();
 testIdleMotionAutoRotateUsesModelMotionCount();
 testReplyMotionDoesNotAutoRotateIdle();
+testAmbientGestureStartsDuringIdle();
+testAmbientGestureDoesNotInterruptReply();
+testAmbientGestureDoesNotOverrideActiveTapReaction();
 
 function testPointerSmoothingMovesTowardTarget() {
   const next = smoothPointer({ x: 0, y: 0 }, { x: 1, y: -1 }, 0.25);
