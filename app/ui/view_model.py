@@ -90,6 +90,8 @@ class DesktopViewModel:
         self.live2d_model_catalog_summary: str = (
             "Model: scanning local Live2D packages"
         )
+        self.live2d_model_options: tuple[tuple[str, str], ...] = ()
+        self.selected_live2d_model_id: str = ""
         # Settings panel state (Phase 2-E)
         self.settings_visible: bool = False
         self.settings_text: str = ""
@@ -573,6 +575,35 @@ class DesktopViewModel:
         self.live2d_model_catalog_summary = text.strip() or (
             "Model: no Live2D model status available"
         )
+
+    def set_live2d_model_options(
+        self,
+        options: tuple[tuple[str, str], ...],
+        *,
+        selected_model_id: str | None = None,
+    ) -> None:
+        """Set selectable Live2D model options as `(model_id, label)` pairs."""
+        self.live2d_model_options = tuple(
+            (model_id, label)
+            for model_id, label in options
+            if model_id.strip() and label.strip()
+        )
+        valid_ids = {model_id for model_id, _label in self.live2d_model_options}
+        if selected_model_id in valid_ids:
+            self.selected_live2d_model_id = selected_model_id or ""
+            return
+        if self.selected_live2d_model_id not in valid_ids:
+            self.selected_live2d_model_id = (
+                self.live2d_model_options[0][0] if self.live2d_model_options else ""
+            )
+
+    def select_live2d_model(self, model_id: str) -> bool:
+        """Select a discovered Live2D model by id."""
+        valid_ids = {option_id for option_id, _label in self.live2d_model_options}
+        if model_id not in valid_ids:
+            return False
+        self.selected_live2d_model_id = model_id
+        return True
 
     @property
     def effective_avatar_text(self) -> str:

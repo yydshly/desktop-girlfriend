@@ -197,6 +197,28 @@ class TestViewModelPresenceMethods:
         assert vm.compact_mode is True
         assert vm.product_status_visible is False
 
+    def test_live2d_model_options_track_selected_model(self) -> None:
+        """ViewModel stores selectable Live2D models and active model id."""
+        vm = DesktopViewModel()
+
+        vm.set_live2d_model_options(
+            (
+                ("sample/Hiyori", "Hiyori"),
+                ("custom/Xiaoyun", "Xiaoyun"),
+            ),
+            selected_model_id="custom/Xiaoyun",
+        )
+
+        assert vm.live2d_model_options == (
+            ("sample/Hiyori", "Hiyori"),
+            ("custom/Xiaoyun", "Xiaoyun"),
+        )
+        assert vm.selected_live2d_model_id == "custom/Xiaoyun"
+        assert vm.select_live2d_model("sample/Hiyori") is True
+        assert vm.selected_live2d_model_id == "sample/Hiyori"
+        assert vm.select_live2d_model("missing/model") is False
+        assert vm.selected_live2d_model_id == "sample/Hiyori"
+
 
 class TestWindowPresenceShell:
     """Tests for DesktopWindow presence shell features."""
@@ -319,6 +341,39 @@ class TestWindowPresenceShell:
         assert window._live2d_model_status_label.text() == (
             "Model: Hiyori · ready · motions 10 · textures 2"
         )
+
+    @staticmethod
+    def test_live2d_model_selector_lists_models_and_emits_selection(
+        qapp: QApplication,
+    ) -> None:
+        """Desktop window exposes discovered Live2D model packages for selection."""
+        calls: list[str] = []
+        vm = DesktopViewModel()
+        vm.set_live2d_model_options(
+            (
+                ("sample/Hiyori", "Hiyori"),
+                ("custom/Xiaoyun", "Xiaoyun"),
+            ),
+            selected_model_id="sample/Hiyori",
+        )
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_live2d_model_selected=lambda model_id: calls.append(model_id),
+        )
+        window.show()
+
+        assert window._live2d_model_selector.count() == 2
+        assert window._live2d_model_selector.itemText(0) == "Hiyori"
+        assert window._live2d_model_selector.itemData(1) == "custom/Xiaoyun"
+        assert window._live2d_model_selector.currentData() == "sample/Hiyori"
+
+        window._live2d_model_selector.setCurrentIndex(1)
+        qapp.processEvents()
+
+        assert calls == ["custom/Xiaoyun"]
+        assert vm.selected_live2d_model_id == "custom/Xiaoyun"
 
     @staticmethod
     def test_status_button_first_click_opens_panel(qapp: QApplication) -> None:

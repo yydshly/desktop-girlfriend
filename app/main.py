@@ -163,6 +163,12 @@ def main() -> None:
     live2d_model_packages = scan_live2d_model_catalog(live2d_model_root)
     live2d_model_summary = render_live2d_model_catalog_summary(live2d_model_packages)
     view_model.set_live2d_model_catalog_summary(live2d_model_summary)
+    view_model.set_live2d_model_options(
+        tuple(
+            (package.model_id, package.display_name)
+            for package in live2d_model_packages
+        )
+    )
     logger.info(
         "Live2D model catalog scanned root=%s packages=%d summary=%s",
         live2d_model_root,

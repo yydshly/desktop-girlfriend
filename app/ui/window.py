@@ -6,6 +6,7 @@ from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QTextCursor
 from PySide6.QtWidgets import (
     QApplication,
+    QComboBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -96,6 +97,7 @@ class DesktopWindow(QMainWindow):
         on_live2d_opacity_up_requested: Callable[[], None] | None = None,
         on_live2d_visibility_toggled: Callable[[], None] | None = None,
         on_live2d_position_reset_requested: Callable[[], None] | None = None,
+        on_live2d_model_selected: Callable[[str], None] | None = None,
         memory_management_enabled: bool = False,
     ) -> None:
         super().__init__()
@@ -118,6 +120,7 @@ class DesktopWindow(QMainWindow):
         self._on_live2d_opacity_up_requested = on_live2d_opacity_up_requested
         self._on_live2d_visibility_toggled = on_live2d_visibility_toggled
         self._on_live2d_position_reset_requested = on_live2d_position_reset_requested
+        self._on_live2d_model_selected = on_live2d_model_selected
         self._memory_management_enabled = memory_management_enabled
         self._drag_origin = None
         self._window_origin = None
@@ -251,6 +254,13 @@ class DesktopWindow(QMainWindow):
         self._live2d_model_status_label.setWordWrap(True)
         self._live2d_model_status_label.setStyleSheet(window_style.STATUS_LABEL_STYLE)
         layout.addWidget(self._live2d_model_status_label)
+        self._live2d_model_selector = QComboBox()
+        self._live2d_model_selector.setStyleSheet(window_style.SECONDARY_BUTTON_STYLE)
+        self._live2d_model_selector.currentIndexChanged.connect(
+            self._on_live2d_model_selected_from_combo
+        )
+        layout.addWidget(self._live2d_model_selector)
+        self._sync_live2d_model_selector()
 
         # Phase 3-B: Onboarding card — shown at first run
         self._onboarding_card = QWidget()
@@ -633,6 +643,29 @@ class DesktopWindow(QMainWindow):
         if self._on_live2d_position_reset_requested:
             self._on_live2d_position_reset_requested()
 
+    def _on_live2d_model_selected_from_combo(self, _index: int) -> None:
+        model_id = self._live2d_model_selector.currentData()
+        if not isinstance(model_id, str) or not model_id:
+            return
+        if not self._view_model.select_live2d_model(model_id):
+            return
+        if self._on_live2d_model_selected:
+            self._on_live2d_model_selected(model_id)
+
+    def _sync_live2d_model_selector(self) -> None:
+        selector = self._live2d_model_selector
+        selector.blockSignals(True)
+        selector.clear()
+        for model_id, label in self._view_model.live2d_model_options:
+            selector.addItem(label, model_id)
+        selected_id = self._view_model.selected_live2d_model_id
+        if selected_id:
+            selected_index = selector.findData(selected_id)
+            if selected_index >= 0:
+                selector.setCurrentIndex(selected_index)
+        selector.setVisible(bool(self._view_model.live2d_model_options))
+        selector.blockSignals(False)
+
     def eventFilter(self, watched, event) -> bool:  # noqa: N802
         """Allow dragging the main window from non-button header surfaces."""
 
@@ -752,6 +785,7 @@ class DesktopWindow(QMainWindow):
         self._live2d_model_status_label.setText(
             self._view_model.live2d_model_catalog_summary
         )
+        self._sync_live2d_model_selector()
         # Phase 2-D: Sync compact mode layout
         self._aux_button_row.setVisible(not self._view_model.compact_mode)
 
