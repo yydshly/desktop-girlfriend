@@ -78,6 +78,38 @@ function createRuntime() {
         }
       };
     },
+    interactionTuning: {
+      headTrackingMultiplier: 1,
+      eyeTrackingMultiplier: 1,
+      bodyTrackingMultiplier: 1,
+      pointerFollowXRatio: 0.0075,
+      pointerFollowYRatio: 0.005,
+      ambientGestureIntervalMs: 7200
+    },
+    getInteractionTuning() {
+      return this.interactionTuning;
+    },
+    applyInteractionTuning(tuning) {
+      this.interactionTuning = {
+        ...this.interactionTuning,
+        ...tuning
+      };
+      this.appliedInteractionTuning = tuning;
+    },
+    resetInteractionTuning() {
+      this.interactionTuning = {
+        headTrackingMultiplier: 1,
+        eyeTrackingMultiplier: 1,
+        bodyTrackingMultiplier: 1,
+        pointerFollowXRatio: 0.0075,
+        pointerFollowYRatio: 0.005,
+        ambientGestureIntervalMs: 7200
+      };
+      this.resetInteractionTuningCalls = (this.resetInteractionTuningCalls || 0) + 1;
+    },
+    applyState(state) {
+      this.appliedState = state;
+    },
     runModelExperiment() {
       this.modelExperimentCalls = (this.modelExperimentCalls || 0) + 1;
       return [
@@ -129,11 +161,82 @@ function createDebugElements() {
     "#motionBindingStatus": createElement(),
     "#runModelExperiment": createElement(),
     "#modelExperimentStatus": createElement(),
+    "#headTrackingMultiplier": createElement("1"),
+    "#headTrackingValue": createElement(),
+    "#eyeTrackingMultiplier": createElement("1"),
+    "#eyeTrackingValue": createElement(),
+    "#bodyTrackingMultiplier": createElement("1"),
+    "#bodyTrackingValue": createElement(),
+    "#pointerFollowXRatio": createElement("0.0075"),
+    "#pointerFollowXValue": createElement(),
+    "#pointerFollowYRatio": createElement("0.005"),
+    "#pointerFollowYValue": createElement(),
+    "#ambientGestureIntervalMs": createElement("7200"),
+    "#ambientGestureValue": createElement(),
+    "#resetInteractionTuning": createElement(),
+    "#probeInteractionTuning": createElement(),
+    "#interactionTuningStatus": createElement(),
     "#bridgeUrl": createElement("ws://127.0.0.1:8879"),
     "#connectBridge": createElement(),
     "#disconnectBridge": createElement(),
     "#bridgeStatus": createElement()
   };
+}
+
+function testShowcasePanelAppliesInteractionTuning() {
+  const elements = createDebugElements();
+  const runtime = createRuntime();
+
+  mountLive2DDebugPanel({
+    document: createDocument(elements),
+    window: { localStorage: { getItem: () => null, setItem: () => {} } },
+    runtime,
+    mode: "showcase"
+  });
+
+  elements["#headTrackingMultiplier"].value = "1.25";
+  elements["#headTrackingMultiplier"].listeners.input();
+
+  assert.equal(runtime.appliedInteractionTuning.headTrackingMultiplier, 1.25);
+  assert.equal(runtime.appliedInteractionTuning.eyeTrackingMultiplier, 1);
+  assert.equal(elements["#headTrackingValue"].textContent, "1.25");
+  assert.equal(elements["#interactionTuningStatus"].textContent, "Tuning applied.");
+}
+
+function testShowcasePanelResetsInteractionTuning() {
+  const elements = createDebugElements();
+  const runtime = createRuntime();
+  runtime.interactionTuning.headTrackingMultiplier = 1.4;
+
+  mountLive2DDebugPanel({
+    document: createDocument(elements),
+    window: { localStorage: { getItem: () => null, setItem: () => {} } },
+    runtime,
+    mode: "showcase"
+  });
+
+  elements["#resetInteractionTuning"].listeners.click();
+
+  assert.equal(runtime.resetInteractionTuningCalls, 1);
+  assert.equal(elements["#headTrackingValue"].textContent, "1.00");
+  assert.equal(elements["#interactionTuningStatus"].textContent, "Reset to profile defaults.");
+}
+
+function testShowcasePanelProbesInteractionTuning() {
+  const elements = createDebugElements();
+  const runtime = createRuntime();
+
+  mountLive2DDebugPanel({
+    document: createDocument(elements),
+    window: { localStorage: { getItem: () => null, setItem: () => {} } },
+    runtime,
+    mode: "showcase"
+  });
+
+  elements["#probeInteractionTuning"].listeners.click();
+
+  assert.equal(runtime.appliedState, "idle");
+  assert.equal(elements["#interactionTuningStatus"].textContent, "Idle probe triggered.");
 }
 
 function testShowcasePanelWiresRendererSelect() {
@@ -254,5 +357,8 @@ testShowcasePanelWiresRendererSelect();
 testShowcasePanelRendersAdapterCommands();
 testShowcasePanelRunsModelExperiment();
 testShowcasePanelRendersModelCandidateEvaluation();
+testShowcasePanelAppliesInteractionTuning();
+testShowcasePanelResetsInteractionTuning();
+testShowcasePanelProbesInteractionTuning();
 testDesktopPanelDoesNotWireDebugControls();
 console.log("debug-panel tests passed");

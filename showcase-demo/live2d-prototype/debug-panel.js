@@ -27,7 +27,10 @@ export function mountLive2DDebugPanel({
     onRendererStatus: () => renderRendererStatus(elements, runtime, window),
     onBridgeStatus: (status) => renderBridgeStatusPanel(elements, status),
     onModelPackageStatus: (packageInfo) => renderModelPackageStatus(elements, runtime, packageInfo),
-    onMotionBindingStatus: (message = "") => renderMotionBindingStatus(elements, runtime, message)
+    onMotionBindingStatus: (message = "") => {
+      renderMotionBindingStatus(elements, runtime, message);
+      renderInteractionTuning(elements, runtime);
+    }
   });
 
   elements.rendererSelect.addEventListener("change", () => {
@@ -75,6 +78,8 @@ export function mountLive2DDebugPanel({
     renderModelExperimentStatus(elements, timeline);
   });
 
+  wireInteractionTuningControls(elements, runtime);
+
   elements.connectBridge.addEventListener("click", () => {
     runtime.connectBridge(elements.bridgeUrl.value);
   });
@@ -85,6 +90,7 @@ export function mountLive2DDebugPanel({
 
   renderRendererStatus(elements, runtime, window);
   renderMotionBindingStatus(elements, runtime);
+  renderInteractionTuning(elements, runtime);
   return elements;
 }
 
@@ -113,11 +119,92 @@ function queryDebugElements(document) {
     motionBindingStatus: document.querySelector("#motionBindingStatus"),
     runModelExperiment: document.querySelector("#runModelExperiment"),
     modelExperimentStatus: document.querySelector("#modelExperimentStatus"),
+    headTrackingMultiplier: document.querySelector("#headTrackingMultiplier"),
+    headTrackingValue: document.querySelector("#headTrackingValue"),
+    eyeTrackingMultiplier: document.querySelector("#eyeTrackingMultiplier"),
+    eyeTrackingValue: document.querySelector("#eyeTrackingValue"),
+    bodyTrackingMultiplier: document.querySelector("#bodyTrackingMultiplier"),
+    bodyTrackingValue: document.querySelector("#bodyTrackingValue"),
+    pointerFollowXRatio: document.querySelector("#pointerFollowXRatio"),
+    pointerFollowXValue: document.querySelector("#pointerFollowXValue"),
+    pointerFollowYRatio: document.querySelector("#pointerFollowYRatio"),
+    pointerFollowYValue: document.querySelector("#pointerFollowYValue"),
+    ambientGestureIntervalMs: document.querySelector("#ambientGestureIntervalMs"),
+    ambientGestureValue: document.querySelector("#ambientGestureValue"),
+    resetInteractionTuning: document.querySelector("#resetInteractionTuning"),
+    probeInteractionTuning: document.querySelector("#probeInteractionTuning"),
+    interactionTuningStatus: document.querySelector("#interactionTuningStatus"),
     bridgeUrl: document.querySelector("#bridgeUrl"),
     connectBridge: document.querySelector("#connectBridge"),
     disconnectBridge: document.querySelector("#disconnectBridge"),
     bridgeStatus: document.querySelector("#bridgeStatus")
   };
+}
+
+const INTERACTION_TUNING_FIELDS = [
+  ["headTrackingMultiplier", "headTrackingValue", 1, 2],
+  ["eyeTrackingMultiplier", "eyeTrackingValue", 1, 2],
+  ["bodyTrackingMultiplier", "bodyTrackingValue", 1, 2],
+  ["pointerFollowXRatio", "pointerFollowXValue", 0.0075, 3],
+  ["pointerFollowYRatio", "pointerFollowYValue", 0.005, 3],
+  ["ambientGestureIntervalMs", "ambientGestureValue", 7200, 0]
+];
+
+function wireInteractionTuningControls(elements, runtime) {
+  if (!elements.headTrackingMultiplier || !runtime.applyInteractionTuning) {
+    return;
+  }
+
+  INTERACTION_TUNING_FIELDS.forEach(([inputKey]) => {
+    const input = elements[inputKey];
+    input?.addEventListener("input", () => {
+      const tuning = readInteractionTuning(elements);
+      runtime.applyInteractionTuning(tuning);
+      renderInteractionTuning(elements, runtime, "Tuning applied.");
+    });
+  });
+
+  elements.resetInteractionTuning?.addEventListener("click", () => {
+    runtime.resetInteractionTuning?.();
+    renderInteractionTuning(elements, runtime, "Reset to profile defaults.");
+  });
+
+  elements.probeInteractionTuning?.addEventListener("click", () => {
+    runtime.applyState("idle");
+    renderInteractionTuning(elements, runtime, "Idle probe triggered.");
+  });
+}
+
+function readInteractionTuning(elements) {
+  const tuning = {};
+  INTERACTION_TUNING_FIELDS.forEach(([inputKey]) => {
+    const input = elements[inputKey];
+    if (!input) {
+      return;
+    }
+    tuning[inputKey] = Number(input.value);
+  });
+  return tuning;
+}
+
+function renderInteractionTuning(elements, runtime, message = "") {
+  if (!elements.headTrackingMultiplier || !runtime.getInteractionTuning) {
+    return;
+  }
+
+  const tuning = runtime.getInteractionTuning();
+  INTERACTION_TUNING_FIELDS.forEach(([inputKey, outputKey, fallback, digits]) => {
+    const input = elements[inputKey];
+    const output = elements[outputKey];
+    const value = Number(tuning[inputKey] ?? fallback);
+    if (input) {
+      input.value = String(value);
+    }
+    if (output) {
+      output.textContent = digits > 0 ? value.toFixed(digits) : String(Math.round(value));
+    }
+  });
+  elements.interactionTuningStatus.textContent = message || "Profile tuning loaded.";
 }
 
 function renderRendererStatus(elements, runtime, window) {

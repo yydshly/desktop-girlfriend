@@ -101,6 +101,47 @@
         </section>
 
         <section class="panel-section">
+          <h2>Interaction Tuning</h2>
+          <div class="tuning-grid">
+            <label class="tuning-field">
+              <span>Head</span>
+              <input id="headTrackingMultiplier" type="range" min="0.4" max="1.6" step="0.05" value="1" />
+              <output id="headTrackingValue">1.00</output>
+            </label>
+            <label class="tuning-field">
+              <span>Eyes</span>
+              <input id="eyeTrackingMultiplier" type="range" min="0.4" max="1.8" step="0.05" value="1" />
+              <output id="eyeTrackingValue">1.00</output>
+            </label>
+            <label class="tuning-field">
+              <span>Body</span>
+              <input id="bodyTrackingMultiplier" type="range" min="0" max="1.4" step="0.05" value="1" />
+              <output id="bodyTrackingValue">1.00</output>
+            </label>
+            <label class="tuning-field">
+              <span>Move X</span>
+              <input id="pointerFollowXRatio" type="range" min="0" max="0.035" step="0.001" value="0.0075" />
+              <output id="pointerFollowXValue">0.008</output>
+            </label>
+            <label class="tuning-field">
+              <span>Move Y</span>
+              <input id="pointerFollowYRatio" type="range" min="0" max="0.025" step="0.001" value="0.005" />
+              <output id="pointerFollowYValue">0.005</output>
+            </label>
+            <label class="tuning-field">
+              <span>Idle ms</span>
+              <input id="ambientGestureIntervalMs" type="range" min="4000" max="20000" step="500" value="7200" />
+              <output id="ambientGestureValue">7200</output>
+            </label>
+          </div>
+          <div class="button-grid">
+            <button id="resetInteractionTuning">Reset tuning</button>
+            <button id="probeInteractionTuning">Probe idle</button>
+          </div>
+          <p id="interactionTuningStatus" class="model-status">Profile tuning loaded.</p>
+        </section>
+
+        <section class="panel-section">
           <h2>Motion Probe</h2>
           <div class="probe-grid">
             <button data-motion-group="Idle" data-motion-index="0">Idle 0</button>

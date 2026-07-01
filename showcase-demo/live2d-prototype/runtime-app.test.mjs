@@ -146,6 +146,55 @@ async function testStartRefreshesPackageStatusAfterProfileLoads() {
   assert.ok(packageStatuses.length >= 2);
 }
 
+async function testRuntimeAppliesAndResetsInteractionTuning() {
+  const { runtime } = createRuntimeHarness();
+  globalThis.window = {
+    location: {
+      href: "http://127.0.0.1:8786/live2d-prototype/"
+    }
+  };
+  globalThis.requestAnimationFrame = () => 0;
+  globalThis.cancelAnimationFrame = () => {};
+  globalThis.fetch = async (url) => {
+    const requestUrl = String(url);
+    if (requestUrl.endsWith("profile.json")) {
+      return {
+        ok: true,
+        async json() {
+          return {
+            displayName: "Candidate",
+            desktopPlacement: {
+              headTrackingMultiplier: 1.1,
+              eyeTrackingMultiplier: 1.2,
+              pointerFollowXRatio: 0.01
+            }
+          };
+        }
+      };
+    }
+    return {
+      ok: false,
+      status: 404,
+      statusText: "Not Found"
+    };
+  };
+
+  runtime.setRendererMode("placeholder");
+  runtime.start();
+  await flushAsyncWork();
+
+  assert.equal(runtime.getInteractionTuning().headTrackingMultiplier, 1.1);
+  runtime.applyInteractionTuning({ headTrackingMultiplier: 0.6 });
+  assert.equal(runtime.getInteractionTuning().headTrackingMultiplier, 0.6);
+  assert.equal(runtime.getInteractionTuning().eyeTrackingMultiplier, 1.2);
+
+  runtime.resetInteractionTuning();
+
+  assert.equal(runtime.getInteractionTuning().headTrackingMultiplier, 1.1);
+  assert.equal(runtime.getInteractionTuning().pointerFollowXRatio, 0.01);
+}
+
 testRuntimeRunsModelExperimentTimeline();
 await testStartRefreshesPackageStatusAfterProfileLoads();
+await testRuntimeAppliesAndResetsInteractionTuning();
 console.log("runtime-app tests passed");

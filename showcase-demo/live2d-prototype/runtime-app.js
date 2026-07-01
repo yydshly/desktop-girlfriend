@@ -30,6 +30,7 @@ export function createLive2DRuntime({
   let configuredModelUrl = resolveModelUrlFromRoute(routeParams, defaultModelUrl);
   let activeRendererMode = "live2d";
   let modelProfile = { displayName: "", motionBindings: {} };
+  let profileDesktopPlacement = {};
   let motionBindings = loadMotionBindingOverrides();
   let currentBridgeStatus = createBridgeStatus("ws://127.0.0.1:8879");
   let lastRendererStatus = {
@@ -121,6 +122,7 @@ export function createLive2DRuntime({
   function setModelUrl(url) {
     configuredModelUrl = url;
     modelProfile = { displayName: "", motionBindings: {} };
+    profileDesktopPlacement = {};
     motionBindings = loadMotionBindingOverrides();
     restartRenderer();
     loadProfileForCurrentModel();
@@ -233,8 +235,34 @@ export function createLive2DRuntime({
     };
   }
 
+  function getInteractionTuning() {
+    return { ...(modelProfile.desktopPlacement || {}) };
+  }
+
+  function applyInteractionTuning(tuning = {}) {
+    modelProfile = {
+      ...modelProfile,
+      desktopPlacement: {
+        ...(modelProfile.desktopPlacement || {}),
+        ...tuning
+      }
+    };
+    controller.renderer.setPlacementProfile?.(modelProfile.desktopPlacement || {});
+    return getInteractionTuning();
+  }
+
+  function resetInteractionTuning() {
+    modelProfile = {
+      ...modelProfile,
+      desktopPlacement: { ...profileDesktopPlacement }
+    };
+    controller.renderer.setPlacementProfile?.(modelProfile.desktopPlacement || {});
+    return getInteractionTuning();
+  }
+
   async function loadProfileForCurrentModel() {
     modelProfile = await loadModelProfile(configuredModelUrl);
+    profileDesktopPlacement = { ...(modelProfile.desktopPlacement || {}) };
     controller.renderer.setMotionBindings?.(getEffectiveMotionBindings());
     controller.renderer.setPlacementProfile?.(modelProfile.desktopPlacement || {});
     listeners.onMotionBindingStatus();
@@ -281,6 +309,9 @@ export function createLive2DRuntime({
     bindActiveMotion,
     applyMotionBindings,
     clearMotionBindings,
+    getInteractionTuning,
+    applyInteractionTuning,
+    resetInteractionTuning,
     connectBridge,
     disconnectBridge,
     handleBridgeMessage: (message) => controller.handleBridgeMessage(message),

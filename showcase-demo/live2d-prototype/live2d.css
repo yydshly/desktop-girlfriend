@@ -258,6 +258,32 @@ html[data-mode="desktop"] .speech-bubble {
   font-size: 12px;
 }
 
+.tuning-grid {
+  display: grid;
+  gap: 9px;
+}
+
+.tuning-field {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) 52px;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.tuning-field input[type="range"] {
+  width: 100%;
+  min-height: 24px;
+  padding: 0;
+}
+
+.tuning-field output {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
 button {
   min-height: 38px;
   border: 1px solid var(--line);
