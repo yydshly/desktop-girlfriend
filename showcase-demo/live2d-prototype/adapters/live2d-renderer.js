@@ -33,6 +33,9 @@ export class Live2DRenderer {
     this.returnToIdleAt = 0;
     this.lastMotionPlayedAt = -Infinity;
     this.pointerReaction = { startedAt: 0, x: 0, y: 0 };
+    this.hasPointerInput = false;
+    this.hoverDwellStartedAt = 0;
+    this.nextHoverReactionAt = 0;
     this.nextAmbientGestureAt = Infinity;
     this.ambientGestureIndex = 0;
   }
@@ -55,6 +58,7 @@ export class Live2DRenderer {
   }
 
   setPointer(x, y) {
+    this.hasPointerInput = true;
     this.targetPointer = { x, y };
     this.draw();
   }
@@ -65,6 +69,9 @@ export class Live2DRenderer {
       x: clampUnit(Number(x ?? 0)),
       y: clampUnit(Number(y ?? 0))
     };
+    this.hasPointerInput = true;
+    this.hoverDwellStartedAt = 0;
+    this.nextHoverReactionAt = now + HOVER_REACTION_COOLDOWN_MS;
     this.targetPointer = { x: this.pointerReaction.x, y: this.pointerReaction.y };
     this.applyLive2DPlacement();
     this.applyLive2DCommands();
@@ -312,6 +319,7 @@ export class Live2DRenderer {
     const frame = () => {
       const now = performance.now();
       this.updateSmoothedPointer();
+      this.advanceHoverDwell(now);
       this.advanceAmbientGesture(now);
       this.applyLive2DPlacement();
       this.applyLive2DCommands();
@@ -327,6 +335,44 @@ export class Live2DRenderer {
     this.smoothedPointer = smoothPointer(this.smoothedPointer, this.targetPointer, 0.18);
     this.pointer = this.smoothedPointer;
     this.lastCommands = mapStateToLive2DCommands(this.currentState, this.pointer, this.placementProfile);
+  }
+
+  advanceHoverDwell(now) {
+    if (!this.hasPointerInput || !shouldAutoRotateIdleMotion(this.lastCommands)) {
+      this.hoverDwellStartedAt = 0;
+      return;
+    }
+
+    if (now < this.nextHoverReactionAt) {
+      return;
+    }
+
+    if (!isPointerNearAvatarCenter(this.pointer)) {
+      this.hoverDwellStartedAt = 0;
+      return;
+    }
+
+    if (calculatePointerReactionEffect(this.pointerReaction, now).active) {
+      return;
+    }
+
+    if (!this.hoverDwellStartedAt) {
+      this.hoverDwellStartedAt = now;
+      return;
+    }
+
+    if (now - this.hoverDwellStartedAt < HOVER_DWELL_MS) {
+      return;
+    }
+
+    this.pointerReaction = {
+      startedAt: now,
+      durationMs: HOVER_REACTION_DURATION_MS,
+      x: clampUnit(this.pointer.x * 0.45),
+      y: clampUnit(this.pointer.y * 0.35 - 0.12)
+    };
+    this.hoverDwellStartedAt = 0;
+    this.nextHoverReactionAt = now + HOVER_REACTION_COOLDOWN_MS;
   }
 
   advanceIdleMotion(now) {
@@ -484,6 +530,10 @@ const IDLE_MOTION_INTERVAL_MS = 6500;
 const MOTION_COOLDOWN_MS = 650;
 const EXPRESSIVE_RETURN_TO_IDLE_MS = 4200;
 const AMBIENT_GESTURE_INTERVAL_MS = 7200;
+const HOVER_DWELL_MS = 1400;
+const HOVER_REACTION_COOLDOWN_MS = 5200;
+const HOVER_REACTION_DURATION_MS = 640;
+const HOVER_REACTION_RADIUS = 0.58;
 const AMBIENT_GESTURES = [
   { x: 0.28, y: -0.24, durationMs: 860 },
   { x: -0.22, y: 0.08, durationMs: 920 },
@@ -501,6 +551,15 @@ function getLive2DModelFactory(PIXI) {
 function getAmbientGestureIntervalMs(placementProfile = {}) {
   const interval = Number(placementProfile.ambientGestureIntervalMs ?? AMBIENT_GESTURE_INTERVAL_MS);
   return Number.isFinite(interval) && interval > 0 ? interval : AMBIENT_GESTURE_INTERVAL_MS;
+}
+
+function isPointerNearAvatarCenter(pointer = { x: 0, y: 0 }) {
+  const x = Number(pointer.x ?? 0);
+  const y = Number(pointer.y ?? 0);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+    return false;
+  }
+  return Math.hypot(x, y) <= HOVER_REACTION_RADIUS;
 }
 
 function getUnscaledLive2DModelSize(model) {

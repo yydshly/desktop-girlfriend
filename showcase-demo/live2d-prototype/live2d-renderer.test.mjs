@@ -831,12 +831,83 @@ function testAmbientGestureDoesNotOverrideActiveTapReaction() {
   assert.deepEqual(renderer.pointerReaction, { startedAt: 7000, x: 0.6, y: -0.4 });
 }
 
+function testHoverDwellReactionStartsNearAvatarCenter() {
+  const renderer = new Live2DRenderer(createCanvasProbe());
+  renderer.lastCommands = { motion: "idle", parameters: {} };
+  renderer.pointer = { x: 0.22, y: -0.1 };
+  renderer.hasPointerInput = true;
+
+  renderer.advanceHoverDwell(1000);
+  renderer.advanceHoverDwell(2401);
+
+  assert.equal(renderer.pointerReaction.startedAt, 2401);
+  assert.equal(renderer.pointerReaction.durationMs, 640);
+  assert.equal(renderer.nextHoverReactionAt, 7601);
+  assert.ok(renderer.pointerReaction.x > 0);
+  assert.ok(renderer.pointerReaction.y < 0);
+}
+
+function testHoverDwellIgnoresLargePointerDistance() {
+  const renderer = new Live2DRenderer(createCanvasProbe());
+  renderer.lastCommands = { motion: "idle", parameters: {} };
+  renderer.pointer = { x: 0.9, y: 0 };
+  renderer.hasPointerInput = true;
+
+  renderer.advanceHoverDwell(1000);
+  renderer.advanceHoverDwell(3000);
+
+  assert.equal(renderer.pointerReaction.startedAt, 0);
+  assert.equal(renderer.hoverDwellStartedAt, 0);
+}
+
+function testHoverDwellDoesNotStartBeforePointerInput() {
+  const renderer = new Live2DRenderer(createCanvasProbe());
+  renderer.lastCommands = { motion: "idle", parameters: {} };
+  renderer.pointer = { x: 0.1, y: -0.1 };
+
+  renderer.advanceHoverDwell(1000);
+  renderer.advanceHoverDwell(3000);
+
+  assert.equal(renderer.pointerReaction.startedAt, 0);
+}
+
+function testHoverDwellDoesNotInterruptReply() {
+  const renderer = new Live2DRenderer(createCanvasProbe());
+  renderer.lastCommands = { motion: "reply", parameters: {} };
+  renderer.pointer = { x: 0.1, y: -0.1 };
+  renderer.hasPointerInput = true;
+
+  renderer.advanceHoverDwell(1000);
+  renderer.advanceHoverDwell(3000);
+
+  assert.equal(renderer.pointerReaction.startedAt, 0);
+  assert.equal(renderer.hoverDwellStartedAt, 0);
+}
+
+function testHoverDwellDoesNotOverrideActiveTapReaction() {
+  const renderer = new Live2DRenderer(createCanvasProbe());
+  renderer.lastCommands = { motion: "idle", parameters: {} };
+  renderer.pointer = { x: 0.1, y: -0.1 };
+  renderer.hasPointerInput = true;
+  renderer.pointerReaction = { startedAt: 1800, durationMs: 1200, x: 0.6, y: -0.4 };
+
+  renderer.advanceHoverDwell(1000);
+  renderer.advanceHoverDwell(2500);
+
+  assert.deepEqual(renderer.pointerReaction, { startedAt: 1800, durationMs: 1200, x: 0.6, y: -0.4 });
+}
+
 testIdleMotionAutoRotates();
 testIdleMotionAutoRotateUsesModelMotionCount();
 testReplyMotionDoesNotAutoRotateIdle();
 testAmbientGestureStartsDuringIdle();
 testAmbientGestureDoesNotInterruptReply();
 testAmbientGestureDoesNotOverrideActiveTapReaction();
+testHoverDwellReactionStartsNearAvatarCenter();
+testHoverDwellIgnoresLargePointerDistance();
+testHoverDwellDoesNotStartBeforePointerInput();
+testHoverDwellDoesNotInterruptReply();
+testHoverDwellDoesNotOverrideActiveTapReaction();
 
 function testPointerSmoothingMovesTowardTarget() {
   const next = smoothPointer({ x: 0, y: 0 }, { x: 1, y: -1 }, 0.25);
