@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "displayName": "Candidate Model",
+  "displayName": "XiaoyunCustomModel",
   "desktopPlacement": {
     "scaleMultiplier": 1,
     "xOffsetRatio": 0,
@@ -14,7 +14,9 @@
       "speak": { "group": "TapBody", "index": 0 },
       "happy": { "group": "TapBody", "index": 0 },
       "comfort": { "group": "Idle", "index": 3 },
-      "greet": { "group": "TapBody", "index": 0 }
+      "greet": { "group": "TapBody", "index": 0 },
+      "sad": { "group": "Idle", "index": 2 },
+      "reply": { "group": "TapBody", "index": 0 }
     },
     "expressions": {
       "neutral": "",

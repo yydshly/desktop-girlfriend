@@ -15,6 +15,8 @@ from app.ui.live2d_model_catalog import (
     scan_live2d_model_catalog,
 )
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
 
 def _write_model(
     path: Path,
@@ -70,6 +72,42 @@ def _motion_files(motions: dict) -> list[str]:
             if isinstance(entry, dict) and isinstance(entry.get("File"), str):
                 files.append(entry["File"])
     return files
+
+
+def test_custom_profile_template_declares_xiaoyun_semantics() -> None:
+    """The custom model entry template keeps the Xiaoyun semantic contract visible."""
+    template_path = (
+        REPO_ROOT
+        / "showcase-demo"
+        / "live2d-prototype"
+        / "assets"
+        / "models"
+        / "custom"
+        / "profile.template.json"
+    )
+
+    template = json.loads(template_path.read_text(encoding="utf-8"))
+
+    assert template["displayName"] == "XiaoyunCustomModel"
+    assert set(template["mappings"]["actions"]) >= {
+        "idle",
+        "listen",
+        "think",
+        "speak",
+        "happy",
+        "comfort",
+        "greet",
+        "sad",
+        "reply",
+    }
+    assert set(template["mappings"]["expressions"]) >= {
+        "neutral",
+        "happy",
+        "thinking",
+        "sad",
+        "soft",
+        "engaged",
+    }
 
 
 def test_inspect_live2d_model_package_reports_ready_package(tmp_path: Path) -> None:

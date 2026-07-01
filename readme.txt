@@ -236,34 +236,35 @@ LIVE2D_DESKTOP_AUTO_LAUNCH=true
 
 推荐后续按这个顺序继续：
 
-1. 建立 Model Gallery / 模型实验页
-   - 固定 emotion timeline：idle -> happy -> think -> speak -> idle。
-   - 同一套状态序列对比多个模型。
-   - 显示 adapter 命令、active motion、expression、FPS、模型能力。
+1. 稳定当前模型选择入口
+   - 主窗口保留一个模型选择入口。
+   - 选中模型会保存到 `.tmp/live2d-model-selection.json`。
+   - 下次启动主窗口和人物窗口会继续使用上次选择的模型。
 
-2. 完善 profile.json 作为角色契约
+2. 准备自定义“小云”模型入口
+   - 目标模型位置是 `showcase-demo/live2d-prototype/assets/models/custom/Xiaoyun/`。
+   - 目标入口文件是 `custom/Xiaoyun/Xiaoyun.model3.json`。
+   - 从 `custom/profile.template.json` 复制出 `custom/Xiaoyun/profile.json`。
+   - 后期专门刻画小云模型后，放进这个目录并在主窗口选择一次即可。
+
+3. 完善 profile.json 作为角色契约
    - 每个模型都必须声明 actions / expressions / placement。
    - 后续增加参数别名和参数范围。
    - profile 只做映射，不写业务逻辑。
 
-3. 筛选更适合桌面伴侣的 Live2D 模型
+4. 筛选或定制更适合桌面伴侣的 Live2D 模型
    - Hiyori 作为 baseline。
-   - 增加一个表现更丰富的商业/示例模型做对照。
+   - Natori 作为当前更适合验证表情和动态的示例候选。
    - 重点看 idle 舒适度、微表情、长期观看疲劳、说话口型。
    - 模型目标规格见 `docs/XIAOYUN_CHARACTER_MODEL_SPEC.md`。
 
-4. 优化桌面人物窗口体验
+5. 优化桌面人物窗口体验
    - 拖动稳定。
    - 位置持久化。
    - 透明背景和点击穿透策略。
    - 主窗口只负责控制，人物窗口负责呈现。
 
-5. 接入更真实的驱动
+6. 接入更真实的驱动
    - TTS 音量驱动 mouth。
    - 对话语义驱动 emotion intensity。
    - 主动陪伴事件驱动 idle / greet / comfort。
-
-6. 准备自定义“小云”模型
-   - 当前 Hiyori 只是技术验证样例。
-   - 最终效果取决于一个符合“小云”设定、适合桌面长期陪伴的 Live2D 模型。
-   - 自定义模型需要从 Character Contract 反推动作和表情需求。
