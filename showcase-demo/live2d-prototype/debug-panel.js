@@ -135,6 +135,9 @@ function renderRendererStatus(elements, runtime, window) {
       status.commandDiagnostics
         ? `command: ${formatCommandDiagnostics(status.commandDiagnostics)}.`
         : "",
+      status.modelAdapterCommands
+        ? `adapter: ${formatAdapterCommands(status.modelAdapterCommands)}.`
+        : "",
       status.activeMotion?.group
         ? `active motion: ${status.activeMotion.group}[${status.activeMotion.index}].`
         : "",
@@ -193,4 +196,17 @@ function formatCommandDiagnostics(diagnostics) {
     ? `${diagnostics.requestedExpression} ${diagnostics.expressionSupport}`
     : "no expression";
   return `${motion}; expression ${expression}`;
+}
+
+function formatAdapterCommands(commands) {
+  const motion = commands.motion?.group
+    ? `${commands.motion.action || "action"} -> ${commands.motion.group}[${commands.motion.index}]`
+    : "motion none";
+  const expression = commands.expression?.name
+    ? `${commands.expression.semantic || "expression"} -> ${commands.expression.name}`
+    : "expression none";
+  const parameters = commands.parameters
+    ? `mouth ${commands.parameters.mouth}; intensity ${commands.parameters.intensity}; gaze ${commands.parameters.gaze}`
+    : "parameters none";
+  return `${motion}; ${expression}; ${parameters}`;
 }

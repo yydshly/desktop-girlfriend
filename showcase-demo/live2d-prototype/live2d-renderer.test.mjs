@@ -341,6 +341,37 @@ function testStatusReportsCommandDiagnostics() {
   });
 }
 
+function testStatusReportsModelAdapterCommands() {
+  const statuses = [];
+  const renderer = new Live2DRenderer(createCanvasProbe(), {
+    onStatusChange: (status) => statuses.push(status)
+  });
+  renderer.live2dModel = {
+    expression() {},
+    motion() {},
+    internalModel: {
+      coreModel: {
+        setParameterValueById() {}
+      }
+    }
+  };
+
+  renderer.applyState({
+    emotion: "happy",
+    modelCommands: {
+      motion: { group: "TapBody", index: 0, action: "happy" },
+      expression: { name: "smile", semantic: "engaged" },
+      parameters: { mouth: 0.64, intensity: 0.7, gaze: "cursor" }
+    }
+  });
+
+  assert.deepEqual(statuses.at(-1).modelAdapterCommands, {
+    motion: { group: "TapBody", index: 0, action: "happy" },
+    expression: { name: "smile", semantic: "engaged" },
+    parameters: { gaze: "cursor", mouth: 0.64, intensity: 0.7 }
+  });
+}
+
 function testStatusReportsUnsupportedExpressionDiagnostic() {
   const statuses = [];
   const renderer = new Live2DRenderer(createCanvasProbe(), {
@@ -482,6 +513,7 @@ testStateSkipsUnavailableLive2DExpression();
 testStateDoesNotRepeatSameLive2DExpression();
 testStatusReportsModelCapabilities();
 testStatusReportsCommandDiagnostics();
+testStatusReportsModelAdapterCommands();
 testStatusReportsUnsupportedExpressionDiagnostic();
 testMotionProbePlaysRequestedModelMotion();
 

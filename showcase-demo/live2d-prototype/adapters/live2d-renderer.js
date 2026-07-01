@@ -401,6 +401,7 @@ export class Live2DRenderer {
       activeExpression: this.activeExpression,
       modelCapabilities: getModelCapabilities(this.model),
       commandDiagnostics: getCommandDiagnostics(this.lastCommands, this.model, this.motionBindings),
+      modelAdapterCommands: getModelAdapterCommandDiagnostics(this.currentState),
       motionBindings: this.motionBindings
     });
   }
@@ -605,6 +606,53 @@ export function getCommandDiagnostics(command = {}, model = null, motionBindings
     resolvedMotion: mapCommandToModelMotion(command, model?.motionGroupCounts, motionBindings),
     resolvedExpression,
     expressionSupport: getExpressionSupport(requestedExpression, resolvedExpression, model)
+  };
+}
+
+function getModelAdapterCommandDiagnostics(state = {}) {
+  const commands = state.modelCommands;
+  if (!commands) {
+    return null;
+  }
+
+  return {
+    motion: formatAdapterMotionDiagnostic(commands.motion),
+    expression: formatAdapterExpressionDiagnostic(commands.expression),
+    parameters: formatAdapterParameterDiagnostic(commands.parameters)
+  };
+}
+
+function formatAdapterMotionDiagnostic(motion = null) {
+  if (!motion?.group) {
+    return null;
+  }
+  return {
+    group: String(motion.group),
+    index: Math.max(0, Math.floor(Number(motion.index ?? 0))),
+    action: String(motion.action || "")
+  };
+}
+
+function formatAdapterExpressionDiagnostic(expression = null) {
+  if (!expression) {
+    return null;
+  }
+  return {
+    name: typeof expression.name === "string" ? expression.name : "",
+    semantic: typeof expression.semantic === "string" ? expression.semantic : ""
+  };
+}
+
+function formatAdapterParameterDiagnostic(parameters = null) {
+  if (!parameters) {
+    return null;
+  }
+  return {
+    gaze: typeof parameters.gaze === "string" && parameters.gaze.trim()
+      ? parameters.gaze.trim()
+      : "cursor",
+    mouth: readUnitParameter(parameters.mouth) ?? 0,
+    intensity: readUnitParameter(parameters.intensity) ?? 0
   };
 }
 

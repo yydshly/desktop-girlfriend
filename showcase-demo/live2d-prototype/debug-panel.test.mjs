@@ -60,36 +60,42 @@ function createRuntime() {
   };
 }
 
+function createDebugElements() {
+  return {
+    "#rendererSelect": createElement("live2d"),
+    "#modelUrl": createElement(),
+    "#modelStatus": createElement(),
+    "#modelPackageStatus": createElement(),
+    "#modelTexturePreview": createElement(),
+    "#sdkStatus": createElement(),
+    "#rendererMode": createElement(),
+    "#summaryRenderer": createElement(),
+    "#summaryModel": createElement(),
+    "#summaryMotion": createElement(),
+    "#summaryExpression": createElement(),
+    "#summaryCapabilities": createElement(),
+    "#summarySdk": createElement(),
+    "#setModelUrl": createElement(),
+    "#motionBindingState": createElement(),
+    "#bindActiveMotion": createElement(),
+    "#applyMotionBindings": createElement(),
+    "#clearMotionBindings": createElement(),
+    "#motionBindingEditor": createElement(),
+    "#motionBindingStatus": createElement(),
+    "#bridgeUrl": createElement("ws://127.0.0.1:8879"),
+    "#connectBridge": createElement(),
+    "#disconnectBridge": createElement(),
+    "#bridgeStatus": createElement()
+  };
+}
+
 function testShowcasePanelWiresRendererSelect() {
   const rendererSelect = createElement("live2d");
+  const elements = createDebugElements();
+  elements["#rendererSelect"] = rendererSelect;
   const runtime = createRuntime();
   mountLive2DDebugPanel({
-    document: createDocument({
-      "#rendererSelect": rendererSelect,
-      "#modelUrl": createElement(),
-      "#modelStatus": createElement(),
-      "#modelPackageStatus": createElement(),
-      "#modelTexturePreview": createElement(),
-      "#sdkStatus": createElement(),
-      "#rendererMode": createElement(),
-      "#summaryRenderer": createElement(),
-      "#summaryModel": createElement(),
-      "#summaryMotion": createElement(),
-      "#summaryExpression": createElement(),
-      "#summaryCapabilities": createElement(),
-      "#summarySdk": createElement(),
-      "#setModelUrl": createElement(),
-      "#motionBindingState": createElement(),
-      "#bindActiveMotion": createElement(),
-      "#applyMotionBindings": createElement(),
-      "#clearMotionBindings": createElement(),
-      "#motionBindingEditor": createElement(),
-      "#motionBindingStatus": createElement(),
-      "#bridgeUrl": createElement("ws://127.0.0.1:8879"),
-      "#connectBridge": createElement(),
-      "#disconnectBridge": createElement(),
-      "#bridgeStatus": createElement()
-    }),
+    document: createDocument(elements),
     window: { localStorage: { getItem: () => null, setItem: () => {} } },
     runtime,
     mode: "showcase"
@@ -99,6 +105,34 @@ function testShowcasePanelWiresRendererSelect() {
   rendererSelect.listeners.change();
 
   assert.deepEqual(runtime.setRendererModeCalls, ["placeholder"]);
+}
+
+function testShowcasePanelRendersAdapterCommands() {
+  const elements = createDebugElements();
+  const runtime = createRuntime();
+  runtime.getLastRendererStatus = () => ({
+    loadState: "live2d-ready",
+    hasLive2DModel: true,
+    activeMotion: { group: "TapBody", index: 0 },
+    activeExpression: "smile",
+    modelCapabilities: { motionGroupCounts: { TapBody: 1 }, expressionNames: ["smile"] },
+    modelAdapterCommands: {
+      motion: { group: "TapBody", index: 0, action: "happy" },
+      expression: { name: "smile", semantic: "engaged" },
+      parameters: { mouth: 0.64, intensity: 0.7, gaze: "cursor" }
+    }
+  });
+
+  mountLive2DDebugPanel({
+    document: createDocument(elements),
+    window: { localStorage: { getItem: () => null, setItem: () => {} } },
+    runtime,
+    mode: "showcase"
+  });
+
+  assert.match(elements["#modelStatus"].textContent, /adapter: happy -> TapBody\[0\]/);
+  assert.match(elements["#modelStatus"].textContent, /engaged -> smile/);
+  assert.match(elements["#modelStatus"].textContent, /mouth 0.64; intensity 0.7; gaze cursor/);
 }
 
 function testDesktopPanelDoesNotWireDebugControls() {
@@ -116,5 +150,6 @@ function testDesktopPanelDoesNotWireDebugControls() {
 }
 
 testShowcasePanelWiresRendererSelect();
+testShowcasePanelRendersAdapterCommands();
 testDesktopPanelDoesNotWireDebugControls();
 console.log("debug-panel tests passed");
