@@ -10,6 +10,7 @@ from app.ui.live2d_desktop_window import (
     calculate_dragged_position,
     load_live2d_window_position,
     probe_live2d_desktop_dependencies,
+    reset_live2d_window_position,
     save_live2d_window_position,
 )
 
@@ -81,6 +82,19 @@ def test_window_position_round_trips(tmp_path) -> None:
     assert load_live2d_window_position(path) == Live2DDesktopWindowPosition(
         x=120,
         y=240,
+    )
+
+
+def test_reset_window_position_writes_default_position(tmp_path) -> None:
+    """Resetting the desktop companion position persists a predictable default."""
+    path = tmp_path / "window.json"
+    save_live2d_window_position(path, Live2DDesktopWindowPosition(x=120, y=240))
+
+    reset_live2d_window_position(path)
+
+    assert load_live2d_window_position(path) == Live2DDesktopWindowPosition(
+        x=80,
+        y=80,
     )
 
 

@@ -69,7 +69,10 @@ from app.ui.close_behavior import decide_close_behavior
 from app.ui.live2d_bridge import Live2DBridgeEventDispatcher
 from app.ui.live2d_bridge_server import Live2DBridgeServer
 from app.ui.live2d_desktop_process import Live2DDesktopProcess
-from app.ui.live2d_desktop_window import default_live2d_position_path
+from app.ui.live2d_desktop_window import (
+    default_live2d_position_path,
+    reset_live2d_window_position,
+)
 from app.ui.live2d_model_catalog import (
     build_live2d_model_options,
     render_live2d_model_catalog_details,
@@ -454,8 +457,7 @@ def main() -> None:
 
     def _on_live2d_position_reset_requested() -> None:
         position_path = default_live2d_position_path()
-        if position_path.exists():
-            position_path.unlink()
+        reset_live2d_window_position(position_path)
         logger.info(
             "Live2D desktop control requested %s position_path=%s",
             build_live2d_control_log_context(

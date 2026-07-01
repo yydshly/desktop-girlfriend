@@ -73,6 +73,9 @@ class Live2DDesktopWindowPosition:
     y: int
 
 
+DEFAULT_LIVE2D_WINDOW_POSITION = Live2DDesktopWindowPosition(x=80, y=80)
+
+
 @dataclass(frozen=True)
 class Live2DDesktopContextMenuAction:
     """Right-click action exposed by the Live2D desktop companion window."""
@@ -115,6 +118,16 @@ def save_live2d_window_position(
         json.dumps({"x": position.x, "y": position.y}, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+
+
+def reset_live2d_window_position(
+    path: Path,
+    default_position: Live2DDesktopWindowPosition = DEFAULT_LIVE2D_WINDOW_POSITION,
+) -> Live2DDesktopWindowPosition:
+    """Reset the persisted Live2D desktop window position to a known default."""
+
+    save_live2d_window_position(path, default_position)
+    return default_position
 
 
 def build_live2d_context_menu_actions(
@@ -275,11 +288,8 @@ def run_live2d_desktop_window(spec: Live2DDesktopShellSpec) -> int:
 
         def _apply_context_menu_action(self, key: str) -> None:
             if key == "reset_position":
-                try:
-                    position_path.unlink(missing_ok=True)
-                except OSError:
-                    pass
-                self.move(80, 80)
+                position = reset_live2d_window_position(position_path)
+                self.move(position.x, position.y)
                 return
             if key == "opacity_down":
                 self.setWindowOpacity(max(0.45, round(self.windowOpacity() - 0.1, 2)))
