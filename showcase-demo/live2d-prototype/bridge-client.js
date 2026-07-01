@@ -10,6 +10,7 @@ export function createBridgeClient({
   let reconnectTimer = null;
   let reconnectEnabled = false;
   let connectionId = 0;
+  let isOpen = false;
 
   function connect(url, { reconnect = false } = {}) {
     reconnectEnabled = reconnect;
@@ -22,6 +23,7 @@ export function createBridgeClient({
     }
     socket = new WebSocketClass(url);
     socket.addEventListener("open", () => {
+      isOpen = true;
       onEvent({ kind: "open" });
     });
     socket.addEventListener("message", (event) => {
@@ -33,6 +35,7 @@ export function createBridgeClient({
       onEvent({ kind: "error", error: "WebSocket error" });
     });
     socket.addEventListener("close", () => {
+      isOpen = false;
       onEvent({ kind: "close" });
       if (nextConnectionId !== connectionId) {
         return;
@@ -51,9 +54,26 @@ export function createBridgeClient({
   function disconnect() {
     reconnectEnabled = false;
     clearReconnectTimer();
+    isOpen = false;
     if (socket) {
       socket.close();
     }
+  }
+
+  function sendStatus(type, payload = {}) {
+    if (!socket || !isOpen || typeof socket.send !== "function") {
+      return false;
+    }
+    const message = {
+      type,
+      timestamp: new Date().toISOString(),
+      modelUrl: typeof payload.modelUrl === "string" ? payload.modelUrl : "",
+      modelId: typeof payload.modelId === "string" ? payload.modelId : "",
+      details: payload.details && typeof payload.details === "object" ? payload.details : {}
+    };
+    socket.send(JSON.stringify(message));
+    onEvent({ kind: "status-sent", message });
+    return true;
   }
 
   function clearReconnectTimer() {
@@ -65,6 +85,7 @@ export function createBridgeClient({
 
   return {
     connect,
-    disconnect
+    disconnect,
+    sendStatus
   };
 }

@@ -171,6 +171,17 @@ def main() -> None:
 
     # Initialize UI components
     view_model = DesktopViewModel()
+
+    def _on_live2d_runtime_status(status: dict[str, object]) -> None:
+        logger.info("Live2D runtime status updated type=%s", status.get("type"))
+        view_model.set_live2d_runtime_status(status)
+        try:
+            QTimer.singleShot(0, window.update_from_view_model)
+        except NameError:
+            pass
+
+    live2d_bridge_server.set_runtime_status_callback(_on_live2d_runtime_status)
+
     live2d_model_root = (
         Path(__file__).resolve().parents[1]
         / "showcase-demo"

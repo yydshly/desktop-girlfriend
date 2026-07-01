@@ -22,6 +22,11 @@ class FakeWebSocket {
   close() {
     this.closeCount += 1;
   }
+
+  send(data) {
+    this.sent = this.sent || [];
+    this.sent.push(data);
+  }
 }
 
 function createFakeTimers() {
@@ -109,7 +114,45 @@ function testBridgeClientReconnectsAfterUnexpectedClose() {
   assert.equal(FakeWebSocket.instances[1].url, "ws://127.0.0.1:8879");
 }
 
+function testBridgeClientSendsRuntimeStatusEvent() {
+  resetFakeWebSocket();
+  const client = createBridgeClient({
+    WebSocketClass: FakeWebSocket,
+    onEvent: () => {},
+    onMessage: () => {}
+  });
+
+  client.connect("ws://127.0.0.1:8879");
+  const socket = FakeWebSocket.instances[0];
+  socket.emit("open");
+  const sent = client.sendStatus("live2d.runtime_ready", {
+    modelUrl: "./model.model3.json"
+  });
+
+  assert.equal(sent, true);
+  const message = JSON.parse(socket.sent[0]);
+  assert.equal(message.type, "live2d.runtime_ready");
+  assert.equal(message.modelUrl, "./model.model3.json");
+  assert.equal(typeof message.timestamp, "string");
+  assert.deepEqual(message.details, {});
+}
+
+function testBridgeClientDoesNotSendStatusBeforeOpen() {
+  resetFakeWebSocket();
+  const client = createBridgeClient({
+    WebSocketClass: FakeWebSocket,
+    onEvent: () => {},
+    onMessage: () => {}
+  });
+
+  client.connect("ws://127.0.0.1:8879");
+
+  assert.equal(client.sendStatus("live2d.runtime_ready"), false);
+}
+
 testBridgeClientForwardsLifecycleAndMessages();
 testBridgeClientManualDisconnectDoesNotReconnect();
 testBridgeClientReconnectsAfterUnexpectedClose();
+testBridgeClientSendsRuntimeStatusEvent();
+testBridgeClientDoesNotSendStatusBeforeOpen();
 console.log("bridge-client tests passed");

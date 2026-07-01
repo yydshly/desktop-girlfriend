@@ -10,6 +10,7 @@ import socket
 import socketserver
 import threading
 from collections.abc import Mapping
+from collections.abc import Callable
 from typing import Any
 
 _WEBSOCKET_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
@@ -35,14 +36,55 @@ def encode_websocket_text_frame(text: str) -> bytes:
     return bytes([0x81, 127]) + length.to_bytes(8, "big") + payload
 
 
+def decode_websocket_text_frame(data: bytes) -> str:
+    """Decode a client-to-server WebSocket text frame."""
+
+    if len(data) < 2:
+        return ""
+    first, second = data[0], data[1]
+    opcode = first & 0x0F
+    if opcode != 0x01:
+        return ""
+    masked = bool(second & 0x80)
+    length = second & 0x7F
+    offset = 2
+    if length == 126:
+        if len(data) < offset + 2:
+            return ""
+        length = int.from_bytes(data[offset : offset + 2], "big")
+        offset += 2
+    elif length == 127:
+        if len(data) < offset + 8:
+            return ""
+        length = int.from_bytes(data[offset : offset + 8], "big")
+        offset += 8
+    if masked:
+        if len(data) < offset + 4:
+            return ""
+        mask = data[offset : offset + 4]
+        offset += 4
+        payload = data[offset : offset + length]
+        return bytes(byte ^ mask[index % 4] for index, byte in enumerate(payload)).decode(
+            "utf-8",
+            errors="replace",
+        )
+    return data[offset : offset + length].decode("utf-8", errors="replace")
+
+
 class _Live2DBridgeTCPServer(socketserver.ThreadingTCPServer):
     allow_reuse_address = True
     daemon_threads = True
 
-    def __init__(self, server_address: tuple[str, int]) -> None:
+    def __init__(
+        self,
+        server_address: tuple[str, int],
+        on_runtime_status: Callable[[dict[str, Any]], None] | None = None,
+    ) -> None:
         super().__init__(server_address, _Live2DBridgeRequestHandler)
         self.clients: set[socket.socket] = set()
         self.clients_lock = threading.RLock()
+        self.latest_runtime_status: dict[str, Any] = {}
+        self.on_runtime_status = on_runtime_status
 
     def add_client(self, client: socket.socket) -> None:
         with self.clients_lock:
@@ -62,6 +104,15 @@ class _Live2DBridgeTCPServer(socketserver.ThreadingTCPServer):
             except OSError:
                 self.remove_client(client)
 
+    def handle_runtime_status_message(self, message: Any) -> None:
+        if not is_valid_runtime_status(message):
+            logger.warning("Ignored invalid Live2D runtime status message=%r", message)
+            return
+        self.latest_runtime_status = dict(message)
+        logger.info("Live2D runtime status received type=%s", message.get("type"))
+        if self.on_runtime_status is not None:
+            self.on_runtime_status(dict(message))
+
 
 class _Live2DBridgeRequestHandler(socketserver.BaseRequestHandler):
     def handle(self) -> None:
@@ -72,8 +123,19 @@ class _Live2DBridgeRequestHandler(socketserver.BaseRequestHandler):
             return
         server.add_client(self.request)
         try:
-            while self.request.recv(1024):
-                pass
+            while True:
+                data = self.request.recv(4096)
+                if not data:
+                    break
+                text = decode_websocket_text_frame(data)
+                if not text:
+                    continue
+                try:
+                    message = json.loads(text)
+                except json.JSONDecodeError:
+                    logger.warning("Ignored invalid Live2D runtime status frame")
+                    continue
+                server.handle_runtime_status_message(message)
         except OSError:
             pass
         finally:
@@ -108,12 +170,27 @@ def _parse_http_headers(data: bytes) -> dict[str, str]:
     return headers
 
 
+def is_valid_runtime_status(message: Any) -> bool:
+    if not isinstance(message, Mapping):
+        return False
+    message_type = message.get("type")
+    if not isinstance(message_type, str) or not message_type.startswith("live2d."):
+        return False
+    return True
+
+
 class Live2DBridgeServer:
     """Background localhost WebSocket broadcaster for Live2D bridge messages."""
 
-    def __init__(self, host: str = "127.0.0.1", port: int = 8879) -> None:
+    def __init__(
+        self,
+        host: str = "127.0.0.1",
+        port: int = 8879,
+        on_runtime_status: Callable[[dict[str, Any]], None] | None = None,
+    ) -> None:
         self.host = host
         self.port = port
+        self._on_runtime_status = on_runtime_status
         self._server: _Live2DBridgeTCPServer | None = None
         self._thread: threading.Thread | None = None
 
@@ -129,12 +206,20 @@ class Live2DBridgeServer:
 
         return self._server is not None and self._thread is not None and self._thread.is_alive()
 
+    @property
+    def latest_runtime_status(self) -> dict[str, Any]:
+        """Return the latest Web-reported Live2D runtime status."""
+
+        if self._server is None:
+            return {}
+        return dict(self._server.latest_runtime_status)
+
     def start(self) -> None:
         """Start the bridge server in a background thread."""
 
         if self.running:
             return
-        self._server = _Live2DBridgeTCPServer((self.host, self.port))
+        self._server = _Live2DBridgeTCPServer((self.host, self.port), self._on_runtime_status)
         bound_host, bound_port = self._server.server_address
         self.host = str(bound_host)
         self.port = int(bound_port)
@@ -173,3 +258,22 @@ class Live2DBridgeServer:
             client_count,
         )
         server.broadcast_text(json.dumps(message, ensure_ascii=False))
+
+    def handle_runtime_status_message(self, message: Any) -> None:
+        """Record a runtime status message without requiring a socket."""
+
+        if self._server is not None:
+            self._server.handle_runtime_status_message(message)
+            return
+        if not is_valid_runtime_status(message):
+            logger.warning("Ignored invalid Live2D runtime status message=%r", message)
+
+    def set_runtime_status_callback(
+        self,
+        callback: Callable[[dict[str, Any]], None] | None,
+    ) -> None:
+        """Set the callback invoked when Web clients report runtime status."""
+
+        self._on_runtime_status = callback
+        if self._server is not None:
+            self._server.on_runtime_status = callback

@@ -848,3 +848,18 @@ def test_conversation_cleared_clears_voice_status_text() -> None:
     vm.handle_conversation_cleared(event)
 
     assert vm.voice_status_text == ""
+
+
+def test_view_model_sets_live2d_runtime_status_summary() -> None:
+    """Live2D Web runtime status is rendered as compact UI text."""
+    vm = DesktopViewModel()
+
+    vm.set_live2d_runtime_status(
+        {
+            "type": "live2d.model_loaded",
+            "modelUrl": "./assets/models/sample/Hiyori/Hiyori.model3.json",
+        }
+    )
+
+    assert "model_loaded" in vm.live2d_runtime_status_summary
+    assert "Hiyori.model3.json" in vm.live2d_runtime_status_summary

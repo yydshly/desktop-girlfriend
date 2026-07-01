@@ -44,6 +44,7 @@ export function createLive2DRuntime({
     loadError: "",
     hasLive2DModel: false
   };
+  let lastSentRuntimeStatus = {};
   let listeners = {
     onRendererStatus: () => {},
     onBridgeStatus: () => {},
@@ -60,6 +61,7 @@ export function createLive2DRuntime({
       onStatusChange: (status) => {
         lastRendererStatus = status;
         listeners.onRendererStatus(status);
+        publishRendererRuntimeStatus(status);
       }
     });
   }
@@ -230,6 +232,70 @@ export function createLive2DRuntime({
   function updateBridgeStatusPanel(event) {
     currentBridgeStatus = updateBridgeStatus(currentBridgeStatus, event);
     listeners.onBridgeStatus(currentBridgeStatus);
+    if (event.kind === "open") {
+      sendRuntimeStatus("live2d.runtime_ready", {
+        details: {
+          renderer: getRendererLabel(activeRendererMode),
+          modelUrl: configuredModelUrl
+        }
+      });
+    }
+  }
+
+  function publishRendererRuntimeStatus(status = {}) {
+    if (status.hasLive2DModel) {
+      sendRuntimeStatusOnce("model_loaded", "live2d.model_loaded", {
+        details: {
+          loadState: status.loadState,
+          capabilities: status.modelCapabilities || null
+        }
+      });
+    }
+    if (status.loadError) {
+      sendRuntimeStatusOnce(`model_error:${status.loadError}`, "live2d.model_error", {
+        details: {
+          loadState: status.loadState,
+          error: status.loadError
+        }
+      });
+    }
+    if (status.activeMotion?.group) {
+      sendRuntimeStatusOnce(
+        `motion:${status.activeMotion.group}:${status.activeMotion.index}:${status.activeMotion.source || ""}`,
+        "live2d.motion_played",
+        {
+          details: {
+            motion: status.activeMotion
+          }
+        }
+      );
+    }
+    if (status.activeExpression) {
+      sendRuntimeStatusOnce(`expression:${status.activeExpression}`, "live2d.expression_applied", {
+        details: {
+          expression: status.activeExpression
+        }
+      });
+    }
+  }
+
+  function sendRuntimeStatusOnce(key, type, payload = {}) {
+    if (lastSentRuntimeStatus[type] === key) {
+      return false;
+    }
+    const sent = sendRuntimeStatus(type, payload);
+    if (sent) {
+      lastSentRuntimeStatus[type] = key;
+    }
+    return sent;
+  }
+
+  function sendRuntimeStatus(type, payload = {}) {
+    return bridgeClient.sendStatus(type, {
+      modelUrl: configuredModelUrl,
+      modelId: modelProfile.displayName || "",
+      details: payload.details || {}
+    });
   }
 
   function loadMotionBindingOverrides() {

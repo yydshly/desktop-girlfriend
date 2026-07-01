@@ -10,6 +10,7 @@ import time
 from app.ui.live2d_bridge_server import (
     Live2DBridgeServer,
     build_websocket_accept_key,
+    decode_websocket_text_frame,
     encode_websocket_text_frame,
 )
 
@@ -25,6 +26,16 @@ def test_build_websocket_accept_key_matches_rfc_example() -> None:
 def test_encode_text_frame_short_payload() -> None:
     """Short text payloads are encoded as unmasked server frames."""
     assert encode_websocket_text_frame("hi") == b"\x81\x02hi"
+
+
+def test_decode_masked_client_text_frame() -> None:
+    """Client-to-server masked text frames are decoded for status messages."""
+    payload = b'{"type":"live2d.runtime_ready"}'
+    mask = b"\x01\x02\x03\x04"
+    masked = bytes(byte ^ mask[index % 4] for index, byte in enumerate(payload))
+    frame = bytes([0x81, 0x80 | len(payload)]) + mask + masked
+
+    assert decode_websocket_text_frame(frame) == payload.decode("utf-8")
 
 
 def test_bridge_server_start_stop() -> None:
@@ -109,3 +120,69 @@ def test_bridge_server_accepts_client_and_broadcasts_json() -> None:
     finally:
         client.close()
         server.stop()
+
+
+def test_bridge_server_records_runtime_status_from_client_frame() -> None:
+    """Web Live2D clients can report runtime status back to Python."""
+    received: list[dict] = []
+    server = Live2DBridgeServer(port=0, on_runtime_status=received.append)
+    server.start()
+    assert server._server is not None
+    host, port = server._server.server_address
+
+    client = socket.create_connection((host, port), timeout=2)
+    try:
+        client.sendall(
+            (
+                "GET / HTTP/1.1\r\n"
+                f"Host: {host}:{port}\r\n"
+                "Upgrade: websocket\r\n"
+                "Connection: Upgrade\r\n"
+                "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
+                "Sec-WebSocket-Version: 13\r\n"
+                "\r\n"
+            ).encode("ascii")
+        )
+        assert b"101 Switching Protocols" in client.recv(4096)
+
+        message = {
+            "type": "live2d.model_loaded",
+            "timestamp": "2026-07-02T00:00:00.000Z",
+            "modelUrl": "./model.model3.json",
+            "modelId": "sample/Hiyori",
+            "details": {"motionCount": 10},
+        }
+        client.sendall(_masked_client_text_frame(json.dumps(message)))
+        for _ in range(20):
+            if server.latest_runtime_status:
+                break
+            time.sleep(0.02)
+
+        assert server.latest_runtime_status == message
+        assert received[-1] == message
+    finally:
+        client.close()
+        server.stop()
+
+
+def test_bridge_server_ignores_invalid_runtime_status(caplog) -> None:
+    """Invalid Web status messages are ignored and logged, not raised."""
+    caplog.set_level(logging.WARNING)
+    server = Live2DBridgeServer(port=0)
+
+    server.handle_runtime_status_message({"type": "avatar.state"})
+    server.handle_runtime_status_message("not a dict")  # type: ignore[arg-type]
+
+    assert server.latest_runtime_status == {}
+    assert "Ignored invalid Live2D runtime status" in caplog.text
+
+
+def _masked_client_text_frame(text: str) -> bytes:
+    payload = text.encode("utf-8")
+    mask = b"\x01\x02\x03\x04"
+    masked = bytes(byte ^ mask[index % 4] for index, byte in enumerate(payload))
+    if len(payload) < 126:
+        header = bytes([0x81, 0x80 | len(payload)])
+    else:
+        header = bytes([0x81, 0x80 | 126]) + len(payload).to_bytes(2, "big")
+    return header + mask + masked

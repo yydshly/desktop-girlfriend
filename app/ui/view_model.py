@@ -92,6 +92,7 @@ class DesktopViewModel:
         )
         self.live2d_model_catalog_details: str = ""
         self.live2d_model_import_guide: str = ""
+        self.live2d_runtime_status_summary: str = "Runtime: waiting for Live2D page"
         self.live2d_model_options: tuple[tuple[str, str], ...] = ()
         self.selected_live2d_model_id: str = ""
         # Settings panel state (Phase 2-E)
@@ -585,6 +586,17 @@ class DesktopViewModel:
     def set_live2d_model_import_guide(self, text: str) -> None:
         """Set Live2D model import guidance and suitability hints."""
         self.live2d_model_import_guide = text.strip()
+
+    def set_live2d_runtime_status(self, status: dict) -> None:
+        """Set compact Web-reported Live2D runtime status text."""
+
+        status_type = status.get("type", "live2d.unknown") if isinstance(status, dict) else "live2d.unknown"
+        model_url = status.get("modelUrl", "") if isinstance(status, dict) else ""
+        detail = status_type.replace("live2d.", "")
+        if model_url:
+            self.live2d_runtime_status_summary = f"Runtime: {detail} · {model_url}"
+            return
+        self.live2d_runtime_status_summary = f"Runtime: {detail}"
 
     def set_live2d_model_options(
         self,

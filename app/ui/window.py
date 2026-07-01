@@ -254,7 +254,7 @@ class DesktopWindow(QMainWindow):
         live2d_control_layout.addStretch()
         layout.addWidget(live2d_control_row)
         self._live2d_model_status_label = QLabel(
-            self._view_model.live2d_model_catalog_summary
+            self._render_live2d_status_text()
         )
         self._live2d_model_status_label.setWordWrap(True)
         self._live2d_model_status_label.setStyleSheet(window_style.STATUS_LABEL_STYLE)
@@ -831,6 +831,14 @@ class DesktopWindow(QMainWindow):
         # Sync all UI state including onboarding card visibility
         self.update_from_view_model()
 
+    def _render_live2d_status_text(self) -> str:
+        """Render compact model catalog and Web runtime status."""
+
+        runtime_status = self._view_model.live2d_runtime_status_summary
+        if runtime_status:
+            return f"{self._view_model.live2d_model_catalog_summary}\n{runtime_status}"
+        return self._view_model.live2d_model_catalog_summary
+
     def update_from_view_model(self) -> None:
         """Update UI from view model state."""
         self._name_label.setText(self._view_model.companion_name)
@@ -851,7 +859,7 @@ class DesktopWindow(QMainWindow):
         self._pin_button.setText(render_pin_button_text(self._view_model.always_on_top))
         self._compact_button.setText(render_compact_button_text(self._view_model.compact_mode))
         self._live2d_model_status_label.setText(
-            self._view_model.live2d_model_catalog_summary
+            self._render_live2d_status_text()
         )
         self._live2d_model_details_label.setText(
             self._view_model.live2d_model_catalog_details

@@ -46,6 +46,31 @@ function createDocument(elements) {
   };
 }
 
+class FakeWebSocket {
+  static instances = [];
+
+  constructor(url) {
+    this.url = url;
+    this.listeners = {};
+    this.sent = [];
+    FakeWebSocket.instances.push(this);
+  }
+
+  addEventListener(type, handler) {
+    this.listeners[type] = handler;
+  }
+
+  emit(type, event = {}) {
+    this.listeners[type]?.(event);
+  }
+
+  send(data) {
+    this.sent.push(data);
+  }
+
+  close() {}
+}
+
 function createRuntimeHarness() {
   const storage = new Map();
   const elements = {
@@ -358,10 +383,30 @@ async function testRuntimeValidationUsesEffectiveProfileMotionOverrides() {
   });
 }
 
+function testRuntimeSendsReadyStatusToBridgeWhenConnected() {
+  FakeWebSocket.instances = [];
+  const previousWebSocket = globalThis.WebSocket;
+  globalThis.WebSocket = FakeWebSocket;
+  const { runtime } = createRuntimeHarness();
+
+  try {
+    runtime.connectBridge("ws://127.0.0.1:8879");
+    FakeWebSocket.instances[0].emit("open");
+
+    const message = JSON.parse(FakeWebSocket.instances[0].sent[0]);
+    assert.equal(message.type, "live2d.runtime_ready");
+    assert.equal(message.modelUrl, "./assets/models/sample/Hiyori/Hiyori.model3.json");
+    assert.equal(message.details.renderer, "live2d adapter dry run");
+  } finally {
+    globalThis.WebSocket = previousWebSocket;
+  }
+}
+
 testRuntimeRunsModelExperimentTimeline();
 await testStartRefreshesPackageStatusAfterProfileLoads();
 await testRuntimeAppliesAndResetsInteractionTuning();
 await testRuntimeRestoresSavedInteractionTuningAfterProfileLoads();
 await testRuntimeUsesMotionOverridesInModelAdapterPath();
 await testRuntimeValidationUsesEffectiveProfileMotionOverrides();
+testRuntimeSendsReadyStatusToBridgeWhenConnected();
 console.log("runtime-app tests passed");
