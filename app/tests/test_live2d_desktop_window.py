@@ -149,6 +149,19 @@ def test_offscreen_window_position_resets_to_default() -> None:
     ) == Live2DDesktopWindowPosition(x=80, y=80)
 
 
+def test_barely_visible_window_position_resets_to_default() -> None:
+    """A tiny visible strip is not enough for comfortable window recovery."""
+    assert ensure_live2d_window_position_visible(
+        position=Live2DDesktopWindowPosition(x=1900, y=240),
+        window_width=520,
+        window_height=760,
+        screen_x=0,
+        screen_y=0,
+        screen_width=1920,
+        screen_height=1080,
+    ) == Live2DDesktopWindowPosition(x=80, y=80)
+
+
 def test_context_menu_actions_describe_desktop_controls() -> None:
     """Right-click menu exposes the most useful desktop companion controls."""
     assert build_live2d_context_menu_actions(always_on_top=True) == (

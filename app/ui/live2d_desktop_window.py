@@ -19,6 +19,7 @@ _REQUIRED_QT_MODULES = (
 )
 
 _POSITION_FILE_NAME = "live2d-desktop-window.json"
+_MIN_VISIBLE_WINDOW_AREA = 96
 
 
 @dataclass(frozen=True)
@@ -143,17 +144,19 @@ def ensure_live2d_window_position_visible(
 ) -> Live2DDesktopWindowPosition:
     """Return position when visible, otherwise a known safe default."""
 
-    window_right = position.x + max(1, window_width)
-    window_bottom = position.y + max(1, window_height)
+    safe_window_width = max(1, window_width)
+    safe_window_height = max(1, window_height)
+    window_right = position.x + safe_window_width
+    window_bottom = position.y + safe_window_height
     screen_right = screen_x + max(1, screen_width)
     screen_bottom = screen_y + max(1, screen_height)
-    intersects_screen = (
-        window_right > screen_x
-        and position.x < screen_right
-        and window_bottom > screen_y
-        and position.y < screen_bottom
+    visible_width = min(window_right, screen_right) - max(position.x, screen_x)
+    visible_height = min(window_bottom, screen_bottom) - max(position.y, screen_y)
+    has_usable_visible_area = (
+        visible_width >= min(_MIN_VISIBLE_WINDOW_AREA, safe_window_width)
+        and visible_height >= min(_MIN_VISIBLE_WINDOW_AREA, safe_window_height)
     )
-    return position if intersects_screen else default_position
+    return position if has_usable_visible_area else default_position
 
 
 def build_live2d_context_menu_actions(
