@@ -1,7 +1,6 @@
 import { mapAvatarSequence, mapAvatarState, mapBridgeMessage } from "./state-mapper.js";
-import { mapBridgeMessageToEmotionState, normalizeEmotionState } from "./emotion-state.js";
-import { planBehaviorFromEmotionState } from "./behavior-planner.js";
-import { adaptBehaviorToModelCommands } from "./model-adapter.js";
+import { mapBridgeMessageToEmotionState } from "./emotion-state.js";
+import { buildCharacterRuntimeState } from "./character-runtime.js";
 
 export class AvatarController {
   constructor(renderer, readoutElement, bubbleElement = null, stageElement = null, options = {}) {
@@ -76,20 +75,12 @@ export class AvatarController {
   }
 
   applyMappedState(nextState, emotionState = null) {
-    const nextEmotionState = emotionState || normalizeEmotionState(nextState);
-    const behavior = planBehaviorFromEmotionState(nextEmotionState);
-    const modelCommands = adaptBehaviorToModelCommands(
-      behavior,
-      this.getModelProfile()
-    );
-    this.currentState = {
-      ...this.currentState,
-      ...nextState,
-      emotionState: nextEmotionState,
-      behavior,
-      modelCommands,
-      updatedAt: new Date().toISOString()
-    };
+    this.currentState = buildCharacterRuntimeState({
+      previousState: this.currentState,
+      mappedState: nextState,
+      emotionState,
+      profile: this.getModelProfile()
+    });
     this.renderer.applyState(this.currentState);
     this.renderReadout();
     this.renderBubble();
