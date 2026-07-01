@@ -69,6 +69,11 @@ export function mountLive2DDebugPanel({
     renderMotionBindingStatus(elements, runtime, "Cleared bindings.");
   });
 
+  elements.runModelExperiment.addEventListener("click", () => {
+    const timeline = runtime.runModelExperiment();
+    renderModelExperimentStatus(elements, timeline);
+  });
+
   elements.connectBridge.addEventListener("click", () => {
     runtime.connectBridge(elements.bridgeUrl.value);
   });
@@ -104,6 +109,8 @@ function queryDebugElements(document) {
     clearMotionBindings: document.querySelector("#clearMotionBindings"),
     motionBindingEditor: document.querySelector("#motionBindingEditor"),
     motionBindingStatus: document.querySelector("#motionBindingStatus"),
+    runModelExperiment: document.querySelector("#runModelExperiment"),
+    modelExperimentStatus: document.querySelector("#modelExperimentStatus"),
     bridgeUrl: document.querySelector("#bridgeUrl"),
     connectBridge: document.querySelector("#connectBridge"),
     disconnectBridge: document.querySelector("#disconnectBridge"),
@@ -171,6 +178,25 @@ function renderMotionBindingStatus(elements, runtime, message = "") {
     ? `Profile: ${profile.displayName}.`
     : "Profile: none.";
   elements.motionBindingStatus.textContent = message || `${profileText} Use Motion Probe, then bind the active motion to a state.`;
+}
+
+function renderModelExperimentStatus(elements, timeline = []) {
+  elements.modelExperimentStatus.textContent = timeline.map(formatExperimentStep).join("\n");
+}
+
+function formatExperimentStep(step) {
+  const motion = step.modelCommands?.motion?.group
+    ? `${step.modelCommands.motion.group}[${step.modelCommands.motion.index}]`
+    : "none";
+  const expression = step.modelCommands?.expression?.name || "none";
+  const parameters = step.modelCommands?.parameters || {};
+  return [
+    `${step.index}. ${step.state} -> ${motion}`,
+    `expression ${expression}`,
+    `mouth ${parameters.mouth ?? 0}`,
+    `intensity ${parameters.intensity ?? 0}`,
+    `gaze ${parameters.gaze || "cursor"}`
+  ].join("; ");
 }
 
 function formatCapabilitySummary(capabilities = null) {

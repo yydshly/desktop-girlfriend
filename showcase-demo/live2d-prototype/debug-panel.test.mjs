@@ -56,6 +56,29 @@ function createRuntime() {
     },
     getModelProfile() {
       return { displayName: "" };
+    },
+    runModelExperiment() {
+      this.modelExperimentCalls = (this.modelExperimentCalls || 0) + 1;
+      return [
+        {
+          index: 0,
+          state: "idle",
+          modelCommands: {
+            motion: { group: "Idle", index: 0, action: "idle" },
+            expression: { name: "default", semantic: "neutral" },
+            parameters: { mouth: 0, intensity: 0.25, gaze: "cursor" }
+          }
+        },
+        {
+          index: 1,
+          state: "speaking",
+          modelCommands: {
+            motion: { group: "TapBody", index: 0, action: "speak" },
+            expression: { name: "smile", semantic: "engaged" },
+            parameters: { mouth: 0.65, intensity: 0.76, gaze: "cursor" }
+          }
+        }
+      ];
     }
   };
 }
@@ -82,6 +105,8 @@ function createDebugElements() {
     "#clearMotionBindings": createElement(),
     "#motionBindingEditor": createElement(),
     "#motionBindingStatus": createElement(),
+    "#runModelExperiment": createElement(),
+    "#modelExperimentStatus": createElement(),
     "#bridgeUrl": createElement("ws://127.0.0.1:8879"),
     "#connectBridge": createElement(),
     "#disconnectBridge": createElement(),
@@ -135,6 +160,25 @@ function testShowcasePanelRendersAdapterCommands() {
   assert.match(elements["#modelStatus"].textContent, /mouth 0.64; intensity 0.7; gaze cursor/);
 }
 
+function testShowcasePanelRunsModelExperiment() {
+  const elements = createDebugElements();
+  const runtime = createRuntime();
+
+  mountLive2DDebugPanel({
+    document: createDocument(elements),
+    window: { localStorage: { getItem: () => null, setItem: () => {} } },
+    runtime,
+    mode: "showcase"
+  });
+
+  elements["#runModelExperiment"].listeners.click();
+
+  assert.equal(runtime.modelExperimentCalls, 1);
+  assert.match(elements["#modelExperimentStatus"].textContent, /0\. idle -> Idle\[0\]/);
+  assert.match(elements["#modelExperimentStatus"].textContent, /1\. speaking -> TapBody\[0\]/);
+  assert.match(elements["#modelExperimentStatus"].textContent, /mouth 0.65/);
+}
+
 function testDesktopPanelDoesNotWireDebugControls() {
   const rendererSelect = createElement("live2d");
   const runtime = createRuntime();
@@ -151,5 +195,6 @@ function testDesktopPanelDoesNotWireDebugControls() {
 
 testShowcasePanelWiresRendererSelect();
 testShowcasePanelRendersAdapterCommands();
+testShowcasePanelRunsModelExperiment();
 testDesktopPanelDoesNotWireDebugControls();
 console.log("debug-panel tests passed");

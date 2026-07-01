@@ -175,6 +175,8 @@ error
 - Motion Probe 点击 Idle 0、Idle 1、TapBody 0 等按钮时，模型动作会变化。
 - 状态栏里能看到 `adapter:`，例如 `happy -> TapBody[0]`、`engaged -> smile`、`mouth 0.64`。
 - 如果人物动作看起来不明显，先看 `adapter:` 是否变化；如果 adapter 变了但人物没变，问题在模型能力或 profile 映射。
+- 点击“模型实验 / 运行固定情绪序列”，可以一次触发 `idle -> listening -> thinking -> speaking -> happy -> comfort -> idle`。
+- 实验输出会列出每一步的 motion / expression / mouth / intensity，用来判断模型动态效果是否符合“小云”规格。
 
 桌面应用正常时：
 
