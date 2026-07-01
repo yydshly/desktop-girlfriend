@@ -411,10 +411,36 @@ function testIdleStateDoesNotAnimateMouthOpen() {
   assert.equal(parameters.ParamMouthOpenY, 0.1);
 }
 
+function testIdleStateAddsBreathingMotion() {
+  const parameters = calculateAnimatedLive2DParameters(
+    { ParamBreath: 0.55, ParamAngleZ: 0, ParamBodyAngleX: 0 },
+    { motion: "idle", expression: "neutral" },
+    1000
+  );
+
+  assert.notEqual(parameters.ParamBreath, 0.55);
+  assert.notEqual(parameters.ParamAngleZ, 0);
+  assert.notEqual(parameters.ParamBodyAngleX, 0);
+}
+
+function testThinkingStateAddsFocusedMicroMotion() {
+  const parameters = calculateAnimatedLive2DParameters(
+    { ParamAngleY: 0, ParamEyeBallY: 0, ParamBodyAngleX: 0 },
+    { motion: "think", expression: "thinking" },
+    1000
+  );
+
+  assert.notEqual(parameters.ParamAngleY, 0);
+  assert.notEqual(parameters.ParamEyeBallY, 0);
+  assert.notEqual(parameters.ParamBodyAngleX, 0);
+}
+
 testSpeakingStateAnimatesMouthOpen();
 testSpeakingStateAddsSubtleBodyMotion();
 testVisualIntentSpeakingAnimatesMouthOpen();
 testIdleStateDoesNotAnimateMouthOpen();
+testIdleStateAddsBreathingMotion();
+testThinkingStateAddsFocusedMicroMotion();
 
 function testIdleMotionAutoRotates() {
   const renderer = new Live2DRenderer(createCanvasProbe());

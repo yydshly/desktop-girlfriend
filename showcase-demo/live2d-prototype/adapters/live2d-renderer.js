@@ -555,6 +555,11 @@ export function calculateAnimatedLive2DParameters(parameters = {}, command = {},
     || motion === "speak"
     || command.expression === "speaking"
     || command.visualIntent === "speaking";
+  const thinking = motion === "think"
+    || motion === "listen"
+    || command.expression === "thinking"
+    || command.visualIntent === "thinking"
+    || command.visualIntent === "listening";
 
   if (speaking) {
     const pulse = 0.45 + Math.sin(now / 82) * 0.28 + Math.sin(now / 37) * 0.12;
@@ -564,6 +569,29 @@ export function calculateAnimatedLive2DParameters(parameters = {}, command = {},
     );
     next.ParamBodyAngleX = roundParameter(
       Number(next.ParamBodyAngleX ?? 0) + Math.sin(now / 320) * 1.4
+    );
+  }
+
+  if (!speaking) {
+    const breath = 0.5 + Math.sin(now / 900) * 0.08;
+    next.ParamBreath = roundToThree(Math.max(Number(next.ParamBreath ?? 0.5), breath));
+    next.ParamAngleZ = roundParameter(
+      Number(next.ParamAngleZ ?? 0) + Math.sin(now / 1400) * 0.9
+    );
+    next.ParamBodyAngleX = roundParameter(
+      Number(next.ParamBodyAngleX ?? 0) + Math.sin(now / 1250) * 0.8
+    );
+  }
+
+  if (thinking) {
+    next.ParamAngleY = roundParameter(
+      Number(next.ParamAngleY ?? 0) + 1.1 + Math.sin(now / 760) * 0.7
+    );
+    next.ParamEyeBallY = roundParameter(
+      Number(next.ParamEyeBallY ?? 0) - 0.08 + Math.sin(now / 980) * 0.04
+    );
+    next.ParamBodyAngleX = roundParameter(
+      Number(next.ParamBodyAngleX ?? 0) + Math.sin(now / 680) * 0.9
     );
   }
 
