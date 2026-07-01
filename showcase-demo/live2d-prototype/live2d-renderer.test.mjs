@@ -208,8 +208,32 @@ function testAbstractMotionUsesAvailableModelMotionGroups() {
   );
 }
 
+function testAbstractMotionUsesDistinctIdleVariants() {
+  assert.deepEqual(
+    mapCommandToModelMotion({ motion: "think" }, { Idle: 9 }),
+    { group: "Idle", index: 1, source: "think" }
+  );
+  assert.deepEqual(
+    mapCommandToModelMotion({ motion: "sad" }, { Idle: 9 }),
+    { group: "Idle", index: 2, source: "sad" }
+  );
+  assert.deepEqual(
+    mapCommandToModelMotion({ motion: "listen" }, { Idle: 9 }),
+    { group: "Idle", index: 3, source: "listen" }
+  );
+}
+
+function testAbstractMotionClampsIdleVariantToModelMotionCount() {
+  assert.deepEqual(
+    mapCommandToModelMotion({ motion: "comfort" }, { Idle: 2 }),
+    { group: "Idle", index: 0, source: "comfort" }
+  );
+}
+
 testSequenceTriggersTapBodyMotion();
 testAbstractMotionUsesAvailableModelMotionGroups();
+testAbstractMotionUsesDistinctIdleVariants();
+testAbstractMotionClampsIdleVariantToModelMotionCount();
 testIdleStateTriggersIdleMotion();
 testStateAppliesLive2DExpression();
 testStateSkipsUnavailableLive2DExpression();

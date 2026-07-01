@@ -395,19 +395,23 @@ export function calculateLive2DPlacement(canvasSize, modelSize) {
 export function mapCommandToModelMotion(command = {}, motionGroupCounts = null) {
   const motion = command.motion || "idle";
   const expressiveMotions = new Set(["greet", "happy", "reply", "comfort", "speak"]);
-  if (expressiveMotions.has(motion)) {
+  if (expressiveMotions.has(motion) && hasMotionGroup(motionGroupCounts, "TapBody")) {
     return {
-      group: hasMotionGroup(motionGroupCounts, "TapBody") ? "TapBody" : "Idle",
+      group: "TapBody",
       index: 0,
       source: motion
     };
   }
 
-  return { group: "Idle", index: 0, source: motion };
+  return {
+    group: "Idle",
+    index: getIdleMotionVariantIndex(motion, motionGroupCounts),
+    source: motion
+  };
 }
 
 function getMotionGroupCount(motionGroupCounts = {}, group, fallback) {
-  const count = Number(motionGroupCounts[group] ?? fallback);
+  const count = Number((motionGroupCounts || {})[group] ?? fallback);
   return Number.isFinite(count) && count > 0 ? Math.floor(count) : fallback;
 }
 
@@ -417,6 +421,23 @@ function hasMotionGroup(motionGroupCounts = null, group) {
   }
   const count = Number(motionGroupCounts[group] ?? 0);
   return Number.isFinite(count) && count > 0;
+}
+
+function getIdleMotionVariantIndex(motion, motionGroupCounts = null) {
+  const preferredIndexByMotion = {
+    idle: 0,
+    think: 1,
+    sad: 2,
+    listen: 3,
+    comfort: 4,
+    reply: 0,
+    speak: 0,
+    greet: 0,
+    happy: 0
+  };
+  const preferredIndex = preferredIndexByMotion[motion] ?? 0;
+  const idleCount = getMotionGroupCount(motionGroupCounts, "Idle", DEFAULT_IDLE_MOTION_COUNT);
+  return idleCount > 0 ? preferredIndex % idleCount : 0;
 }
 
 export function shouldAutoRotateIdleMotion(command = {}) {
