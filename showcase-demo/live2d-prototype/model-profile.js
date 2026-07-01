@@ -1,4 +1,9 @@
 import { sanitizeMotionBindings } from "./motion-bindings.js";
+import {
+  CHARACTER_CONTRACT_VERSION,
+  normalizeCharacterAction,
+  normalizeCharacterExpression
+} from "./character-contract.js";
 
 export function modelJsonUrlToProfileUrl(modelJsonUrl = "") {
   const baseHref = globalThis.window?.location?.href || "http://127.0.0.1/live2d-prototype/";
@@ -6,11 +11,52 @@ export function modelJsonUrlToProfileUrl(modelJsonUrl = "") {
 }
 
 export function normalizeModelProfile(profile = {}) {
+  const mappings = sanitizeProfileMappings(profile.mappings || {}, profile.motionBindings || {});
   return {
+    schemaVersion: CHARACTER_CONTRACT_VERSION,
     displayName: typeof profile.displayName === "string" ? profile.displayName : "",
-    motionBindings: sanitizeMotionBindings(profile.motionBindings || {}),
+    motionBindings: mappings.actions,
+    mappings,
     desktopPlacement: sanitizeDesktopPlacement(profile.desktopPlacement || {})
   };
+}
+
+export function sanitizeProfileMappings(mappings = {}, legacyMotionBindings = {}) {
+  const actions = sanitizeActionMappings({
+    ...legacyMotionBindings,
+    ...(mappings.actions || {})
+  });
+  return {
+    actions,
+    expressions: sanitizeExpressionMappings(mappings.expressions || {})
+  };
+}
+
+function sanitizeActionMappings(actions = {}) {
+  const sanitized = {};
+  for (const [action, binding] of Object.entries(actions || {})) {
+    const normalizedAction = normalizeCharacterAction(action, "");
+    if (!normalizedAction) {
+      continue;
+    }
+    const cleanBinding = sanitizeMotionBindings({ [normalizedAction]: binding })[normalizedAction];
+    if (cleanBinding) {
+      sanitized[normalizedAction] = cleanBinding;
+    }
+  }
+  return sanitized;
+}
+
+function sanitizeExpressionMappings(expressions = {}) {
+  const sanitized = {};
+  for (const [expression, modelExpression] of Object.entries(expressions || {})) {
+    const normalizedExpression = normalizeCharacterExpression(expression, "");
+    if (!normalizedExpression || typeof modelExpression !== "string" || !modelExpression.trim()) {
+      continue;
+    }
+    sanitized[normalizedExpression] = modelExpression.trim();
+  }
+  return sanitized;
 }
 
 export function sanitizeDesktopPlacement(placement = {}) {

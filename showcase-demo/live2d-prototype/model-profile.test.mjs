@@ -22,10 +22,58 @@ function testNormalizeModelProfileSanitizesMotionBindings() {
       }
     }),
     {
+      schemaVersion: 1,
       displayName: "Hiyori",
       motionBindings: {
         happy: { group: "Idle", index: 5 },
         sad: { group: "TapBody", index: 0 }
+      },
+      mappings: {
+        actions: {
+          happy: { group: "Idle", index: 5 },
+          sad: { group: "TapBody", index: 0 }
+        },
+        expressions: {}
+      },
+      desktopPlacement: {}
+    }
+  );
+}
+
+function testNormalizeModelProfileUsesContractMappings() {
+  assert.deepEqual(
+    normalizeModelProfile({
+      schemaVersion: 1,
+      displayName: "Hiyori",
+      mappings: {
+        actions: {
+          idle: { group: "Idle", index: 0 },
+          listening: { group: "Idle", index: 3 },
+          wave: { group: "TapBody", index: 0 }
+        },
+        expressions: {
+          neutral: "default",
+          reply: "smile",
+          wow: "surprised"
+        }
+      }
+    }),
+    {
+      schemaVersion: 1,
+      displayName: "Hiyori",
+      motionBindings: {
+        idle: { group: "Idle", index: 0 },
+        listen: { group: "Idle", index: 3 }
+      },
+      mappings: {
+        actions: {
+          idle: { group: "Idle", index: 0 },
+          listen: { group: "Idle", index: 3 }
+        },
+        expressions: {
+          neutral: "default",
+          engaged: "smile"
+        }
       },
       desktopPlacement: {}
     }
@@ -43,8 +91,13 @@ function testNormalizeModelProfileSanitizesDesktopPlacement() {
       }
     }),
     {
+      schemaVersion: 1,
       displayName: "Hiyori",
       motionBindings: {},
+      mappings: {
+        actions: {},
+        expressions: {}
+      },
       desktopPlacement: {
         scaleMultiplier: 1.12,
         xOffsetRatio: -0.08,
@@ -64,8 +117,13 @@ async function testLoadModelProfileReturnsEmptyProfileWhenMissing() {
   const profile = await loadModelProfile("./assets/models/sample/Hiyori/Hiyori.model3.json");
 
   assert.deepEqual(profile, {
+    schemaVersion: 1,
     displayName: "",
     motionBindings: {},
+    mappings: {
+      actions: {},
+      expressions: {}
+    },
     desktopPlacement: {}
   });
 }
@@ -75,9 +133,15 @@ async function testLoadModelProfileParsesProfileJson() {
     ok: true,
     async json() {
       return {
+        schemaVersion: 1,
         displayName: "Hiyori",
-        motionBindings: {
-          think: { group: "Idle", index: 1 }
+        mappings: {
+          actions: {
+            think: { group: "Idle", index: 1 }
+          },
+          expressions: {
+            thinking: "think"
+          }
         },
         desktopPlacement: {
           scaleMultiplier: 1.08,
@@ -90,9 +154,18 @@ async function testLoadModelProfileParsesProfileJson() {
   const profile = await loadModelProfile("./assets/models/sample/Hiyori/Hiyori.model3.json");
 
   assert.deepEqual(profile, {
+    schemaVersion: 1,
     displayName: "Hiyori",
     motionBindings: {
       think: { group: "Idle", index: 1 }
+    },
+    mappings: {
+      actions: {
+        think: { group: "Idle", index: 1 }
+      },
+      expressions: {
+        thinking: "think"
+      }
     },
     desktopPlacement: {
       scaleMultiplier: 1.08,
@@ -103,6 +176,7 @@ async function testLoadModelProfileParsesProfileJson() {
 
 testModelJsonUrlToProfileUrlUsesSameDirectory();
 testNormalizeModelProfileSanitizesMotionBindings();
+testNormalizeModelProfileUsesContractMappings();
 testNormalizeModelProfileSanitizesDesktopPlacement();
 await testLoadModelProfileReturnsEmptyProfileWhenMissing();
 await testLoadModelProfileParsesProfileJson();
