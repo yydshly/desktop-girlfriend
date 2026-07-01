@@ -142,10 +142,11 @@ class DesktopWindow(QMainWindow):
         layout = QVBoxLayout(central)
 
         # Companion header — subtle card background (Phase 2-C)
-        header_widget = QWidget()
-        self._drag_handle_widgets: list[QWidget] = [header_widget]
-        header_widget.setStyleSheet(window_style.HEADER_CARD_STYLE)
-        header_layout = QHBoxLayout(header_widget)
+        self._header_widget = QWidget()
+        self._header_widget.setMinimumHeight(118)
+        self._drag_handle_widgets: list[QWidget] = [self._header_widget]
+        self._header_widget.setStyleSheet(window_style.HEADER_CARD_STYLE)
+        header_layout = QHBoxLayout(self._header_widget)
         header_layout.setContentsMargins(12, 10, 12, 10)
 
         self._avatar_label = QLabel(self._view_model.effective_avatar_text)
@@ -219,7 +220,7 @@ class DesktopWindow(QMainWindow):
         self._compact_button.pressed.connect(self._handle_compact_clicked)
         header_layout.addWidget(self._compact_button)
 
-        layout.addWidget(header_widget)
+        layout.addWidget(self._header_widget)
         for drag_handle in self._drag_handle_widgets:
             drag_handle.installEventFilter(self)
 
@@ -265,6 +266,9 @@ class DesktopWindow(QMainWindow):
         )
         layout.addWidget(self._live2d_model_selector)
         self._sync_live2d_model_selector()
+        live2d_model_action_row = QWidget()
+        live2d_model_action_layout = QHBoxLayout(live2d_model_action_row)
+        live2d_model_action_layout.setContentsMargins(0, 0, 0, 0)
         self._live2d_model_refresh_button = QPushButton("刷新模型")
         self._live2d_model_refresh_button.setStyleSheet(
             window_style.SECONDARY_BUTTON_STYLE
@@ -272,7 +276,7 @@ class DesktopWindow(QMainWindow):
         self._live2d_model_refresh_button.clicked.connect(
             self._on_live2d_models_refresh_clicked
         )
-        layout.addWidget(self._live2d_model_refresh_button)
+        live2d_model_action_layout.addWidget(self._live2d_model_refresh_button)
         self._live2d_open_models_folder_button = QPushButton("打开模型目录")
         self._live2d_open_models_folder_button.setStyleSheet(
             window_style.SECONDARY_BUTTON_STYLE
@@ -280,13 +284,26 @@ class DesktopWindow(QMainWindow):
         self._live2d_open_models_folder_button.clicked.connect(
             self._on_live2d_open_models_folder_clicked
         )
-        layout.addWidget(self._live2d_open_models_folder_button)
+        live2d_model_action_layout.addWidget(self._live2d_open_models_folder_button)
+        self._live2d_model_details_button = QPushButton("模型详情")
+        self._live2d_model_details_button.setStyleSheet(
+            window_style.SECONDARY_BUTTON_STYLE
+        )
+        self._live2d_model_details_button.clicked.connect(
+            self._on_live2d_model_details_clicked
+        )
+        live2d_model_action_layout.addWidget(self._live2d_model_details_button)
+        layout.addWidget(live2d_model_action_row)
+        self._live2d_model_details_panel = QWidget()
+        live2d_model_details_layout = QVBoxLayout(self._live2d_model_details_panel)
+        live2d_model_details_layout.setContentsMargins(0, 0, 0, 0)
+        live2d_model_details_layout.setSpacing(4)
         self._live2d_model_details_label = QLabel(
             self._view_model.live2d_model_catalog_details
         )
         self._live2d_model_details_label.setWordWrap(True)
         self._live2d_model_details_label.setStyleSheet(window_style.STATUS_LABEL_STYLE)
-        layout.addWidget(self._live2d_model_details_label)
+        live2d_model_details_layout.addWidget(self._live2d_model_details_label)
         self._live2d_model_import_guide_label = QLabel(
             self._view_model.live2d_model_import_guide
         )
@@ -294,7 +311,9 @@ class DesktopWindow(QMainWindow):
         self._live2d_model_import_guide_label.setStyleSheet(
             window_style.STATUS_LABEL_STYLE
         )
-        layout.addWidget(self._live2d_model_import_guide_label)
+        live2d_model_details_layout.addWidget(self._live2d_model_import_guide_label)
+        self._live2d_model_details_panel.setVisible(False)
+        layout.addWidget(self._live2d_model_details_panel)
 
         # Phase 3-B: Onboarding card — shown at first run
         self._onboarding_card = QWidget()
@@ -693,6 +712,13 @@ class DesktopWindow(QMainWindow):
     def _on_live2d_open_models_folder_clicked(self) -> None:
         if self._on_live2d_models_folder_requested:
             self._on_live2d_models_folder_requested()
+
+    def _on_live2d_model_details_clicked(self) -> None:
+        is_visible = self._live2d_model_details_panel.isVisible()
+        self._live2d_model_details_panel.setVisible(not is_visible)
+        self._live2d_model_details_button.setText(
+            "隐藏详情" if not is_visible else "模型详情"
+        )
 
     def _sync_live2d_model_selector(self) -> None:
         selector = self._live2d_model_selector

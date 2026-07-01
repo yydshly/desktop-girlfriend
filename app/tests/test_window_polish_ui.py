@@ -243,3 +243,52 @@ class TestWindowPolishLayout:
 
         assert "0.1.0-rc.3" in vm.product_status_text
         assert "release-candidate" in vm.product_status_text
+
+    @staticmethod
+    def test_header_keeps_readable_height(qapp: QApplication) -> None:
+        """Companion header keeps enough height for its identity text."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+        )
+        window.show()
+
+        assert window._header_widget.minimumHeight() >= 118
+
+    @staticmethod
+    def test_live2d_model_details_are_collapsed_by_default(qapp: QApplication) -> None:
+        """Verbose model diagnostics do not crowd the chat surface by default."""
+        vm = DesktopViewModel()
+        vm.set_live2d_model_catalog_details("Models folder: /tmp/models\nready")
+        vm.set_live2d_model_import_guide("Put custom models under: /tmp/models/custom")
+
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+        )
+        window.show()
+
+        assert window._live2d_model_details_panel.isVisible() is False
+        assert window._live2d_model_details_button.text() == "模型详情"
+
+    @staticmethod
+    def test_live2d_model_details_button_toggles_diagnostics(qapp: QApplication) -> None:
+        """Model diagnostics can be opened when debugging model packages."""
+        vm = DesktopViewModel()
+        vm.set_live2d_model_catalog_details("Models folder: /tmp/models\nready")
+        vm.set_live2d_model_import_guide("Put custom models under: /tmp/models/custom")
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+        )
+        window.show()
+
+        window._live2d_model_details_button.click()
+        qapp.processEvents()
+
+        assert window._live2d_model_details_panel.isVisible() is True
+        assert window._live2d_model_details_button.text() == "隐藏详情"
