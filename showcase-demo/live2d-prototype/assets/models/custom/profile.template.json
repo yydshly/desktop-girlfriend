@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "displayName": "Candidate Model",
+  "desktopPlacement": {
+    "scaleMultiplier": 1,
+    "xOffsetRatio": 0,
+    "yRatio": 0.55
+  },
+  "mappings": {
+    "actions": {
+      "idle": { "group": "Idle", "index": 0 },
+      "listen": { "group": "Idle", "index": 1 },
+      "think": { "group": "Idle", "index": 2 },
+      "speak": { "group": "TapBody", "index": 0 },
+      "happy": { "group": "TapBody", "index": 0 },
+      "comfort": { "group": "Idle", "index": 3 },
+      "greet": { "group": "TapBody", "index": 0 }
+    },
+    "expressions": {
+      "neutral": "",
+      "happy": "",
+      "thinking": "",
+      "sad": "",
+      "soft": "",
+      "engaged": ""
+    }
+  }
+}
