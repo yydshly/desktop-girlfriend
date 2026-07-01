@@ -141,11 +141,11 @@ function renderRendererStatus(elements, runtime, window) {
       status.modelCapabilities
         ? `capabilities: ${formatCapabilitySummary(status.modelCapabilities)}.`
         : "",
-      status.commandDiagnostics
-        ? `command: ${formatCommandDiagnostics(status.commandDiagnostics)}.`
-        : "",
       status.modelAdapterCommands
         ? `adapter: ${formatAdapterCommands(status.modelAdapterCommands)}.`
+        : "",
+      status.commandDiagnostics && !status.modelAdapterCommands
+        ? `legacy command: ${formatCommandDiagnostics(status.commandDiagnostics)}.`
         : "",
       status.activeMotion?.group
         ? `active motion: ${status.activeMotion.group}[${status.activeMotion.index}].`

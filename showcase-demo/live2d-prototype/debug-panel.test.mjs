@@ -163,6 +163,12 @@ function testShowcasePanelRendersAdapterCommands() {
     activeMotion: { group: "TapBody", index: 0 },
     activeExpression: "smile",
     modelCapabilities: { motionGroupCounts: { TapBody: 1 }, expressionNames: ["smile"] },
+    commandDiagnostics: {
+      requestedMotion: "idle",
+      requestedExpression: "neutral",
+      resolvedMotion: { group: "Idle", index: 0 },
+      expressionSupport: "missing"
+    },
     modelAdapterCommands: {
       motion: { group: "TapBody", index: 0, action: "happy" },
       expression: { name: "smile", semantic: "engaged" },
@@ -180,6 +186,8 @@ function testShowcasePanelRendersAdapterCommands() {
   assert.match(elements["#modelStatus"].textContent, /adapter: happy -> TapBody\[0\]/);
   assert.match(elements["#modelStatus"].textContent, /engaged -> smile/);
   assert.match(elements["#modelStatus"].textContent, /mouth 0.64; intensity 0.7; gaze cursor/);
+  assert.doesNotMatch(elements["#modelStatus"].textContent, /legacy command:/);
+  assert.doesNotMatch(elements["#modelStatus"].textContent, /expression neutral missing/);
 }
 
 function testShowcasePanelRunsModelExperiment() {
