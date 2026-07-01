@@ -14,6 +14,10 @@ COMPACT_MODE_HEIGHT = 320
 # presentation before the GUI layer binds them to Qt window flags.
 LIVE2D_DESKTOP_WIDTH = 520
 LIVE2D_DESKTOP_HEIGHT = 760
+LIVE2D_DESKTOP_MIN_SCALE = 0.65
+LIVE2D_DESKTOP_MAX_SCALE = 1.35
+LIVE2D_DESKTOP_MIN_OPACITY = 0.45
+LIVE2D_DESKTOP_MAX_OPACITY = 1.0
 LIVE2D_PROTOTYPE_ROUTE = "showcase-demo/live2d-prototype/index.html"
 LIVE2D_DESKTOP_QUERY = "desktop=1"
 
@@ -61,13 +65,19 @@ def build_live2d_desktop_shell_spec(
     if model_id:
         query["model"] = model_id
     source_url = f"{route.resolve().as_uri()}?{urlencode(query)}"
+    safe_scale = _clamp(scale, LIVE2D_DESKTOP_MIN_SCALE, LIVE2D_DESKTOP_MAX_SCALE)
+    safe_opacity = _clamp(
+        opacity,
+        LIVE2D_DESKTOP_MIN_OPACITY,
+        LIVE2D_DESKTOP_MAX_OPACITY,
+    )
     return Live2DDesktopShellSpec(
         source_url=source_url,
-        width=round(LIVE2D_DESKTOP_WIDTH * scale),
-        height=round(LIVE2D_DESKTOP_HEIGHT * scale),
+        width=round(LIVE2D_DESKTOP_WIDTH * safe_scale),
+        height=round(LIVE2D_DESKTOP_HEIGHT * safe_scale),
         click_through=click_through,
         devtools_enabled=devtools_enabled,
-        opacity=opacity,
+        opacity=safe_opacity,
     )
 
 
@@ -105,3 +115,9 @@ def render_compact_button_text(compact_mode: bool) -> str:
         "展开" when in compact mode, "小窗" when in normal mode.
     """
     return "展开" if compact_mode else "小窗"
+
+
+def _clamp(value: float, minimum: float, maximum: float) -> float:
+    """Clamp a numeric desktop shell value into a supported range."""
+
+    return min(maximum, max(minimum, float(value)))

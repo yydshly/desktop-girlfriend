@@ -149,6 +149,22 @@ class TestLive2DDesktopShellSpec:
         assert spec.height == round(LIVE2D_DESKTOP_HEIGHT * 0.8)
         assert spec.opacity == 0.7
 
+    def test_build_shell_spec_clamps_extreme_scale_and_opacity(self, tmp_path) -> None:
+        """Shell spec keeps direct CLI scale and opacity values usable."""
+        target = tmp_path / LIVE2D_PROTOTYPE_ROUTE
+        target.parent.mkdir(parents=True)
+        target.write_text("<!doctype html>", encoding="utf-8")
+
+        tiny = build_live2d_desktop_shell_spec(tmp_path, scale=0.1, opacity=-1)
+        huge = build_live2d_desktop_shell_spec(tmp_path, scale=9, opacity=9)
+
+        assert tiny.width == round(LIVE2D_DESKTOP_WIDTH * 0.65)
+        assert tiny.height == round(LIVE2D_DESKTOP_HEIGHT * 0.65)
+        assert tiny.opacity == 0.45
+        assert huge.width == round(LIVE2D_DESKTOP_WIDTH * 1.35)
+        assert huge.height == round(LIVE2D_DESKTOP_HEIGHT * 1.35)
+        assert huge.opacity == 1.0
+
     def test_build_shell_spec_includes_selected_model_id(self, tmp_path) -> None:
         """Shell spec passes the selected model id to the Live2D runtime page."""
         target = tmp_path / LIVE2D_PROTOTYPE_ROUTE
