@@ -157,6 +157,27 @@ def test_render_live2d_model_catalog_summary_reports_ready_primary_model(
     )
 
 
+def test_render_live2d_model_catalog_summary_follows_selected_model(
+    tmp_path: Path,
+) -> None:
+    """Catalog summary can report the currently selected model package."""
+    _write_model(tmp_path / "custom" / "Xiaoyun" / "Xiaoyun.model3.json")
+    _write_model(
+        tmp_path / "sample" / "Hiyori" / "Hiyori.model3.json",
+        textures=["texture_00.png", "texture_01.png"],
+        motions={
+            "Idle": [{"File": "motions/idle.motion3.json"}],
+            "TapBody": [{"File": "motions/tap.motion3.json"}],
+        },
+    )
+    packages = scan_live2d_model_catalog(tmp_path)
+
+    assert render_live2d_model_catalog_summary(
+        packages,
+        selected_model_id="sample/Hiyori",
+    ) == "Model: Hiyori · ready · motions 2 · textures 2"
+
+
 def test_render_live2d_model_catalog_summary_reports_broken_primary_model(
     tmp_path: Path,
 ) -> None:

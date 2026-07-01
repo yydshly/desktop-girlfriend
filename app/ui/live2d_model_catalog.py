@@ -109,12 +109,14 @@ def scan_live2d_model_catalog(catalog_root: Path) -> tuple[Live2DModelPackage, .
 
 def render_live2d_model_catalog_summary(
     packages: tuple[Live2DModelPackage, ...],
+    *,
+    selected_model_id: str | None = None,
 ) -> str:
     """Render a compact model package status for the desktop control surface."""
     if not packages:
         return "Model: no local Live2D model packages found"
 
-    primary = packages[0]
+    primary = _selected_package(packages, selected_model_id) or packages[0]
     if primary.status == Live2DModelPackageStatus.BROKEN:
         missing = ", ".join(primary.missing) if primary.missing else "unknown parts"
         return f"Model: {primary.display_name} · broken · missing {missing}"
@@ -123,6 +125,18 @@ def render_live2d_model_catalog_summary(
         f"Model: {primary.display_name} · ready · "
         f"motions {primary.motion_count} · textures {primary.texture_count}"
     )
+
+
+def _selected_package(
+    packages: tuple[Live2DModelPackage, ...],
+    selected_model_id: str | None,
+) -> Live2DModelPackage | None:
+    if not selected_model_id:
+        return None
+    for package in packages:
+        if package.model_id == selected_model_id:
+            return package
+    return None
 
 
 def build_live2d_model_options(
