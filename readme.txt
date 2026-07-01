@@ -112,6 +112,14 @@ cd D:\claude_code\20260628_桌面女友\desktop-girlfriend
 .venv\Scripts\python.exe -m app.live2d_desktop --scale 1.1 --opacity 0.9
 ```
 
+如果不传 `--model-id`，人物窗口会使用主窗口上次保存的当前模型。
+也可以临时指定模型：
+
+```powershell
+.venv\Scripts\python.exe -m app.live2d_desktop --model-id sample/Natori
+.venv\Scripts\python.exe -m app.live2d_desktop --model-id custom/Xiaoyun
+```
+
 注意：单独启动人物窗口时，如果主应用没有运行，本地 bridge 服务可能没有消息来源，所以人物可以显示，但不会跟随聊天状态变化。
 
 ## 6. 当前驱动链路
