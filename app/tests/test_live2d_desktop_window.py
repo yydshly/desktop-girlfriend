@@ -219,8 +219,8 @@ def test_context_menu_actions_describe_desktop_controls() -> None:
     """Right-click menu exposes the most useful desktop companion controls."""
     assert build_live2d_context_menu_actions(always_on_top=True) == (
         Live2DDesktopContextMenuAction("reset_position", "重置位置"),
-        Live2DDesktopContextMenuAction("opacity_down", "淡一点"),
-        Live2DDesktopContextMenuAction("opacity_up", "实一点"),
+        Live2DDesktopContextMenuAction("opacity_down", "更透明"),
+        Live2DDesktopContextMenuAction("opacity_up", "更清晰"),
         Live2DDesktopContextMenuAction("toggle_top", "取消置顶"),
         Live2DDesktopContextMenuAction("close", "隐藏人物"),
     )
