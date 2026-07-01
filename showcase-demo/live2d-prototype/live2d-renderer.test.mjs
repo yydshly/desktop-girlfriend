@@ -92,14 +92,14 @@ function testPlacementAcceptsProfileTuning() {
 
 testPlacementAcceptsProfileTuning();
 
-function testPointerFollowOffsetMovesModelVisibly() {
+function testPointerFollowOffsetKeepsContinuousMouseMotionSubtle() {
   const offset = calculatePointerFollowOffset(
     { width: 900, height: 1200 },
     { x: 0.8, y: -0.5 }
   );
 
-  assert.equal(offset.x, 39.6);
-  assert.equal(offset.y, -16.8);
+  assert.equal(offset.x, 5.4);
+  assert.equal(offset.y, -3);
   assert.equal(offset.strength, 0.943);
 }
 
@@ -165,9 +165,9 @@ function testPlacementAppliesPointerFollowOffset() {
 
   const placement = renderer.applyLive2DPlacement();
 
-  assert.equal(renderer.live2dModel.position.value.x, 489.6);
-  assert.equal(renderer.live2dModel.position.value.y, 643.2);
-  assert.deepEqual(placement.followOffset, { x: 39.6, y: -16.8, strength: 0.943 });
+  assert.equal(renderer.live2dModel.position.value.x, 455.4);
+  assert.equal(renderer.live2dModel.position.value.y, 657);
+  assert.deepEqual(placement.followOffset, { x: 5.4, y: -3, strength: 0.943 });
 }
 
 function testPlacementUsesUnscaledModelSizeAcrossRepeatedFrames() {
@@ -204,7 +204,7 @@ function testPlacementUsesUnscaledModelSizeAcrossRepeatedFrames() {
   assert.equal(second.scale, 1.296);
 }
 
-testPointerFollowOffsetMovesModelVisibly();
+testPointerFollowOffsetKeepsContinuousMouseMotionSubtle();
 testPointerFollowOffsetCanBeDisabled();
 testPointerReactionEffectCreatesClickPulse();
 testPointerReactionEffectExpires();
@@ -800,6 +800,7 @@ function testReplyMotionDoesNotAutoRotateIdle() {
 function testAmbientGestureStartsDuringIdle() {
   const renderer = new Live2DRenderer(createCanvasProbe());
   renderer.lastCommands = { motion: "idle", parameters: {} };
+  renderer.nextAmbientGestureAt = 7200;
 
   renderer.advanceAmbientGesture(7201);
 
@@ -811,6 +812,7 @@ function testAmbientGestureStartsDuringIdle() {
 function testAmbientGestureDoesNotInterruptReply() {
   const renderer = new Live2DRenderer(createCanvasProbe());
   renderer.lastCommands = { motion: "reply", parameters: {} };
+  renderer.nextAmbientGestureAt = 7200;
 
   renderer.advanceAmbientGesture(7201);
 
@@ -821,6 +823,7 @@ function testAmbientGestureDoesNotInterruptReply() {
 function testAmbientGestureDoesNotOverrideActiveTapReaction() {
   const renderer = new Live2DRenderer(createCanvasProbe());
   renderer.lastCommands = { motion: "idle", parameters: {} };
+  renderer.nextAmbientGestureAt = 7200;
   renderer.pointerReaction = { startedAt: 7000, x: 0.6, y: -0.4 };
 
   renderer.advanceAmbientGesture(7201);
@@ -854,6 +857,19 @@ function testMappedPointerCarriesGazeMetadata() {
   );
 
   assert.deepEqual(command.pointer, { x: 0.6, y: -0.4, strength: 0.721 });
+}
+
+function testMappedPointerPrioritizesHeadAndEyeTracking() {
+  const command = mapStateToLive2DCommands(
+    { emotion: "neutral", intensity: 0.25 },
+    { x: 0.8, y: -0.5 }
+  );
+
+  assert.ok(command.parameters.ParamAngleX >= 28);
+  assert.ok(command.parameters.ParamAngleY >= 15);
+  assert.ok(command.parameters.ParamBodyAngleX >= 11);
+  assert.equal(command.parameters.ParamEyeBallX, 1);
+  assert.equal(command.parameters.ParamEyeBallY, 0.75);
 }
 
 function testStrongPointerGazeDampsIdleEyeDrift() {
@@ -938,6 +954,7 @@ function testAdvanceReturnToIdlePlaysIdleMotion() {
 testPointerSmoothingMovesTowardTarget();
 testPointerSmoothingSnapsTinyDeltas();
 testMappedPointerCarriesGazeMetadata();
+testMappedPointerPrioritizesHeadAndEyeTracking();
 testStrongPointerGazeDampsIdleEyeDrift();
 testPointerGazeClampsEyeParameters();
 testPointerReactionAddsBodyAndHeadMotion();

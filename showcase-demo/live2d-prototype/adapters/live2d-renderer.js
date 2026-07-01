@@ -33,7 +33,7 @@ export class Live2DRenderer {
     this.returnToIdleAt = 0;
     this.lastMotionPlayedAt = -Infinity;
     this.pointerReaction = { startedAt: 0, x: 0, y: 0 };
-    this.nextAmbientGestureAt = AMBIENT_GESTURE_INTERVAL_MS;
+    this.nextAmbientGestureAt = Infinity;
     this.ambientGestureIndex = 0;
   }
 
@@ -306,6 +306,9 @@ export class Live2DRenderer {
       return;
     }
 
+    const startAt = performance.now();
+    this.nextAmbientGestureAt = startAt + AMBIENT_GESTURE_INTERVAL_MS;
+
     const frame = () => {
       const now = performance.now();
       this.updateSmoothedPointer();
@@ -540,8 +543,8 @@ export function calculatePointerFollowOffset(canvasSize, pointer = {}, placement
   const x = clampUnit(Number(pointer.x ?? 0));
   const y = clampUnit(Number(pointer.y ?? 0));
   const strength = Math.min(1, Math.hypot(x, y));
-  const xRatio = Number(placementProfile.pointerFollowXRatio ?? 0.055);
-  const yRatio = Number(placementProfile.pointerFollowYRatio ?? 0.028);
+  const xRatio = Number(placementProfile.pointerFollowXRatio ?? 0.0075);
+  const yRatio = Number(placementProfile.pointerFollowYRatio ?? 0.005);
   const enabled = placementProfile.pointerFollow !== false;
 
   if (!enabled) {

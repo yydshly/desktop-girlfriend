@@ -35,19 +35,19 @@ export function mapStateToLive2DCommands(state = {}, pointer = { x: 0, y: 0 }) {
   const pointerX = clamp(Number(pointer.x ?? 0), -1, 1);
   const pointerY = clamp(Number(pointer.y ?? 0), -1, 1);
   const pointerStrength = rounded(clamp(Math.hypot(pointerX, pointerY), 0, 1));
-  const followIntensity = 0.45 + intensity * 0.55;
+  const followIntensity = 0.7 + intensity * 0.45;
   const mouth = clamp(Number(state.mouth ?? 0), 0, 1);
 
   const parameters = {
-    [PARAMETER_IDS.angleX]: rounded(pointerX * 30 * followIntensity),
-    [PARAMETER_IDS.angleY]: rounded(pointerY * -20 * followIntensity),
+    [PARAMETER_IDS.angleX]: rounded(pointerX * 44 * followIntensity),
+    [PARAMETER_IDS.angleY]: rounded(pointerY * -38 * followIntensity),
     [PARAMETER_IDS.angleZ]: rounded(emotion.angleZ * intensity),
-    [PARAMETER_IDS.bodyAngleX]: rounded(pointerX * 15 * followIntensity),
-    [PARAMETER_IDS.bodyAngleY]: rounded(pointerY * -8 * followIntensity),
+    [PARAMETER_IDS.bodyAngleX]: rounded(pointerX * 17 * followIntensity),
+    [PARAMETER_IDS.bodyAngleY]: rounded(pointerY * -10 * followIntensity),
     [PARAMETER_IDS.eyeLOpen]: rounded(emotion.eyeOpen),
     [PARAMETER_IDS.eyeROpen]: rounded(emotion.eyeOpen),
-    [PARAMETER_IDS.eyeBallX]: rounded(pointerX),
-    [PARAMETER_IDS.eyeBallY]: rounded(pointerY * -1),
+    [PARAMETER_IDS.eyeBallX]: rounded(clamp(pointerX * 1.25, -1, 1)),
+    [PARAMETER_IDS.eyeBallY]: rounded(clamp(pointerY * -1.5, -1, 1)),
     [PARAMETER_IDS.mouthOpenY]: rounded(mouth),
     [PARAMETER_IDS.mouthForm]: rounded(emotion.mouthForm),
     [PARAMETER_IDS.breath]: rounded(0.5 + intensity * 0.5)
