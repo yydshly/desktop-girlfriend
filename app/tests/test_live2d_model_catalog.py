@@ -22,7 +22,12 @@ def _write_model(
     textures: list[str] | None = None,
     motions: dict | None = None,
     physics: str = "model.physics3.json",
+    create_assets: bool = True,
 ) -> None:
+    texture_refs = textures if textures is not None else ["texture_00.png"]
+    motion_refs = motions if motions is not None else {
+        "Idle": [{"File": "motions/idle.motion3.json"}]
+    }
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         json.dumps(
@@ -30,17 +35,33 @@ def _write_model(
                 "Version": 3,
                 "FileReferences": {
                     "Moc": moc,
-                    "Textures": textures if textures is not None else ["texture_00.png"],
+                    "Textures": texture_refs,
                     "Physics": physics,
-                    "Motions": motions
-                    if motions is not None
-                    else {"Idle": [{"File": "motions/idle.motion3.json"}]},
+                    "Motions": motion_refs,
                 },
             },
             ensure_ascii=False,
         ),
         encoding="utf-8",
     )
+    if not create_assets:
+        return
+    for asset in [moc, physics, *texture_refs, *_motion_files(motion_refs)]:
+        if asset:
+            asset_path = path.parent / asset
+            asset_path.parent.mkdir(parents=True, exist_ok=True)
+            asset_path.write_text("asset", encoding="utf-8")
+
+
+def _motion_files(motions: dict) -> list[str]:
+    files: list[str] = []
+    for entries in motions.values():
+        if not isinstance(entries, list):
+            continue
+        for entry in entries:
+            if isinstance(entry, dict) and isinstance(entry.get("File"), str):
+                files.append(entry["File"])
+    return files
 
 
 def test_inspect_live2d_model_package_reports_ready_package(tmp_path: Path) -> None:
@@ -78,6 +99,29 @@ def test_inspect_live2d_model_package_reports_missing_required_parts(
 
     assert package.status == Live2DModelPackageStatus.BROKEN
     assert package.missing == ("Moc", "Textures")
+
+
+def test_inspect_live2d_model_package_reports_missing_referenced_files(
+    tmp_path: Path,
+) -> None:
+    """Referenced assets must exist next to the model package."""
+    model_path = tmp_path / "broken" / "Broken.model3.json"
+    _write_model(
+        model_path,
+        textures=["texture_00.png"],
+        motions={"Idle": [{"File": "motions/idle.motion3.json"}]},
+        create_assets=False,
+    )
+
+    package = inspect_live2d_model_package(model_path, catalog_root=tmp_path)
+
+    assert package.status == Live2DModelPackageStatus.BROKEN
+    assert package.missing == (
+        "Moc file: model.moc3",
+        "Texture file: texture_00.png",
+        "Motion file: motions/idle.motion3.json",
+        "Physics file: model.physics3.json",
+    )
 
 
 def test_scan_live2d_model_catalog_sorts_model_packages(tmp_path: Path) -> None:

@@ -59,6 +59,20 @@ def inspect_live2d_model_package(
         missing.append("Moc")
     if not textures:
         missing.append("Textures")
+    missing.extend(_missing_referenced_files(model_json.parent, "Moc file", [moc]))
+    missing.extend(
+        _missing_referenced_files(model_json.parent, "Texture file", textures)
+    )
+    missing.extend(
+        _missing_referenced_files(
+            model_json.parent,
+            "Motion file",
+            _motion_files(motions),
+        )
+    )
+    missing.extend(
+        _missing_referenced_files(model_json.parent, "Physics file", [physics])
+    )
 
     return Live2DModelPackage(
         model_id=_model_id(model_json, catalog_root),
@@ -171,6 +185,31 @@ def _motion_count(motions: dict[Any, Any]) -> int:
         if isinstance(entries, list):
             total += len(entries)
     return total
+
+
+def _motion_files(motions: dict[Any, Any]) -> tuple[str, ...]:
+    files: list[str] = []
+    for entries in motions.values():
+        if not isinstance(entries, list):
+            continue
+        for entry in entries:
+            if isinstance(entry, dict):
+                file_name = _string_value(entry.get("File"))
+                if file_name:
+                    files.append(file_name)
+    return tuple(files)
+
+
+def _missing_referenced_files(
+    package_root: Path,
+    label: str,
+    references: list[str] | tuple[str, ...],
+) -> tuple[str, ...]:
+    missing: list[str] = []
+    for reference in references:
+        if reference and not (package_root / reference).is_file():
+            missing.append(f"{label}: {reference}")
+    return tuple(missing)
 
 
 def _model_id(model_json: Path, catalog_root: Path) -> str:
