@@ -170,6 +170,7 @@ Live2DRenderer
   - loads .model3.json through the local Live2D SDK runtime
   - applies parameters, expressions, and motions
   - treats adapter speak/reply commands as speaking for mouth pulse animation
+  - keeps idle alive with subtle breath, eye, head, and body micro-motion
   - reads model package capabilities before issuing expression and motion commands
   - uses model profile motion bindings before falling back to generic mappings
 ```

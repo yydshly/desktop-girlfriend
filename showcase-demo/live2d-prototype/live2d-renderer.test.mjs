@@ -589,6 +589,24 @@ function testIdleStateAddsBreathingMotion() {
   assert.notEqual(parameters.ParamBodyAngleX, 0);
 }
 
+function testIdleStateAddsEyeAndHeadMicroMotion() {
+  const parameters = calculateAnimatedLive2DParameters(
+    {
+      ParamAngleY: 0,
+      ParamEyeBallX: 0,
+      ParamEyeBallY: 0,
+      ParamBodyAngleY: 0
+    },
+    { motion: "idle", expression: "neutral" },
+    1400
+  );
+
+  assert.notEqual(parameters.ParamAngleY, 0);
+  assert.notEqual(parameters.ParamEyeBallX, 0);
+  assert.notEqual(parameters.ParamEyeBallY, 0);
+  assert.notEqual(parameters.ParamBodyAngleY, 0);
+}
+
 function testThinkingStateAddsFocusedMicroMotion() {
   const parameters = calculateAnimatedLive2DParameters(
     { ParamAngleY: 0, ParamEyeBallY: 0, ParamBodyAngleX: 0 },
@@ -607,6 +625,7 @@ testVisualIntentSpeakingAnimatesMouthOpen();
 testModelAdapterSpeakActionAnimatesMouthOpen();
 testIdleStateDoesNotAnimateMouthOpen();
 testIdleStateAddsBreathingMotion();
+testIdleStateAddsEyeAndHeadMicroMotion();
 testThinkingStateAddsFocusedMicroMotion();
 
 function testIdleMotionAutoRotates() {

@@ -701,8 +701,20 @@ export function calculateAnimatedLive2DParameters(parameters = {}, command = {},
     next.ParamAngleZ = roundParameter(
       Number(next.ParamAngleZ ?? 0) + Math.sin(now / 1400) * 0.9
     );
+    next.ParamAngleY = roundParameter(
+      Number(next.ParamAngleY ?? 0) + Math.sin(now / 2100) * 1.1
+    );
+    next.ParamEyeBallX = roundParameter(
+      Number(next.ParamEyeBallX ?? 0) + Math.sin(now / 1800) * 0.12
+    );
+    next.ParamEyeBallY = roundParameter(
+      Number(next.ParamEyeBallY ?? 0) + Math.sin(now / 2400) * 0.06
+    );
     next.ParamBodyAngleX = roundParameter(
       Number(next.ParamBodyAngleX ?? 0) + Math.sin(now / 1250) * 0.8
+    );
+    next.ParamBodyAngleY = roundParameter(
+      Number(next.ParamBodyAngleY ?? 0) + Math.sin(now / 2300) * 0.5
     );
   }
 
