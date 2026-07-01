@@ -87,6 +87,9 @@ class DesktopViewModel:
         # Desktop presence state (Phase 2-D)
         self.always_on_top: bool = False
         self.compact_mode: bool = False
+        self.live2d_model_catalog_summary: str = (
+            "Model: scanning local Live2D packages"
+        )
         # Settings panel state (Phase 2-E)
         self.settings_visible: bool = False
         self.settings_text: str = ""
@@ -564,6 +567,12 @@ class DesktopViewModel:
             text: The rendered startup diagnostics details.
         """
         self.startup_diagnostics_text = text
+
+    def set_live2d_model_catalog_summary(self, text: str) -> None:
+        """Set the compact Live2D model package status text."""
+        self.live2d_model_catalog_summary = text.strip() or (
+            "Model: no Live2D model status available"
+        )
 
     @property
     def effective_avatar_text(self) -> str:

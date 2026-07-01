@@ -245,6 +245,12 @@ class DesktopWindow(QMainWindow):
         live2d_control_layout.addWidget(self._live2d_reset_button)
         live2d_control_layout.addStretch()
         layout.addWidget(live2d_control_row)
+        self._live2d_model_status_label = QLabel(
+            self._view_model.live2d_model_catalog_summary
+        )
+        self._live2d_model_status_label.setWordWrap(True)
+        self._live2d_model_status_label.setStyleSheet(window_style.STATUS_LABEL_STYLE)
+        layout.addWidget(self._live2d_model_status_label)
 
         # Phase 3-B: Onboarding card — shown at first run
         self._onboarding_card = QWidget()
@@ -743,6 +749,9 @@ class DesktopWindow(QMainWindow):
         # Phase 2-D: Sync presence shell button texts
         self._pin_button.setText(render_pin_button_text(self._view_model.always_on_top))
         self._compact_button.setText(render_compact_button_text(self._view_model.compact_mode))
+        self._live2d_model_status_label.setText(
+            self._view_model.live2d_model_catalog_summary
+        )
         # Phase 2-D: Sync compact mode layout
         self._aux_button_row.setVisible(not self._view_model.compact_mode)
 

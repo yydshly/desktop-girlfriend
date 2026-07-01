@@ -303,6 +303,24 @@ class TestWindowPresenceShell:
         ]
 
     @staticmethod
+    def test_live2d_model_status_label_reflects_view_model(qapp: QApplication) -> None:
+        """Desktop window surfaces the active Live2D model package status."""
+        vm = DesktopViewModel()
+        vm.set_live2d_model_catalog_summary(
+            "Model: Hiyori · ready · motions 10 · textures 2"
+        )
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+        )
+        window.show()
+
+        assert window._live2d_model_status_label.text() == (
+            "Model: Hiyori · ready · motions 10 · textures 2"
+        )
+
+    @staticmethod
     def test_status_button_first_click_opens_panel(qapp: QApplication) -> None:
         """First click on status button opens the panel."""
         vm = DesktopViewModel()

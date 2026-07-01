@@ -8,6 +8,7 @@ from pathlib import Path
 from app.ui.live2d_model_catalog import (
     Live2DModelPackageStatus,
     inspect_live2d_model_package,
+    render_live2d_model_catalog_summary,
     scan_live2d_model_catalog,
 )
 
@@ -88,3 +89,43 @@ def test_scan_live2d_model_catalog_sorts_model_packages(tmp_path: Path) -> None:
         "custom/Xiaoyun",
         "sample/Hiyori",
     ]
+
+
+def test_render_live2d_model_catalog_summary_reports_ready_primary_model(
+    tmp_path: Path,
+) -> None:
+    """Catalog summary makes the selected model health visible in the UI."""
+    model_path = tmp_path / "custom" / "Xiaoyun" / "Xiaoyun.model3.json"
+    _write_model(
+        model_path,
+        textures=["texture_00.png", "texture_01.png"],
+        motions={
+            "Idle": [{"File": "motions/idle.motion3.json"}],
+            "TapBody": [{"File": "motions/tap.motion3.json"}],
+        },
+    )
+    package = inspect_live2d_model_package(model_path, catalog_root=tmp_path)
+
+    assert render_live2d_model_catalog_summary((package,)) == (
+        "Model: Xiaoyun · ready · motions 2 · textures 2"
+    )
+
+
+def test_render_live2d_model_catalog_summary_reports_broken_primary_model(
+    tmp_path: Path,
+) -> None:
+    """Broken model packages include actionable missing-part diagnostics."""
+    model_path = tmp_path / "broken" / "Broken.model3.json"
+    _write_model(model_path, moc="", textures=[])
+    package = inspect_live2d_model_package(model_path, catalog_root=tmp_path)
+
+    assert render_live2d_model_catalog_summary((package,)) == (
+        "Model: Broken · broken · missing Moc, Textures"
+    )
+
+
+def test_render_live2d_model_catalog_summary_reports_empty_catalog() -> None:
+    """Empty model directories produce a clear status instead of a blank label."""
+    assert render_live2d_model_catalog_summary(()) == (
+        "Model: no local Live2D model packages found"
+    )

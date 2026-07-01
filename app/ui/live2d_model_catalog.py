@@ -62,7 +62,7 @@ def inspect_live2d_model_package(
 
     return Live2DModelPackage(
         model_id=_model_id(model_json, catalog_root),
-        display_name=model_json.parent.name or model_json.stem,
+        display_name=_display_name(model_json),
         model_json=model_json,
         relative_model_json=_relative_path(model_json, catalog_root),
         status=Live2DModelPackageStatus.BROKEN
@@ -90,6 +90,24 @@ def scan_live2d_model_catalog(catalog_root: Path) -> tuple[Live2DModelPackage, .
     return tuple(
         inspect_live2d_model_package(model_path, catalog_root=catalog_root)
         for model_path in model_paths
+    )
+
+
+def render_live2d_model_catalog_summary(
+    packages: tuple[Live2DModelPackage, ...],
+) -> str:
+    """Render a compact model package status for the desktop control surface."""
+    if not packages:
+        return "Model: no local Live2D model packages found"
+
+    primary = packages[0]
+    if primary.status == Live2DModelPackageStatus.BROKEN:
+        missing = ", ".join(primary.missing) if primary.missing else "unknown parts"
+        return f"Model: {primary.display_name} · broken · missing {missing}"
+
+    return (
+        f"Model: {primary.display_name} · ready · "
+        f"motions {primary.motion_count} · textures {primary.texture_count}"
     )
 
 
@@ -127,6 +145,10 @@ def _model_id(model_json: Path, catalog_root: Path) -> str:
 
     model_id = relative_parent.as_posix()
     return model_id if model_id != "." else model_json.stem
+
+
+def _display_name(model_json: Path) -> str:
+    return model_json.name.removesuffix(".model3.json") or model_json.parent.name
 
 
 def _relative_path(path: Path, root: Path) -> str:

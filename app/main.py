@@ -4,6 +4,7 @@ import logging
 import sys
 import uuid
 from dataclasses import replace
+from pathlib import Path
 from typing import Protocol
 
 from PySide6.QtCore import QTimer
@@ -68,6 +69,10 @@ from app.ui.live2d_bridge import Live2DBridgeEventDispatcher
 from app.ui.live2d_bridge_server import Live2DBridgeServer
 from app.ui.live2d_desktop_process import Live2DDesktopProcess
 from app.ui.live2d_desktop_window import default_live2d_position_path
+from app.ui.live2d_model_catalog import (
+    render_live2d_model_catalog_summary,
+    scan_live2d_model_catalog,
+)
 from app.ui.onboarding_view import build_onboarding_view, render_onboarding_text
 from app.ui.product_status_builder import build_product_status_view
 from app.ui.qt_event_bridge import QtEventBridge
@@ -148,6 +153,22 @@ def main() -> None:
 
     # Initialize UI components
     view_model = DesktopViewModel()
+    live2d_model_root = (
+        Path(__file__).resolve().parents[1]
+        / "showcase-demo"
+        / "live2d-prototype"
+        / "assets"
+        / "models"
+    )
+    live2d_model_packages = scan_live2d_model_catalog(live2d_model_root)
+    live2d_model_summary = render_live2d_model_catalog_summary(live2d_model_packages)
+    view_model.set_live2d_model_catalog_summary(live2d_model_summary)
+    logger.info(
+        "Live2D model catalog scanned root=%s packages=%d summary=%s",
+        live2d_model_root,
+        len(live2d_model_packages),
+        live2d_model_summary,
+    )
     # V11-C: Set diagnostics text for display in status panel
     view_model.set_startup_diagnostics_text(
         render_startup_diagnostics_details(startup_diagnostics)
@@ -631,8 +652,6 @@ def main() -> None:
     )
 
     if memory_runtime_enabled:
-        from pathlib import Path
-
         from app.brain.memory.controller import MemorySuggestionController
         from app.brain.memory.repository import LocalJsonMemoryRepository
         from app.brain.memory.runtime import create_local_memory_runtime
