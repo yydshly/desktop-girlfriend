@@ -11,6 +11,7 @@ export class Live2DRenderer {
     this.allowTextureFallback = options.allowTextureFallback !== false;
     this.onStatusChange = options.onStatusChange || (() => {});
     this.motionBindings = options.motionBindings || {};
+    this.placementProfile = options.placementProfile || {};
     this.app = null;
     this.model = null;
     this.live2dModel = null;
@@ -75,6 +76,12 @@ export class Live2DRenderer {
     this.emitStatus();
   }
 
+  setPlacementProfile(profile = {}) {
+    this.placementProfile = profile || {};
+    this.applyLive2DPlacement();
+    this.emitStatus();
+  }
+
   async loadPreviewTexture() {
     this.loadState = "loading";
     this.emitStatus();
@@ -122,12 +129,7 @@ export class Live2DRenderer {
       });
       const live2dModel = await Live2DModel.from(this.modelUrl);
       live2dModel.anchor.set(0.5, 0.5);
-      const placement = calculateLive2DPlacement(
-        { width: this.canvas.width, height: this.canvas.height },
-        { width: live2dModel.width, height: live2dModel.height }
-      );
-      live2dModel.scale.set(placement.scale);
-      live2dModel.position.set(placement.x, placement.y);
+      this.applyLive2DPlacement(live2dModel);
       app.stage.addChild(live2dModel);
 
       this.app = app;
@@ -150,6 +152,20 @@ export class Live2DRenderer {
       this.emitStatus();
       this.draw();
     }
+  }
+
+  applyLive2DPlacement(model = this.live2dModel) {
+    if (!model) {
+      return null;
+    }
+    const placement = calculateLive2DPlacement(
+      { width: this.canvas.width, height: this.canvas.height },
+      { width: model.width, height: model.height },
+      this.placementProfile
+    );
+    model.scale.set(placement.scale);
+    model.position.set(placement.x, placement.y);
+    return placement;
   }
 
   draw() {
@@ -403,19 +419,28 @@ function getLive2DModelFactory(PIXI) {
   return Live2DModel;
 }
 
-export function calculateLive2DPlacement(canvasSize, modelSize) {
+export function calculateLive2DPlacement(canvasSize, modelSize, placementProfile = {}) {
   const safeModelWidth = Math.max(1, modelSize.width);
   const safeModelHeight = Math.max(1, modelSize.height);
-  const scale = Math.min(
+  const baseScale = Math.min(
     canvasSize.width / safeModelWidth * 0.92,
     canvasSize.height / safeModelHeight * 1.08
   );
+  const scaleMultiplier = Number(placementProfile.scaleMultiplier ?? 1);
+  const xOffsetRatio = Number(placementProfile.xOffsetRatio ?? 0);
+  const yRatio = Number(placementProfile.yRatio ?? 0.55);
+  const scale = baseScale * (Number.isFinite(scaleMultiplier) ? scaleMultiplier : 1);
 
   return {
-    scale,
-    x: canvasSize.width / 2,
-    y: canvasSize.height * 0.55
+    scale: roundTo(scale, 3),
+    x: roundTo(canvasSize.width / 2 + canvasSize.width * (Number.isFinite(xOffsetRatio) ? xOffsetRatio : 0), 3),
+    y: roundTo(canvasSize.height * (Number.isFinite(yRatio) ? yRatio : 0.55), 3)
   };
+}
+
+function roundTo(value, digits) {
+  const factor = 10 ** digits;
+  return Math.round(value * factor) / factor;
 }
 
 export function mapCommandToModelMotion(command = {}, motionGroupCounts = null, motionBindings = {}) {

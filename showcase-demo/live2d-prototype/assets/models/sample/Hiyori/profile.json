@@ -1,5 +1,10 @@
 {
   "displayName": "Hiyori",
+  "desktopPlacement": {
+    "scaleMultiplier": 1.06,
+    "xOffsetRatio": 0,
+    "yRatio": 0.54
+  },
   "motionBindings": {
     "idle": { "group": "Idle", "index": 0 },
     "happy": { "group": "TapBody", "index": 0 },

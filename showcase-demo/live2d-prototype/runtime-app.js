@@ -48,6 +48,7 @@ export function createLive2DRuntime({
       modelUrl: configuredModelUrl,
       allowTextureFallback: !isDesktopMode,
       motionBindings: getEffectiveMotionBindings(),
+      placementProfile: modelProfile.desktopPlacement || {},
       onStatusChange: (status) => {
         lastRendererStatus = status;
         listeners.onRendererStatus(status);
@@ -208,6 +209,7 @@ export function createLive2DRuntime({
   async function loadProfileForCurrentModel() {
     modelProfile = await loadModelProfile(configuredModelUrl);
     controller.renderer.setMotionBindings?.(getEffectiveMotionBindings());
+    controller.renderer.setPlacementProfile?.(modelProfile.desktopPlacement || {});
     listeners.onMotionBindingStatus();
   }
 

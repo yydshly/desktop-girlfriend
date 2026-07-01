@@ -26,6 +26,29 @@ function testNormalizeModelProfileSanitizesMotionBindings() {
       motionBindings: {
         happy: { group: "Idle", index: 5 },
         sad: { group: "TapBody", index: 0 }
+      },
+      desktopPlacement: {}
+    }
+  );
+}
+
+function testNormalizeModelProfileSanitizesDesktopPlacement() {
+  assert.deepEqual(
+    normalizeModelProfile({
+      displayName: "Hiyori",
+      desktopPlacement: {
+        scaleMultiplier: "1.12",
+        xOffsetRatio: "-0.08",
+        yRatio: "0.57"
+      }
+    }),
+    {
+      displayName: "Hiyori",
+      motionBindings: {},
+      desktopPlacement: {
+        scaleMultiplier: 1.12,
+        xOffsetRatio: -0.08,
+        yRatio: 0.57
       }
     }
   );
@@ -42,7 +65,8 @@ async function testLoadModelProfileReturnsEmptyProfileWhenMissing() {
 
   assert.deepEqual(profile, {
     displayName: "",
-    motionBindings: {}
+    motionBindings: {},
+    desktopPlacement: {}
   });
 }
 
@@ -54,6 +78,10 @@ async function testLoadModelProfileParsesProfileJson() {
         displayName: "Hiyori",
         motionBindings: {
           think: { group: "Idle", index: 1 }
+        },
+        desktopPlacement: {
+          scaleMultiplier: 1.08,
+          yRatio: 0.56
         }
       };
     }
@@ -65,12 +93,17 @@ async function testLoadModelProfileParsesProfileJson() {
     displayName: "Hiyori",
     motionBindings: {
       think: { group: "Idle", index: 1 }
+    },
+    desktopPlacement: {
+      scaleMultiplier: 1.08,
+      yRatio: 0.56
     }
   });
 }
 
 testModelJsonUrlToProfileUrlUsesSameDirectory();
 testNormalizeModelProfileSanitizesMotionBindings();
+testNormalizeModelProfileSanitizesDesktopPlacement();
 await testLoadModelProfileReturnsEmptyProfileWhenMissing();
 await testLoadModelProfileParsesProfileJson();
 console.log("model-profile tests passed");

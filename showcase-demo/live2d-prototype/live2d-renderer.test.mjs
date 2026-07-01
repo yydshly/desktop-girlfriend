@@ -71,6 +71,24 @@ function testPlacementFillsStageMoreAssertively() {
 
 testPlacementFillsStageMoreAssertively();
 
+function testPlacementAcceptsProfileTuning() {
+  const placement = calculateLive2DPlacement(
+    { width: 900, height: 1200 },
+    { width: 300, height: 1000 },
+    {
+      scaleMultiplier: 1.1,
+      xOffsetRatio: -0.05,
+      yRatio: 0.58
+    }
+  );
+
+  assert.equal(placement.scale, 1.426);
+  assert.equal(placement.x, 405);
+  assert.equal(placement.y, 696);
+}
+
+testPlacementAcceptsProfileTuning();
+
 function testSequenceTriggersTapBodyMotion() {
   const renderer = new Live2DRenderer(createCanvasProbe());
   const calls = [];
