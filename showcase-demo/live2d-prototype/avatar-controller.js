@@ -67,6 +67,14 @@ export class AvatarController {
     this.renderer.setPointer(x, y);
   }
 
+  reactToPointerFromEvent(event, element) {
+    const rect = element.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
+    const y = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
+    this.renderer.setPointer(x, y);
+    this.renderer.triggerPointerReaction?.(x, y);
+  }
+
   applyMappedState(nextState, emotionState = null) {
     const nextEmotionState = emotionState || normalizeEmotionState(nextState);
     const behavior = planBehaviorFromEmotionState(nextEmotionState);

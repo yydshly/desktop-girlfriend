@@ -11,7 +11,15 @@ function createTextElement() {
 
 function createStageElement() {
   return {
-    className: "avatar-stage"
+    className: "avatar-stage",
+    getBoundingClientRect() {
+      return {
+        left: 10,
+        top: 20,
+        width: 200,
+        height: 100
+      };
+    }
   };
 }
 
@@ -26,7 +34,12 @@ function createRendererProbe() {
     playMotionProbe(group, index) {
       this.motionProbe = { group, index };
     },
-    setPointer() {}
+    setPointer(x, y) {
+      this.pointer = { x, y };
+    },
+    triggerPointerReaction(x, y) {
+      this.pointerReaction = { x, y };
+    }
   };
 }
 
@@ -175,6 +188,21 @@ function testControllerPlaysMotionProbe() {
   assert.equal(controller.currentState.source, "manual.motion-probe");
 }
 
+function testControllerTriggersPointerReactionFromEvent() {
+  const renderer = createRendererProbe();
+  const readout = createTextElement();
+  const stage = createStageElement();
+  const controller = new AvatarController(renderer, readout, null, stage);
+
+  controller.reactToPointerFromEvent(
+    { clientX: 160, clientY: 45 },
+    stage
+  );
+
+  assert.deepEqual(renderer.pointer, { x: 0.5, y: -0.5 });
+  assert.deepEqual(renderer.pointerReaction, { x: 0.5, y: -0.5 });
+}
+
 testControllerRendersSpeechBubbleFromDialogueTurn();
 testControllerHidesBubbleForIdleStateWithoutBubble();
 testControllerMarksStageWithVisualStateClass();
@@ -182,4 +210,5 @@ testControllerUsesVisualIntentForStageClass();
 testControllerStoresEmotionAndBehaviorForMappedState();
 testControllerStoresModelCommandsWhenProfileProviderExists();
 testControllerPlaysMotionProbe();
+testControllerTriggersPointerReactionFromEvent();
 console.log("avatar-controller tests passed");

@@ -3,6 +3,7 @@ import {
   calculateAnimatedLive2DParameters,
   calculateLive2DPlacement,
   calculatePointerFollowOffset,
+  calculatePointerReactionEffect,
   getReturnToIdleDelayMs,
   Live2DRenderer,
   mapCommandToModelMotion,
@@ -112,6 +113,36 @@ function testPointerFollowOffsetCanBeDisabled() {
   assert.deepEqual(offset, { x: 0, y: 0, strength: 0 });
 }
 
+function testPointerReactionEffectCreatesClickPulse() {
+  const effect = calculatePointerReactionEffect(
+    { startedAt: 1000, x: 0.5, y: -0.25 },
+    1280
+  );
+
+  assert.equal(effect.active, true);
+  assert.equal(effect.envelope, 1);
+  assert.equal(effect.offsetX, 12);
+  assert.equal(effect.offsetY, -13.5);
+  assert.equal(effect.scaleMultiplier, 1.028);
+}
+
+function testPointerReactionEffectExpires() {
+  const effect = calculatePointerReactionEffect(
+    { startedAt: 1000, x: 0.5, y: -0.25 },
+    1700
+  );
+
+  assert.deepEqual(effect, {
+    active: false,
+    envelope: 0,
+    x: 0,
+    y: 0,
+    offsetX: 0,
+    offsetY: 0,
+    scaleMultiplier: 1
+  });
+}
+
 function testPlacementAppliesPointerFollowOffset() {
   const renderer = new Live2DRenderer(createCanvasProbe());
   renderer.pointer = { x: 0.8, y: -0.5 };
@@ -141,6 +172,8 @@ function testPlacementAppliesPointerFollowOffset() {
 
 testPointerFollowOffsetMovesModelVisibly();
 testPointerFollowOffsetCanBeDisabled();
+testPointerReactionEffectCreatesClickPulse();
+testPointerReactionEffectExpires();
 testPlacementAppliesPointerFollowOffset();
 
 function testSequenceTriggersTapBodyMotion() {
@@ -781,6 +814,29 @@ function testPointerGazeClampsEyeParameters() {
   assert.ok(parameters.ParamEyeBallY >= -1);
 }
 
+function testPointerReactionAddsBodyAndHeadMotion() {
+  const parameters = calculateAnimatedLive2DParameters(
+    { ParamAngleX: 0, ParamAngleY: 0, ParamAngleZ: 0, ParamBodyAngleX: 0, ParamBodyAngleY: 0 },
+    {
+      motion: "idle",
+      expression: "neutral",
+      pointerReaction: {
+        active: true,
+        envelope: 1,
+        x: 0.5,
+        y: -0.25
+      }
+    },
+    1000
+  );
+
+  assert.ok(parameters.ParamAngleX > 0);
+  assert.ok(parameters.ParamAngleY > 0);
+  assert.ok(parameters.ParamAngleZ < 0);
+  assert.ok(parameters.ParamBodyAngleX > 0);
+  assert.ok(parameters.ParamBodyAngleY > 0);
+}
+
 function testExpressiveMotionSchedulesReturnToIdle() {
   assert.equal(getReturnToIdleDelayMs({ motion: "reply" }), 4200);
   assert.equal(getReturnToIdleDelayMs({ motion: "comfort" }), 4200);
@@ -815,6 +871,7 @@ testPointerSmoothingSnapsTinyDeltas();
 testMappedPointerCarriesGazeMetadata();
 testStrongPointerGazeDampsIdleEyeDrift();
 testPointerGazeClampsEyeParameters();
+testPointerReactionAddsBodyAndHeadMotion();
 testExpressiveMotionSchedulesReturnToIdle();
 testAdvanceReturnToIdlePlaysIdleMotion();
 console.log("live2d-renderer tests passed");

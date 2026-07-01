@@ -32,6 +32,7 @@ export class Live2DRenderer {
     this.nextIdleMotionAt = 0;
     this.returnToIdleAt = 0;
     this.lastMotionPlayedAt = -Infinity;
+    this.pointerReaction = { startedAt: 0, x: 0, y: 0 };
   }
 
   start() {
@@ -53,6 +54,18 @@ export class Live2DRenderer {
 
   setPointer(x, y) {
     this.targetPointer = { x, y };
+    this.draw();
+  }
+
+  triggerPointerReaction(x = this.pointer.x, y = this.pointer.y, now = performance.now()) {
+    this.pointerReaction = {
+      startedAt: now,
+      x: clampUnit(Number(x ?? 0)),
+      y: clampUnit(Number(y ?? 0))
+    };
+    this.targetPointer = { x: this.pointerReaction.x, y: this.pointerReaction.y };
+    this.applyLive2DPlacement();
+    this.applyLive2DCommands();
     this.draw();
   }
 
@@ -168,13 +181,19 @@ export class Live2DRenderer {
       this.pointer,
       this.placementProfile
     );
-    model.scale.set(placement.scale);
-    model.position.set(placement.x + followOffset.x, placement.y + followOffset.y);
+    const reaction = calculatePointerReactionEffect(this.pointerReaction, performance.now());
+    model.scale.set(roundTo(placement.scale * reaction.scaleMultiplier, 3));
+    model.position.set(
+      placement.x + followOffset.x + reaction.offsetX,
+      placement.y + followOffset.y + reaction.offsetY
+    );
     return {
       ...placement,
-      x: roundTo(placement.x + followOffset.x, 3),
-      y: roundTo(placement.y + followOffset.y, 3),
-      followOffset
+      scale: roundTo(placement.scale * reaction.scaleMultiplier, 3),
+      x: roundTo(placement.x + followOffset.x + reaction.offsetX, 3),
+      y: roundTo(placement.y + followOffset.y + reaction.offsetY, 3),
+      followOffset,
+      reaction
     };
   }
 
@@ -209,12 +228,15 @@ export class Live2DRenderer {
         this.pointer,
         this.placementProfile
       );
+      const reaction = calculatePointerReactionEffect(this.pointerReaction, performance.now());
+      const reactedW = drawW * reaction.scaleMultiplier;
+      const reactedH = drawH * reaction.scaleMultiplier;
       ctx.drawImage(
         this.previewImage,
-        (w - drawW) / 2 + followOffset.x,
-        (h - drawH) / 2 + followOffset.y,
-        drawW,
-        drawH
+        (w - reactedW) / 2 + followOffset.x + reaction.offsetX,
+        (h - reactedH) / 2 + followOffset.y + reaction.offsetY,
+        reactedW,
+        reactedH
       );
     }
 
@@ -262,10 +284,14 @@ export class Live2DRenderer {
       return;
     }
 
+    const now = performance.now();
     const parameters = calculateAnimatedLive2DParameters(
       mergeAdapterParameters(this.lastCommands.parameters, this.currentState),
-      this.lastCommands,
-      performance.now()
+      {
+        ...this.lastCommands,
+        pointerReaction: calculatePointerReactionEffect(this.pointerReaction, now)
+      },
+      now
     );
 
     Object.entries(parameters).forEach(([id, value]) => {
@@ -469,6 +495,37 @@ export function calculatePointerFollowOffset(canvasSize, pointer = {}, placement
     x: roundTo(canvasSize.width * x * (Number.isFinite(xRatio) ? xRatio : 0.055), 3),
     y: roundTo(canvasSize.height * y * (Number.isFinite(yRatio) ? yRatio : 0.028), 3),
     strength: roundTo(strength, 3)
+  };
+}
+
+export function calculatePointerReactionEffect(reaction = {}, now = 0) {
+  const startedAt = Number(reaction.startedAt ?? 0);
+  const elapsed = now - startedAt;
+  const durationMs = Number(reaction.durationMs ?? 560);
+  if (!startedAt || elapsed < 0 || elapsed > durationMs) {
+    return {
+      active: false,
+      envelope: 0,
+      x: 0,
+      y: 0,
+      offsetX: 0,
+      offsetY: 0,
+      scaleMultiplier: 1
+    };
+  }
+
+  const x = clampUnit(Number(reaction.x ?? 0));
+  const y = clampUnit(Number(reaction.y ?? 0));
+  const progress = elapsed / durationMs;
+  const envelope = Math.sin(Math.PI * progress);
+  return {
+    active: true,
+    envelope: roundTo(envelope, 3),
+    x,
+    y,
+    offsetX: roundTo(x * 24 * envelope, 3),
+    offsetY: roundTo(y * 14 * envelope - 10 * envelope, 3),
+    scaleMultiplier: roundTo(1 + 0.028 * envelope, 3)
   };
 }
 
@@ -755,6 +812,25 @@ export function calculateAnimatedLive2DParameters(parameters = {}, command = {},
     );
     next.ParamBodyAngleY = roundParameter(
       Number(next.ParamBodyAngleY ?? 0) + Math.sin(now / 2300) * 0.5 * idleHeadScale
+    );
+  }
+
+  if (command.pointerReaction?.active) {
+    const reaction = command.pointerReaction;
+    next.ParamAngleX = roundParameter(
+      Number(next.ParamAngleX ?? 0) + reaction.x * 5.5 * reaction.envelope
+    );
+    next.ParamAngleY = roundParameter(
+      Number(next.ParamAngleY ?? 0) + reaction.y * -4 * reaction.envelope
+    );
+    next.ParamAngleZ = roundParameter(
+      Number(next.ParamAngleZ ?? 0) + reaction.x * -3.5 * reaction.envelope
+    );
+    next.ParamBodyAngleX = roundParameter(
+      Number(next.ParamBodyAngleX ?? 0) + reaction.x * 3.5 * reaction.envelope
+    );
+    next.ParamBodyAngleY = roundParameter(
+      Number(next.ParamBodyAngleY ?? 0) + reaction.y * -2.8 * reaction.envelope
     );
   }
 

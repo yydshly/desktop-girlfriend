@@ -77,6 +77,9 @@ export function createLive2DRuntime({
     stage.addEventListener("pointermove", (event) => {
       controller.setPointerFromEvent(event, stage);
     });
+    stage.addEventListener("pointerdown", (event) => {
+      controller.reactToPointerFromEvent(event, stage);
+    });
     updateModelPackageStatus();
     listeners.onRendererStatus(lastRendererStatus);
     listeners.onMotionBindingStatus();
