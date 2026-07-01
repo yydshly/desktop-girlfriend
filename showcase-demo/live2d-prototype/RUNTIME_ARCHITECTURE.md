@@ -23,11 +23,10 @@ Done:
   - model profile.json motion binding support
   - PySide6 desktop WebView shell
   - local WebSocket bridge from the Python app to the Live2D page
+  - runtime-app.js / debug-panel.js split with a thin live2d.js entrypoint
 
 Not done yet:
-  - stable shared avatar state schema
   - profile-based expression aliases and parameter ranges
-  - separation of runtime code from debug panel code
   - product-facing desktop controls and packaging polish
   - custom character production
 ```
@@ -210,13 +209,14 @@ those messages through the active model profile.
 
 ### Step 3: Runtime / Debug Split
 
-Separate the browser code into focused modules:
+The browser code is now separated into focused modules:
 
 ```text
-runtime-app.js
-bridge-client.js
-debug-panel.js
-model-profile-loader.js
+live2d.js         -> thin mode-aware entrypoint
+runtime-app.js   -> renderer, model, profile, bridge, avatar controller
+bridge-client.js -> WebSocket lifecycle and reconnects
+debug-panel.js   -> showcase-only controls and diagnostics
+model-profile.js -> profile loading
 ```
 
 The desktop shell should load the runtime without showing debug controls by

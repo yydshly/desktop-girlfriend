@@ -26,6 +26,13 @@
 - 浏览器页面可以继续作为调试台，不影响最终体验。
 - 后续更换模型、增加 TTS 口型、接入记忆和主动互动时，不会把逻辑塞成一团。
 
+当前网页端已经完成第一阶段拆分：
+
+- `live2d.js`：只负责识别模式、创建 runtime、按需挂载 debug panel。
+- `runtime-app.js`：负责人物运行时、模型加载、profile、bridge 和 AvatarController。
+- `debug-panel.js`：只负责浏览器 showcase 的按钮、状态读数和 Motion Probe。
+- `bridge-client.js`：只负责 WebSocket 连接、断开、重连和消息转发。
+
 ## 2. 推荐使用方式
 
 日常开发时建议同时看两类效果：
@@ -211,6 +218,7 @@ LIVE2D_DESKTOP_AUTO_LAUNCH=true
    - 现在的 Hiyori 是技术验证样例。
    - 最终需要一个符合“小云”设定的自定义 Live2D 模型。
 
-5. 再考虑 Runtime / Debug 分离
-   - 当前可以先保留一个网页调试入口。
-   - 等人物体验更稳定后，再把最终 runtime 和 debug panel 拆干净。
+5. 继续加深 Runtime / Debug 分离
+   - 当前已经完成第一阶段代码拆分。
+   - 下一步可以把桌面 runtime 的 UI 资源和 showcase 调试资源进一步拆开。
+   - 目标是最终人物窗口只加载运行时，浏览器页面保留完整调试台。
