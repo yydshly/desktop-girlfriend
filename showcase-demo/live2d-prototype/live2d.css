@@ -394,6 +394,12 @@ pre {
   max-height: 160px;
 }
 
+.behavior-event-log {
+  min-height: 96px;
+  max-height: 160px;
+  color: #cbd7dd;
+}
+
 .motion-binding-editor {
   min-height: 118px;
   max-height: 180px;

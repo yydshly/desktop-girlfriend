@@ -38,6 +38,7 @@ export class Live2DRenderer {
     this.nextHoverReactionAt = 0;
     this.nextAmbientGestureAt = Infinity;
     this.ambientGestureIndex = 0;
+    this.behaviorEvents = [];
   }
 
   start() {
@@ -72,6 +73,10 @@ export class Live2DRenderer {
     this.hasPointerInput = true;
     this.hoverDwellStartedAt = 0;
     this.nextHoverReactionAt = now + HOVER_REACTION_COOLDOWN_MS;
+    this.recordBehaviorEvent("pointer.tap", {
+      x: this.pointerReaction.x,
+      y: this.pointerReaction.y
+    }, now);
     this.targetPointer = { x: this.pointerReaction.x, y: this.pointerReaction.y };
     this.applyLive2DPlacement();
     this.applyLive2DCommands();
@@ -373,6 +378,10 @@ export class Live2DRenderer {
     };
     this.hoverDwellStartedAt = 0;
     this.nextHoverReactionAt = now + HOVER_REACTION_COOLDOWN_MS;
+    this.recordBehaviorEvent("pointer.hover-dwell", {
+      x: this.pointerReaction.x,
+      y: this.pointerReaction.y
+    }, now);
   }
 
   advanceIdleMotion(now) {
@@ -417,6 +426,11 @@ export class Live2DRenderer {
       y: gesture.y
     };
     this.nextAmbientGestureAt = now + getAmbientGestureIntervalMs(this.placementProfile);
+    this.recordBehaviorEvent("ambient.gesture", {
+      index: this.ambientGestureIndex - 1,
+      x: gesture.x,
+      y: gesture.y
+    }, now);
   }
 
   scheduleReturnToIdle(now) {
@@ -471,6 +485,11 @@ export class Live2DRenderer {
     this.lastMotionPlayedAt = now;
     this.lastMotionKey = motionKey;
     this.activeMotion = motion;
+    this.recordBehaviorEvent("motion.play", {
+      group: motion.group,
+      index: motion.index,
+      source: motion.source
+    }, now);
     this.emitStatus();
   }
 
@@ -484,9 +503,15 @@ export class Live2DRenderer {
       source: "manual.motion-probe"
     };
     this.live2dModel.motion(motion.group, motion.index);
-    this.lastMotionPlayedAt = performance.now();
+    const now = performance.now();
+    this.lastMotionPlayedAt = now;
     this.lastMotionKey = `${motion.group}:${motion.index}:${motion.source}`;
     this.activeMotion = motion;
+    this.recordBehaviorEvent("motion.probe", {
+      group: motion.group,
+      index: motion.index,
+      source: motion.source
+    }, now);
     this.emitStatus();
   }
 
@@ -506,7 +531,19 @@ export class Live2DRenderer {
     this.live2dModel.expression(expression);
     this.lastExpressionKey = expression;
     this.activeExpression = expression;
+    this.recordBehaviorEvent("expression.apply", { expression });
     this.emitStatus();
+  }
+
+  recordBehaviorEvent(type, detail = {}, now = performance.now()) {
+    this.behaviorEvents = [
+      {
+        type,
+        at: Math.round(now),
+        detail
+      },
+      ...this.behaviorEvents
+    ].slice(0, MAX_BEHAVIOR_EVENTS);
   }
 
   emitStatus() {
@@ -520,7 +557,8 @@ export class Live2DRenderer {
       modelCapabilities: getModelCapabilities(this.model),
       commandDiagnostics: getCommandDiagnostics(this.lastCommands, this.model, this.motionBindings),
       modelAdapterCommands: getModelAdapterCommandDiagnostics(this.currentState),
-      motionBindings: this.motionBindings
+      motionBindings: this.motionBindings,
+      behaviorEvents: this.behaviorEvents
     });
   }
 }
@@ -534,6 +572,7 @@ const HOVER_DWELL_MS = 1400;
 const HOVER_REACTION_COOLDOWN_MS = 5200;
 const HOVER_REACTION_DURATION_MS = 640;
 const HOVER_REACTION_RADIUS = 0.58;
+const MAX_BEHAVIOR_EVENTS = 12;
 const AMBIENT_GESTURES = [
   { x: 0.28, y: -0.24, durationMs: 860 },
   { x: -0.22, y: 0.08, durationMs: 920 },

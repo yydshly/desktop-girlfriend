@@ -104,6 +104,7 @@ function queryDebugElements(document) {
     modelCandidateStatus: document.querySelector("#modelCandidateStatus"),
     modelTexturePreview: document.querySelector("#modelTexturePreview"),
     sdkStatus: document.querySelector("#sdkStatus"),
+    behaviorEventLog: document.querySelector("#behaviorEventLog"),
     summaryRenderer: document.querySelector("#summaryRenderer"),
     summaryModel: document.querySelector("#summaryModel"),
     summaryMotion: document.querySelector("#summaryMotion"),
@@ -254,6 +255,7 @@ function renderRendererStatus(elements, runtime, window) {
   elements.summaryExpression.textContent = status.activeExpression || "none";
   elements.summaryCapabilities.textContent = formatCapabilitySummary(status.modelCapabilities);
   elements.summarySdk.textContent = sdk.ready ? "ready" : `missing ${sdk.missing.length}`;
+  renderBehaviorEventLog(elements, status.behaviorEvents);
 
   if (runtime.getRendererMode() === "live2d") {
     elements.modelStatus.textContent = [
@@ -277,6 +279,29 @@ function renderRendererStatus(elements, runtime, window) {
     return;
   }
   elements.modelStatus.textContent = `Placeholder renderer is active. The model path is recorded as ${runtime.getModelUrl()}. ${formatSdkStatus(sdk)}`;
+}
+
+function renderBehaviorEventLog(elements, events = []) {
+  if (!elements.behaviorEventLog) {
+    return;
+  }
+
+  if (!Array.isArray(events) || events.length === 0) {
+    elements.behaviorEventLog.textContent = "No behavior events yet.";
+    return;
+  }
+
+  elements.behaviorEventLog.textContent = events
+    .slice(0, 12)
+    .map(formatBehaviorEvent)
+    .join("\n");
+}
+
+function formatBehaviorEvent(event = {}) {
+  const detail = event.detail && Object.keys(event.detail).length
+    ? ` ${JSON.stringify(event.detail)}`
+    : "";
+  return `${event.at ?? "-"} ${event.type || "event"}${detail}`;
 }
 
 function renderBridgeStatusPanel(elements, status) {

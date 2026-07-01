@@ -897,6 +897,32 @@ function testHoverDwellDoesNotOverrideActiveTapReaction() {
   assert.deepEqual(renderer.pointerReaction, { startedAt: 1800, durationMs: 1200, x: 0.6, y: -0.4 });
 }
 
+function testBehaviorEventsAreExposedInRendererStatus() {
+  const statuses = [];
+  const renderer = new Live2DRenderer(createCanvasProbe(), {
+    onStatusChange: (status) => statuses.push(status)
+  });
+
+  renderer.recordBehaviorEvent("pointer.hover-dwell", { x: 0.1, y: -0.2 }, 1234);
+  renderer.emitStatus();
+
+  assert.deepEqual(statuses.at(-1).behaviorEvents, [
+    { type: "pointer.hover-dwell", at: 1234, detail: { x: 0.1, y: -0.2 } }
+  ]);
+}
+
+function testBehaviorEventLogKeepsRecentEvents() {
+  const renderer = new Live2DRenderer(createCanvasProbe());
+
+  for (let index = 0; index < 14; index += 1) {
+    renderer.recordBehaviorEvent("motion.play", { index }, 1000 + index);
+  }
+
+  assert.equal(renderer.behaviorEvents.length, 12);
+  assert.equal(renderer.behaviorEvents[0].detail.index, 13);
+  assert.equal(renderer.behaviorEvents.at(-1).detail.index, 2);
+}
+
 testIdleMotionAutoRotates();
 testIdleMotionAutoRotateUsesModelMotionCount();
 testReplyMotionDoesNotAutoRotateIdle();
@@ -908,6 +934,8 @@ testHoverDwellIgnoresLargePointerDistance();
 testHoverDwellDoesNotStartBeforePointerInput();
 testHoverDwellDoesNotInterruptReply();
 testHoverDwellDoesNotOverrideActiveTapReaction();
+testBehaviorEventsAreExposedInRendererStatus();
+testBehaviorEventLogKeepsRecentEvents();
 
 function testPointerSmoothingMovesTowardTarget() {
   const next = smoothPointer({ x: 0, y: 0 }, { x: 1, y: -1 }, 0.25);

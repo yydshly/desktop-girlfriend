@@ -145,6 +145,7 @@ function createDebugElements() {
     "#modelCandidateStatus": createElement(),
     "#modelTexturePreview": createElement(),
     "#sdkStatus": createElement(),
+    "#behaviorEventLog": createElement(),
     "#rendererMode": createElement(),
     "#summaryRenderer": createElement(),
     "#summaryModel": createElement(),
@@ -357,6 +358,30 @@ function testShowcasePanelRendersAdapterCommands() {
   assert.doesNotMatch(elements["#modelStatus"].textContent, /expression neutral missing/);
 }
 
+function testShowcasePanelRendersBehaviorEventLog() {
+  const elements = createDebugElements();
+  const runtime = createRuntime();
+  runtime.getLastRendererStatus = () => ({
+    loadState: "live2d-ready",
+    hasLive2DModel: true,
+    behaviorEvents: [
+      { at: 1200, type: "pointer.hover-dwell", detail: { x: 0.1, y: -0.2 } },
+      { at: 900, type: "motion.play", detail: { group: "Idle", index: 1 } }
+    ]
+  });
+
+  mountLive2DDebugPanel({
+    document: createDocument(elements),
+    window: { localStorage: { getItem: () => null, setItem: () => {} } },
+    runtime,
+    mode: "showcase"
+  });
+
+  assert.match(elements["#behaviorEventLog"].textContent, /1200 pointer\.hover-dwell/);
+  assert.match(elements["#behaviorEventLog"].textContent, /"x":0\.1/);
+  assert.match(elements["#behaviorEventLog"].textContent, /900 motion\.play/);
+}
+
 function testShowcasePanelRunsModelExperiment() {
   const elements = createDebugElements();
   const runtime = createRuntime();
@@ -419,6 +444,7 @@ function testDesktopPanelDoesNotWireDebugControls() {
 
 testShowcasePanelWiresRendererSelect();
 testShowcasePanelRendersAdapterCommands();
+testShowcasePanelRendersBehaviorEventLog();
 testShowcasePanelRunsModelExperiment();
 testShowcasePanelRendersModelCandidateEvaluation();
 testShowcasePanelAppliesInteractionTuning();
