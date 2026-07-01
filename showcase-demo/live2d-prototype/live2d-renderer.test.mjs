@@ -837,8 +837,8 @@ function testHoverDwellReactionStartsNearAvatarCenter() {
   renderer.pointer = { x: 0.22, y: -0.1 };
   renderer.hasPointerInput = true;
 
-  renderer.advanceHoverDwell(1000);
-  renderer.advanceHoverDwell(2401);
+  renderer.advancePassiveBehavior(1000);
+  renderer.advancePassiveBehavior(2401);
 
   assert.equal(renderer.pointerReaction.startedAt, 2401);
   assert.equal(renderer.pointerReaction.durationMs, 640);
@@ -853,8 +853,8 @@ function testHoverDwellIgnoresLargePointerDistance() {
   renderer.pointer = { x: 0.9, y: 0 };
   renderer.hasPointerInput = true;
 
-  renderer.advanceHoverDwell(1000);
-  renderer.advanceHoverDwell(3000);
+  renderer.advancePassiveBehavior(1000);
+  renderer.advancePassiveBehavior(3000);
 
   assert.equal(renderer.pointerReaction.startedAt, 0);
   assert.equal(renderer.hoverDwellStartedAt, 0);
@@ -865,8 +865,8 @@ function testHoverDwellDoesNotStartBeforePointerInput() {
   renderer.lastCommands = { motion: "idle", parameters: {} };
   renderer.pointer = { x: 0.1, y: -0.1 };
 
-  renderer.advanceHoverDwell(1000);
-  renderer.advanceHoverDwell(3000);
+  renderer.advancePassiveBehavior(1000);
+  renderer.advancePassiveBehavior(3000);
 
   assert.equal(renderer.pointerReaction.startedAt, 0);
 }
@@ -877,8 +877,8 @@ function testHoverDwellDoesNotInterruptReply() {
   renderer.pointer = { x: 0.1, y: -0.1 };
   renderer.hasPointerInput = true;
 
-  renderer.advanceHoverDwell(1000);
-  renderer.advanceHoverDwell(3000);
+  renderer.advancePassiveBehavior(1000);
+  renderer.advancePassiveBehavior(3000);
 
   assert.equal(renderer.pointerReaction.startedAt, 0);
   assert.equal(renderer.hoverDwellStartedAt, 0);
@@ -891,8 +891,8 @@ function testHoverDwellDoesNotOverrideActiveTapReaction() {
   renderer.hasPointerInput = true;
   renderer.pointerReaction = { startedAt: 1800, durationMs: 1200, x: 0.6, y: -0.4 };
 
-  renderer.advanceHoverDwell(1000);
-  renderer.advanceHoverDwell(2500);
+  renderer.advancePassiveBehavior(1000);
+  renderer.advancePassiveBehavior(2500);
 
   assert.deepEqual(renderer.pointerReaction, { startedAt: 1800, durationMs: 1200, x: 0.6, y: -0.4 });
 }

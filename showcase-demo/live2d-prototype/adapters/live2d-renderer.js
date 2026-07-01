@@ -2,9 +2,11 @@ import { inspectModelPackage } from "../model-package-inspector.js";
 import { ensureLive2DSdk } from "../live2d-sdk-loader.js";
 import { mapStateToLive2DCommands } from "../live2d-parameter-mapper.js";
 import {
+  AMBIENT_GESTURE_INTERVAL_MS,
   canRunPassiveBehavior,
   HOVER_REACTION_COOLDOWN_MS,
-  updateHoverDwellSchedule
+  updateAmbientGestureSchedule,
+  updatePassiveBehaviorSchedule
 } from "../passive-behavior-scheduler.js";
 import { sanitizeMotionBindings } from "../motion-bindings.js";
 
@@ -329,8 +331,7 @@ export class Live2DRenderer {
     const frame = () => {
       const now = performance.now();
       this.updateSmoothedPointer();
-      this.advanceHoverDwell(now);
-      this.advanceAmbientGesture(now);
+      this.advancePassiveBehavior(now);
       this.applyLive2DPlacement();
       this.applyLive2DCommands();
       this.applyLive2DExpression();
@@ -347,27 +348,29 @@ export class Live2DRenderer {
     this.lastCommands = mapStateToLive2DCommands(this.currentState, this.pointer, this.placementProfile);
   }
 
-  advanceHoverDwell(now) {
-    const schedule = updateHoverDwellSchedule({
+  advancePassiveBehavior(now) {
+    const schedule = updatePassiveBehaviorSchedule({
       now,
       pointer: this.pointer,
       command: this.lastCommands,
       hasPointerInput: this.hasPointerInput,
       activeReaction: calculatePointerReactionEffect(this.pointerReaction, now).active,
       hoverDwellStartedAt: this.hoverDwellStartedAt,
-      nextHoverReactionAt: this.nextHoverReactionAt
+      nextHoverReactionAt: this.nextHoverReactionAt,
+      nextAmbientGestureAt: this.nextAmbientGestureAt,
+      ambientGestureIndex: this.ambientGestureIndex,
+      ambientIntervalMs: getAmbientGestureIntervalMs(this.placementProfile)
     });
     this.hoverDwellStartedAt = schedule.hoverDwellStartedAt;
     this.nextHoverReactionAt = schedule.nextHoverReactionAt;
+    this.nextAmbientGestureAt = schedule.nextAmbientGestureAt;
+    this.ambientGestureIndex = schedule.ambientGestureIndex;
     if (!schedule.reaction) {
       return;
     }
 
     this.pointerReaction = schedule.reaction;
-    this.recordBehaviorEvent("pointer.hover-dwell", {
-      x: this.pointerReaction.x,
-      y: this.pointerReaction.y
-    }, now);
+    this.recordBehaviorEvent(schedule.eventType, schedule.eventDetail, now);
   }
 
   advanceIdleMotion(now) {
@@ -390,33 +393,22 @@ export class Live2DRenderer {
   }
 
   advanceAmbientGesture(now) {
-    if (!shouldAutoRotateIdleMotion(this.lastCommands)) {
-      this.nextAmbientGestureAt = now + getAmbientGestureIntervalMs(this.placementProfile);
+    const schedule = updateAmbientGestureSchedule({
+      now,
+      command: this.lastCommands,
+      activeReaction: calculatePointerReactionEffect(this.pointerReaction, now).active,
+      nextAmbientGestureAt: this.nextAmbientGestureAt,
+      ambientGestureIndex: this.ambientGestureIndex,
+      intervalMs: getAmbientGestureIntervalMs(this.placementProfile)
+    });
+    this.nextAmbientGestureAt = schedule.nextAmbientGestureAt;
+    this.ambientGestureIndex = schedule.ambientGestureIndex;
+    if (!schedule.reaction) {
       return;
     }
 
-    if (calculatePointerReactionEffect(this.pointerReaction, now).active) {
-      return;
-    }
-
-    if (now < this.nextAmbientGestureAt) {
-      return;
-    }
-
-    const gesture = AMBIENT_GESTURES[this.ambientGestureIndex % AMBIENT_GESTURES.length];
-    this.ambientGestureIndex += 1;
-    this.pointerReaction = {
-      startedAt: now,
-      durationMs: gesture.durationMs,
-      x: gesture.x,
-      y: gesture.y
-    };
-    this.nextAmbientGestureAt = now + getAmbientGestureIntervalMs(this.placementProfile);
-    this.recordBehaviorEvent("ambient.gesture", {
-      index: this.ambientGestureIndex - 1,
-      x: gesture.x,
-      y: gesture.y
-    }, now);
+    this.pointerReaction = schedule.reaction;
+    this.recordBehaviorEvent("ambient.gesture", schedule.eventDetail, now);
   }
 
   scheduleReturnToIdle(now) {
@@ -553,13 +545,7 @@ const DEFAULT_IDLE_MOTION_COUNT = 9;
 const IDLE_MOTION_INTERVAL_MS = 6500;
 const MOTION_COOLDOWN_MS = 650;
 const EXPRESSIVE_RETURN_TO_IDLE_MS = 4200;
-const AMBIENT_GESTURE_INTERVAL_MS = 7200;
 const MAX_BEHAVIOR_EVENTS = 12;
-const AMBIENT_GESTURES = [
-  { x: 0.28, y: -0.24, durationMs: 860 },
-  { x: -0.22, y: 0.08, durationMs: 920 },
-  { x: 0.12, y: -0.34, durationMs: 820 }
-];
 
 function getLive2DModelFactory(PIXI) {
   const Live2DModel = PIXI?.live2d?.Live2DModel;
