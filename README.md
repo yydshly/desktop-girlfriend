@@ -1,5 +1,13 @@
 # desktop-girlfriend
 
+## Current Project Map
+
+- Execution plan: [PROJECT_EXECUTION_PLAN.md](./docs/PROJECT_EXECUTION_PLAN.md)
+- Current next module: `Attention / Gaze System v1`
+- Live2D showcase: `http://127.0.0.1:8786/live2d-prototype/`
+- Custom model guide: [CUSTOM_MODEL_GUIDE.md](./showcase-demo/live2d-prototype/CUSTOM_MODEL_GUIDE.md)
+- Custom model folder: `showcase-demo/live2d-prototype/assets/models/custom/<ModelName>/`
+
 桌面 AI 伙伴原型项目 — 探索桌面人格表现、语音交互、手势交互、多模态感知、情绪陪伴和 MiniMax AI 能力集成。
 
 > **它不是**：单纯聊天机器人、单纯桌宠、或第一阶段就要实现完整 3D AI 女友。
