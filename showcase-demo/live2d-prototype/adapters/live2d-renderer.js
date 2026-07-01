@@ -378,7 +378,7 @@ export class Live2DRenderer {
     }
 
     const expression = resolveSupportedExpression(
-      this.lastCommands.expression || "",
+      resolveAdapterExpression(this.currentState) || this.lastCommands.expression || "",
       this.model?.expressionNames
     );
     if (!expression || expression === this.lastExpressionKey) {
@@ -453,6 +453,11 @@ function resolveAdapterMotion(state = {}) {
     index: Math.max(0, Math.floor(Number(command.index ?? 0))),
     source: `model-adapter:${command.action || "unknown"}`
   };
+}
+
+function resolveAdapterExpression(state = {}) {
+  const expression = state.modelCommands?.expression?.name;
+  return typeof expression === "string" ? expression.trim() : "";
 }
 
 export function mapCommandToModelMotion(command = {}, motionGroupCounts = null, motionBindings = {}) {

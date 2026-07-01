@@ -183,6 +183,36 @@ function testStateAppliesLive2DExpression() {
   assert.equal(renderer.activeExpression, "happy");
 }
 
+function testModelAdapterExpressionOverridesLegacyExpressionMapping() {
+  const renderer = new Live2DRenderer(createCanvasProbe());
+  const expressions = [];
+  renderer.model = { expressionNames: ["smile"] };
+  renderer.live2dModel = {
+    expression(name) {
+      expressions.push(name);
+    },
+    motion() {},
+    internalModel: {
+      coreModel: {
+        setParameterValueById() {}
+      }
+    }
+  };
+
+  renderer.applyState({
+    emotion: "happy",
+    modelCommands: {
+      expression: {
+        name: "smile",
+        semantic: "engaged"
+      }
+    }
+  });
+
+  assert.deepEqual(expressions, ["smile"]);
+  assert.equal(renderer.activeExpression, "smile");
+}
+
 function testStateSkipsUnavailableLive2DExpression() {
   const renderer = new Live2DRenderer(createCanvasProbe());
   const expressions = [];
@@ -414,6 +444,7 @@ testAbstractMotionIgnoresUnavailableConfiguredBinding();
 testRendererUsesRuntimeMotionBindings();
 testIdleStateTriggersIdleMotion();
 testStateAppliesLive2DExpression();
+testModelAdapterExpressionOverridesLegacyExpressionMapping();
 testStateSkipsUnavailableLive2DExpression();
 testStateDoesNotRepeatSameLive2DExpression();
 testStatusReportsModelCapabilities();
