@@ -3,7 +3,7 @@
 ## Current Project Map
 
 - Execution plan: [PROJECT_EXECUTION_PLAN.md](./docs/PROJECT_EXECUTION_PLAN.md)
-- Current next module: `Attention / Gaze System v1`
+- Current next module: `Character Runtime Boundary convergence`
 - Live2D showcase: `http://127.0.0.1:8786/live2d-prototype/`
 - Custom model guide: [CUSTOM_MODEL_GUIDE.md](./showcase-demo/live2d-prototype/CUSTOM_MODEL_GUIDE.md)
 - Custom model folder: `showcase-demo/live2d-prototype/assets/models/custom/<ModelName>/`

@@ -1,343 +1,557 @@
-# Desktop Girlfriend Project Execution Plan
+# Desktop Girlfriend Current Project Execution Plan
 
-This document is the working map for the current project phase. It does not replace the older roadmap. It explains what we are building now, what already exists, what is still missing, and how each next module should be accepted.
+This document is the current engineering map for the desktop-girlfriend project. It is intentionally more concrete than a vision document. Future implementation units should align with this plan unless the plan is explicitly updated.
 
-## 1. Current Mission
+## 1. Project Positioning
 
-We are building a desktop AI companion runtime:
+This project should no longer be understood as a normal Live2D showcase page or as a search for a prettier model.
+
+The actual target is:
 
 ```text
-User / dialogue / mouse / voice / desktop events
-  -> Emotion State
-  -> Attention and Behavior Systems
-  -> Character Contract
-  -> Model Adapter
-  -> Live2D Renderer
-  -> Desktop companion presence
+Build a desktop AI companion system with replaceable Live2D models, driven by emotion, attention, and behavior.
 ```
 
-The project is not just a Live2D demo and not just a pretty model. The final product needs both:
+Target flow:
 
-- a good character asset layer
-- a strong control system that decides gaze, speech rhythm, passive behavior, active companionship, and desktop presence
+```text
+User input / voice / mouse / desktop event
+  -> Dialogue / App Event
+  -> Emotion State
+  -> Attention / Gaze
+  -> Behavior Planner
+  -> Model Adapter
+  -> Live2D Renderer
+  -> Desktop Presence
+```
+
+The model is not the whole project. It is the presentation shell. The project body is:
+
+```text
+Character Runtime Core
++ Live2D Model Layer
++ Desktop Presence
++ AI Interaction
+```
 
 ## 2. Current Status
 
-### Completed Foundation
-
-- PySide6 desktop shell exists.
-- Live2D browser/runtime prototype exists.
-- Live2D SDK and PIXI Live2D loading path works.
-- Model packages can be inspected.
-- Model `profile.json` maps semantic actions to model-specific motions.
-- Character Contract v1 exists.
-- Emotion State, Behavior Planner, and Model Adapter exist.
-- Passive behavior scheduling exists for hover, ambient gestures, tap feedback, and suppression after interactions.
-- Behavior event log exists in the browser debug panel.
-- Custom model intake validation exists.
-- Browser showcase is usable as the main model/debug cockpit.
-
-### Current Gap
-
-The technical runtime is useful, but the product experience is still early. The current sample model is a baseline validation asset, not the final Xiaoyun character. The main missing experience systems are attention, speaking/voice driving, companionship, desktop presence polish, memory, and gesture/vision.
-
-## 3. Module Boundaries
-
-### 3.1 Character Runtime Core
-
-Owns the high-level runtime state and coordinates emotion, attention, behavior, and model commands.
-
-Must not:
-
-- know model motion group names directly
-- write Cubism parameters directly
-- own UI rendering
-
-### 3.2 Live2D Model Layer
-
-Owns model package loading, package inspection, profile mappings, candidate score, and intake validation.
-
-Key files:
+The current branch has completed or mostly completed:
 
 ```text
-showcase-demo/live2d-prototype/model-package-inspector.js
-showcase-demo/live2d-prototype/model-profile.js
-showcase-demo/live2d-prototype/model-adapter.js
-showcase-demo/live2d-prototype/custom-model-intake.js
+1. Live2D model3.json loading path
+2. Independent PySide6 WebView desktop character window
+3. WebSocket bridge from Python main app to Live2D page
+4. Live2D desktop process launch/stop
+5. Model directory scan and model catalog
+6. profile.json action/expression mapping
+7. Character Contract v1
+8. Emotion State module
+9. Behavior Planner module
+10. Model Adapter module
+11. Hiyori baseline model
+12. Natori expression candidate model
+13. Model intake / candidate scoring / debug panel foundation
+14. Passive behavior scheduling for hover, ambient, tap, and suppression windows
+15. Behavior event log in the debug panel
 ```
 
-### 3.3 Attention / Gaze System
-
-Owns where the character is paying attention.
-
-Examples:
-
-- cursor gaze
-- idle gaze drift
-- thinking gaze
-- speaking gaze
-- focus target lock
-- gaze cooldown
-- attention event log
-
-### 3.4 Speaking / Voice Driver
-
-Owns speech rhythm and mouth/body movement while speaking.
-
-Examples:
-
-- TTS playback state
-- mouth level
-- pause detection
-- sentence rhythm
-- speaking gaze
-- end-of-speech return
-
-### 3.5 Companion Interaction
-
-Owns active companionship decisions.
-
-Examples:
-
-- idle greeting
-- long-time no-interaction check-in
-- listening while user types
-- comfort when user is low
-- do-not-disturb cooldown
-- companionship event log
-
-### 3.6 Desktop Presence
-
-Owns desktop-window behavior.
-
-Examples:
-
-- drag stability
-- position persistence
-- topmost policy
-- transparency
-- click-through policy
-- dock-to-edge
-- small/large modes
-
-### 3.7 Memory / Relationship
-
-Owns long-term personalization.
-
-Examples:
-
-- user preferences
-- recent context
-- important memories
-- relationship continuity
-- privacy and deletion
-
-### 3.8 Gesture / Vision Control
-
-Owns camera/gesture-driven events.
-
-Examples:
-
-- camera permission
-- MediaPipe hand recognition
-- wave
-- summon/hide
-- stop speaking
-- gesture-to-behavior mapping
-
-## 4. Milestones
-
-### M1. Live2D Runtime Foundation
-
-Status: mostly complete.
-
-Acceptance:
-
-- Live2D SDK is detected.
-- `.model3.json` can be loaded through the runtime.
-- Browser debug panel shows renderer, SDK, motion, expression, model package status.
-- A sample model can play motions and respond to state buttons.
-
-### M2. Replaceable Model System
-
-Status: mostly complete.
-
-Acceptance:
-
-- Each model can have `profile.json`.
-- Profile maps semantic actions to model-specific motion groups/indexes.
-- Model candidate score is visible.
-- Intake status is visible as `ready`, `usable-with-warnings`, or `blocked`.
-- Blockers and warnings explain what to fix.
-
-### M3. Attention / Gaze System v1
-
-Status: next.
-
-Goal: make the character feel like it has attention instead of only following the mouse.
-
-Acceptance:
-
-- Cursor gaze is still supported.
-- Speaking state can lock attention toward the user/cursor.
-- Thinking state can shift gaze away from the cursor.
-- Idle state can drift gaze naturally without large body movement.
-- Gaze target changes have cooldown and smoothing.
-- Debug panel shows current attention target and reason.
-- Tests cover cursor, speaking, thinking, idle drift, and cooldown behavior.
-
-### M4. Speaking / Voice Driver v1
-
-Status: not started.
-
-Goal: make speaking feel rhythmic and coordinated.
-
-Acceptance:
-
-- Speaking state drives mouth level.
-- Placeholder voice envelope can drive mouth level before real audio analysis.
-- Speaking state suppresses passive gestures.
-- Pauses reduce mouth movement and allow blink/gaze micro-behavior.
-- End-of-speech returns naturally to idle/listening.
-- Tests cover speaking, pause, and return.
-
-### M5. Character Runtime Controller v1
-
-Status: not started.
-
-Goal: centralize dialogue, mouse, idle, voice, and desktop events before they reach the renderer.
-
-Acceptance:
-
-- Dialogue events do not directly drive model-specific motions.
-- Mouse events, passive events, and voice events pass through one runtime controller.
-- Renderer only executes commands.
-- Behavior log can explain action source.
-- Tests cover event priority and state transition.
-
-### M6. Companion Interaction v1
-
-Status: not started.
-
-Goal: add active companionship without becoming annoying.
-
-Acceptance:
-
-- Character can initiate a low-frequency idle check-in.
-- User typing/input shifts character into listening.
-- Comfort intent can be triggered by dialogue/emotion.
-- Active companionship has cooldown.
-- Do-not-disturb state prevents active prompts.
-- Tests cover cooldown and suppression.
-
-### M7. Desktop Presence v1
-
-Status: partial.
-
-Goal: make the character feel like a desktop companion, not only a WebView.
-
-Acceptance:
-
-- Character window can be dragged reliably.
-- Position, scale, opacity, and visibility persist.
-- Topmost/hide/show behavior is stable.
-- Window avoids blocking normal work by default.
-- Desktop mode can launch with the selected model.
-
-### M8. Xiaoyun Model Intake
-
-Status: pending asset.
-
-Goal: replace baseline sample with a purpose-built Xiaoyun model.
-
-Acceptance:
-
-- Model has expressions or equivalent controllable expression parameters.
-- Model has multiple low-intensity idle motions.
-- Model has speak, greet, listen, think, comfort, happy, sad mappings.
-- Model has lip sync and eye blink parameters.
-- Model has physics.
-- Intake is `ready` or only minor warnings.
-- Motion Probe and Interaction Tuning can produce a final `profile.json`.
-
-### M9. Memory / Relationship v1
-
-Status: not started.
-
-Goal: make interaction persistent across sessions.
-
-Acceptance:
-
-- User preferences can be stored and recalled.
-- Recent conversation context can influence emotion/behavior.
-- User can inspect and delete remembered items.
-- Memory is not required for renderer operation.
-
-### M10. Gesture / Vision Control v1
-
-Status: not started.
-
-Goal: add camera/gesture input after the core companion loop is useful.
-
-Acceptance:
-
-- Gesture events are standardized before behavior mapping.
-- Wave, summon, hide, and stop-speaking gestures can be recognized.
-- Gesture system is optional and permission-gated.
-- Character behavior responds through the runtime controller, not directly through the renderer.
-
-## 5. Current Priority
-
-Next implementation module:
+This means the project is currently between:
 
 ```text
-Attention / Gaze System v1
+Phase A: Live2D technical integration complete
+Phase B: Character Runtime convergence in progress
 ```
 
-Why this is next:
-
-- It improves perceived life immediately.
-- It does not depend on final Xiaoyun model assets.
-- It strengthens the control system instead of only adding more motions.
-- It creates a clean bridge to later speaking and companion systems.
-
-Expected first files:
+It has not yet reached:
 
 ```text
-showcase-demo/live2d-prototype/attention-state.js
-showcase-demo/live2d-prototype/attention-state.test.mjs
+digital-human-like interaction
+stable desktop product experience
+long-term companion behavior
 ```
 
-Likely integration points:
+## 3. Core Problems Now
+
+### 3.1 `app/main.py` Is Too Heavy
+
+`app/main.py` currently owns too many responsibilities:
 
 ```text
-showcase-demo/live2d-prototype/live2d-parameter-mapper.js
-showcase-demo/live2d-prototype/adapters/live2d-renderer.js
-showcase-demo/live2d-prototype/debug-panel.js
+- QApplication initialization
+- EventBus / StateMachine initialization
+- Live2D bridge server initialization
+- Live2D bridge dispatcher initialization
+- Live2D desktop process initialization
+- model catalog scan
+- model selection persistence
+- Live2D scale / opacity / visibility control
+- Live2D process restart
+- opening model directory
+- main window callback wiring
+```
+
+This can run, but it will become harder to maintain.
+
+Direction:
+
+```text
+Extract Live2DDesktopController / Live2DDesktopCoordinator.
+Keep main.py as a composition root.
+Do not keep adding feature logic to main.py.
+```
+
+### 3.2 State / Emotion Mapping Is Duplicated
+
+Semantic mapping currently appears in several places:
+
+```text
+Python bridge mapper
+emotion-state.js
+state-mapper.js
+renderer speaking/thinking checks
+```
+
+This can cause semantic drift:
+
+```text
+speaking / reply / speak / engaged
+listening / listen / think
+comfort / soft
+```
+
+Direction:
+
+```text
+emotion-state.js should become the only renderer-neutral semantic state source.
+state-mapper.js should keep only UI bubble / readout support.
+Do not let multiple modules redefine complete state presets.
+```
+
+### 3.3 Character Runtime Boundary Is Not Clear Enough
+
+Behavior decisions are currently spread across:
+
+```text
+AvatarController
+runtime-app.js
+Live2DRenderer
+state-mapper.js
+behavior-planner.js
+passive-behavior-scheduler.js
+```
+
+Live2DRenderer still contains or coordinates:
+
+```text
+passive behavior
+hover reaction
+ambient gesture
+idle rotation
+return to idle
+speaking mouth pulse
+pointer reaction
+```
+
+Not all of that is renderer responsibility.
+
+Direction:
+
+```text
+Converge Character Runtime boundaries before adding Attention / Gaze logic.
+Do not put Attention logic directly into Live2DRenderer.
+```
+
+Target boundary:
+
+```text
+Character Runtime Core:
+  decides emotion / attention / behavior / timing
+
+Model Adapter:
+  translates semantic behavior into profile-backed model commands
+
+Renderer:
+  executes model commands and writes Cubism parameters, motions, expressions, and drawing
+```
+
+### 3.4 Motion Binding Override And Model Adapter Path May Diverge
+
+The runtime supports Motion Probe and localStorage motion binding overrides.
+
+Risk:
+
+```text
+If adapter commands already come from profile, renderer fallback overrides may not affect adapter-driven states.
+```
+
+Direction:
+
+```text
+motion override should become part of the effective profile.
+Model Adapter should output commands from the effective profile.
+Do not let overrides only affect renderer fallback.
+```
+
+Target path:
+
+```text
+profile.mappings.actions
++ localStorage motion override
+= effectiveProfile.mappings.actions
+-> model-adapter
+-> renderer
+```
+
+### 3.5 Idle / TapBody Assumptions Still Exist
+
+Some logic still treats official sample motion groups as generic:
+
+```text
+Idle
+TapBody
+```
+
+That works for Hiyori and Natori, but is unreliable for commercial or custom models.
+
+Direction:
+
+```text
+Idle / TapBody should be fallback heuristics only.
+The real source of truth should be profile mappings.
+Candidate evaluation should first check required semantic actions and whether the mapped group/index exists.
+```
+
+### 3.6 profile.json Needs Parameter Alias And Range Support
+
+Current profile supports:
+
+```text
+actions
+expressions
+desktopPlacement
+```
+
+Missing for future models:
+
+```text
+parameters
+parameter ranges
+expression aliases
+```
+
+Reason:
+
+Not every model will use standard Cubism parameter names:
+
+```text
+ParamMouthOpenY
+ParamBreath
+ParamAngleX
+ParamEyeBallX
+```
+
+Target direction:
+
+```json
+{
+  "parameters": {
+    "mouthOpen": "ParamMouthOpenY",
+    "mouthForm": "ParamMouthForm",
+    "breath": "ParamBreath",
+    "headX": "ParamAngleX",
+    "headY": "ParamAngleY",
+    "headZ": "ParamAngleZ",
+    "eyeX": "ParamEyeBallX",
+    "eyeY": "ParamEyeBallY"
+  }
+}
+```
+
+Keep standard Cubism parameters as defaults, but allow profile-specific aliases.
+
+### 3.7 Bridge Is Mostly One-Way
+
+Python can send state into the Live2D page, but Python does not yet know:
+
+```text
+Live2D runtime is actually ready
+SDK loaded successfully
+model failed to load
+current active motion
+current active expression
+```
+
+Direction:
+
+```text
+Add a minimal reverse status channel later.
+```
+
+Minimum useful events:
+
+```text
+live2d.runtime_ready
+live2d.model_loaded
+live2d.model_error
+live2d.motion_played
+live2d.expression_applied
+```
+
+## 4. Recommended Milestone Route
+
+Do not keep adding unrelated features. Use this route:
+
+```text
+M1   Live2D runnable foundation                         done
+M2   Replaceable model + profile / intake               done
+M2.5 Character Runtime Boundary convergence             current priority
+M3   Attention / Gaze System v1
+M4   Speaking Driver v1
+M5   Model Gallery fixed-sequence evaluation
+M6   Desktop Presence polish
+M7   Companion Interaction v1
+M8   Xiaoyun custom Live2D model
+M9   Memory / Relationship v1
+M10  Gesture / Vision Control
+```
+
+Key adjustments:
+
+```text
+1. Character Runtime Boundary must happen before Attention.
+2. Model Gallery should move earlier, not wait until the final model.
+3. Xiaoyun custom model can be later, while candidate model evaluation starts now.
+4. Memory / Relationship / Gesture should wait.
+```
+
+## 5. Current Priorities
+
+### P0. Project Execution Map
+
+Status: done in this document.
+
+This document is not a vision document. It is the engineering map.
+
+It defines:
+
+```text
+1. project target
+2. current state
+3. module boundaries
+4. milestone route
+5. current priorities
+6. deferred items
+7. acceptance criteria
+8. architecture guard rules
+```
+
+### P0. Character Runtime Boundary Convergence
+
+Goal:
+
+Do not do a large rewrite. First clarify ownership and create the smallest boundaries needed for the next modules.
+
+Required flow:
+
+```text
+bridge message -> emotion state
+emotion state -> attention target
+emotion/attention -> behavior
+behavior -> model command
+model command -> renderer
+renderer -> actual Live2D execution
+```
+
+Acceptance:
+
+```text
+1. Renderer no longer gains new high-level behavior decisions.
+2. emotion-state is the single semantic state source.
+3. state-mapper no longer duplicates full state presets.
+4. behavior log can explain each action source.
+5. passive / hover / ambient / idle / speaking ownership is explicit.
+```
+
+### P1. Fix Motion Override And Adapter Path
+
+Goal:
+
+Motion Probe saved overrides must affect adapter-driven state output.
+
+Acceptance:
+
+```text
+1. User binds speak to a motion group/index through Motion Probe.
+2. User triggers speaking state.
+3. Adapter command uses the new group/index.
+4. Debug panel shows the override is active.
+```
+
+### P1. Make Model Evaluation Profile-Aware
+
+Goal:
+
+Model scoring should not strongly depend on `Idle` / `TapBody` names.
+
+Acceptance:
+
+```text
+1. Required actions are checked from profile mappings.
+2. Mapped group/index must exist in the package.
+3. Idle / TapBody are fallback hints only.
+4. Non-official sample naming can be evaluated correctly.
+```
+
+### P1. Attention / Gaze System v1
+
+Prerequisite:
+
+Complete Character Runtime Boundary documentation and initial convergence first.
+
+Do not write this directly into Live2DRenderer.
+
+Suggested module:
+
+```text
+attention-system.js
+```
+
+Inputs:
+
+```text
+emotion state
+pointer state
+speaking/thinking/idle state
+recent user interaction
+```
+
+Output:
+
+```text
+attention target:
+- cursor
+- user
+- down-left
+- idle-scan
+- away
+```
+
+Acceptance:
+
+```text
+1. Mouse movement makes gaze follow without excessive body movement.
+2. Speaking prefers user / cursor gaze.
+3. Thinking shifts gaze away.
+4. Idle has natural scan.
+5. Debug panel shows attention target and source.
+```
+
+### P1. Speaking Driver v1
+
+Goal:
+
+Upgrade speaking from a simple mouth preset into an explainable speaking driver.
+
+Acceptance:
+
+```text
+1. Speaking state drives rhythmic mouth movement.
+2. TTS playback state can drive mouth.
+3. End of speech returns naturally to idle.
+4. Passive behavior does not interrupt speaking.
+5. Speaking behavior source is visible in the behavior log.
+```
+
+### P2. Model Gallery Fixed-Sequence Evaluation
+
+Goal:
+
+Compare Hiyori / Natori / a third candidate with the same sequence.
+
+Fixed sequence:
+
+```text
+idle -> listen -> think -> speak -> happy -> comfort -> idle
+```
+
+Each step records:
+
+```text
+semantic state
+emotion state
+attention target
+behavior output
+adapter motion
+adapter expression
+active Live2D motion
+active Live2D expression
+visible quality notes
+```
+
+Purpose:
+
+Distinguish whether a problem comes from:
+
+```text
+1. model asset
+2. profile mapping
+3. runtime behavior
+4. renderer execution
 ```
 
 ## 6. Deferred Items
 
-Do not prioritize these until the runtime control loop is stronger:
+Do not prioritize now:
 
-- camera gesture recognition
-- full memory system
-- advanced agent tools
-- final product packaging
-- custom Xiaoyun asset production blocking all engineering work
+```text
+1. large-scale UI beautification
+2. complex Memory / Relationship
+3. Gesture / Vision Control
+4. final Xiaoyun custom model production
+5. more Agent tool ability
+6. complex active companion strategy
+```
 
-These are important, but they should not interrupt M3 to M6.
+These matter, but they should wait until the Character Runtime chain is stable.
 
-## 7. Working Rule For Future Changes
+## 7. Architecture Guard Rules
 
-Before each implementation unit:
+All future changes must follow:
 
-1. State current project plan.
-2. State completed steps.
-3. State current step.
-4. State next step.
-5. Implement one coherent change.
-6. Run focused tests.
-7. Commit that unit.
+```text
+1. AI / Dialogue must not directly call model motion / expression.
+2. Emotion State must be renderer-neutral.
+3. Attention / Gaze is a runtime decision, not renderer-local temporary logic.
+4. Behavior Planner outputs semantic behavior, not concrete motion group/index.
+5. Model Adapter is the only layer that translates semantic behavior into model-specific commands.
+6. profile.json describes model capabilities, mappings, placement, and parameter aliases. It must not contain business logic.
+7. Live2DRenderer executes commands. It must not keep accumulating high-level business decisions.
+8. main.py is the composition root. It must not keep accumulating feature logic.
+9. Model scoring must be based on the profile contract, not fixed official sample naming.
+10. New behavior must be explainable through debug panel / behavior log.
+```
 
-This keeps the project from becoming a pile of unrelated experiments.
+## 8. One-Line Conclusion
+
+The current project is no longer:
+
+```text
+find a model and make it move
+```
+
+The current project is:
+
+```text
+build a replaceable-model desktop digital companion system driven by emotion and attention
+```
+
+Next steps:
+
+```text
+1. Keep this PROJECT_EXECUTION_PLAN.md as the project map.
+2. Converge Character Runtime Boundary.
+3. Implement Attention / Gaze System v1.
+4. Implement Speaking Driver v1.
+5. Use Model Gallery fixed sequence to evaluate model and runtime limits.
+```
