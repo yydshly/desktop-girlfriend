@@ -3,6 +3,10 @@ import { createBridgeStatus, renderBridgeStatus, updateBridgeStatus } from "./br
 import { detectLive2DSdk, formatSdkStatus } from "./live2d-sdk-loader.js";
 import { resolveModelUrlFromRoute } from "./live2d-model-route.js";
 import { inspectModelPackage } from "./model-package-inspector.js";
+import {
+  parseMotionBindingsText,
+  serializeMotionBindings
+} from "./motion-bindings.js";
 import { createAvatarRenderer, getRendererLabel } from "./renderer-factory.js";
 
 let canvas = document.querySelector("#avatarCanvas");
@@ -25,6 +29,9 @@ const summarySdk = document.querySelector("#summarySdk");
 const setModelUrl = document.querySelector("#setModelUrl");
 const motionBindingState = document.querySelector("#motionBindingState");
 const bindActiveMotion = document.querySelector("#bindActiveMotion");
+const applyMotionBindings = document.querySelector("#applyMotionBindings");
+const clearMotionBindings = document.querySelector("#clearMotionBindings");
+const motionBindingEditor = document.querySelector("#motionBindingEditor");
 const motionBindingStatus = document.querySelector("#motionBindingStatus");
 const bridgeUrl = document.querySelector("#bridgeUrl");
 const connectBridge = document.querySelector("#connectBridge");
@@ -207,6 +214,24 @@ bindActiveMotion.addEventListener("click", () => {
   updateMotionBindingStatus();
 });
 
+applyMotionBindings.addEventListener("click", () => {
+  try {
+    motionBindings = parseMotionBindingsText(motionBindingEditor.value);
+    saveMotionBindings(motionBindings);
+    controller.renderer.setMotionBindings?.(motionBindings);
+    updateMotionBindingStatus("Applied JSON bindings.");
+  } catch (error) {
+    updateMotionBindingStatus(`Invalid JSON: ${error.message}`);
+  }
+});
+
+clearMotionBindings.addEventListener("click", () => {
+  motionBindings = {};
+  saveMotionBindings(motionBindings);
+  controller.renderer.setMotionBindings?.(motionBindings);
+  updateMotionBindingStatus("Cleared bindings.");
+});
+
 stage.addEventListener("pointermove", (event) => {
   controller.setPointerFromEvent(event, stage);
 });
@@ -311,19 +336,21 @@ window.live2dPrototype = {
 
 function loadMotionBindings() {
   try {
-    return JSON.parse(window.localStorage.getItem(MOTION_BINDINGS_STORAGE_KEY) || "{}");
+    return parseMotionBindingsText(window.localStorage.getItem(MOTION_BINDINGS_STORAGE_KEY) || "{}");
   } catch {
     return {};
   }
 }
 
 function saveMotionBindings(bindings) {
-  window.localStorage.setItem(MOTION_BINDINGS_STORAGE_KEY, JSON.stringify(bindings));
+  window.localStorage.setItem(MOTION_BINDINGS_STORAGE_KEY, serializeMotionBindings(bindings));
 }
 
-function updateMotionBindingStatus() {
-  if (!motionBindingStatus) {
-    return;
+function updateMotionBindingStatus(message = "") {
+  if (motionBindingEditor) {
+    motionBindingEditor.value = serializeMotionBindings(motionBindings);
   }
-  motionBindingStatus.textContent = JSON.stringify(motionBindings, null, 2);
+  if (motionBindingStatus) {
+    motionBindingStatus.textContent = message || "Use Motion Probe, then bind the active motion to a state.";
+  }
 }

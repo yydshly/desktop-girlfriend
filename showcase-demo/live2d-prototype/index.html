@@ -124,8 +124,11 @@
               <option value="greet">greet</option>
             </select>
             <button id="bindActiveMotion">Bind active</button>
+            <button id="applyMotionBindings">Apply JSON</button>
+            <button id="clearMotionBindings">Clear</button>
           </div>
-          <pre id="motionBindingStatus" class="motion-binding-status">{}</pre>
+          <textarea id="motionBindingEditor" class="motion-binding-editor" spellcheck="false">{}</textarea>
+          <p id="motionBindingStatus" class="model-status"></p>
         </section>
 
         <section class="panel-section">

@@ -1,6 +1,7 @@
 import { inspectModelPackage } from "../model-package-inspector.js";
 import { ensureLive2DSdk } from "../live2d-sdk-loader.js";
 import { mapStateToLive2DCommands } from "../live2d-parameter-mapper.js";
+import { sanitizeMotionBindings } from "../motion-bindings.js";
 
 export class Live2DRenderer {
   constructor(canvas, options = {}) {
@@ -535,20 +536,6 @@ export function getCommandDiagnostics(command = {}, model = null, motionBindings
     resolvedExpression,
     expressionSupport: getExpressionSupport(requestedExpression, resolvedExpression, model)
   };
-}
-
-export function sanitizeMotionBindings(bindings = {}) {
-  return Object.fromEntries(
-    Object.entries(bindings || {})
-      .map(([motion, binding]) => [
-        motion,
-        {
-          group: String(binding?.group || "Idle"),
-          index: Math.max(0, Math.floor(Number(binding?.index ?? 0)))
-        }
-      ])
-      .filter(([motion]) => typeof motion === "string" && motion.length > 0)
-  );
 }
 
 function getExpressionSupport(requestedExpression, resolvedExpression, model = null) {
