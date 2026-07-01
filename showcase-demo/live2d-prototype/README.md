@@ -5,6 +5,7 @@ This directory is the new B-plan mainline for the desktop girlfriend project.
 The prototype now loads a sample Live2D model and keeps the placeholder renderer only as a fallback/debug path. It proves that the existing `avatar.state`, `avatar.sequence`, and `dialogue.turn` protocol can drive a model-shaped runtime.
 
 Read `RUNTIME_ARCHITECTURE.md` for the mainline architecture and iteration order.
+Read `CUSTOM_MODEL_GUIDE.md` before importing a dedicated Xiaoyun model.
 
 The current mainline is:
 
@@ -18,3 +19,24 @@ The current mainline is:
 `live2d-parameter-mapper.js` is the bridge from product state to Cubism-style parameters. Keep AI/dialogue states stable and change this mapper when a real model uses different parameter names or ranges.
 
 Each model can include a `profile.json` next to its `.model3.json`. The profile is the model-specific place for motion bindings and later expression aliases or parameter ranges.
+
+## Custom Model Intake
+
+Custom Live2D packages should live under:
+
+```text
+assets/models/custom/<ModelName>/
+```
+
+Expected entry:
+
+```text
+./assets/models/custom/<ModelName>/<ModelName>.model3.json
+```
+
+The browser debug panel now reports both:
+
+- candidate `score`, which estimates model capability quality
+- `intake`, which tells whether the model can be accepted as a product character
+
+`intake blocked` means the model/profile must be fixed before it should become the desktop character. `intake usable-with-warnings` means it can run, but quality features such as expression mappings, lip sync, eye blink, physics, or placement tuning are missing.

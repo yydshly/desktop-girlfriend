@@ -280,3 +280,26 @@ LIVE2D_DESKTOP_AUTO_LAUNCH=true
    - TTS 音量驱动 mouth。
    - 对话语义驱动 emotion intensity。
    - 主动陪伴事件驱动 idle / greet / comfort。
+# Current Live2D Development Entry
+
+Use these commands while developing the desktop companion runtime:
+
+```powershell
+cd D:\claude_code\20260628_桌面女友\desktop-girlfriend
+.\scripts\run_showcase.ps1
+```
+
+Open:
+
+```text
+http://127.0.0.1:8786/live2d-prototype/
+```
+
+Custom model intake:
+
+- Put custom models under `showcase-demo/live2d-prototype/assets/models/custom/<ModelName>/`.
+- Expected entry: `custom/<ModelName>/<ModelName>.model3.json`.
+- Add `profile.json` beside the model entry.
+- Read `showcase-demo/live2d-prototype/CUSTOM_MODEL_GUIDE.md`.
+- The browser debug panel shows `score`, `intake`, `blockers`, and `warnings`.
+- Use Motion Probe and Interaction Tuning before copying final mappings back into `profile.json`.
