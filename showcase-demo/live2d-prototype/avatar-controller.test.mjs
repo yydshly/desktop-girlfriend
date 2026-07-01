@@ -9,6 +9,12 @@ function createTextElement() {
   };
 }
 
+function createStageElement() {
+  return {
+    className: "avatar-stage"
+  };
+}
+
 function createRendererProbe() {
   return {
     appliedStates: [],
@@ -54,6 +60,19 @@ function testControllerHidesBubbleForIdleStateWithoutBubble() {
   assert.equal(bubble.className, "speech-bubble");
 }
 
+function testControllerMarksStageWithVisualStateClass() {
+  const renderer = createRendererProbe();
+  const readout = createTextElement();
+  const bubble = createTextElement();
+  const stage = createStageElement();
+  const controller = new AvatarController(renderer, readout, bubble, stage);
+
+  controller.applyStateName("happy");
+
+  assert.equal(stage.className, "avatar-stage is-state-happy");
+}
+
 testControllerRendersSpeechBubbleFromDialogueTurn();
 testControllerHidesBubbleForIdleStateWithoutBubble();
+testControllerMarksStageWithVisualStateClass();
 console.log("avatar-controller tests passed");

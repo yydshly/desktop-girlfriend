@@ -75,7 +75,8 @@ function resetAvatarCanvas() {
 const controller = new AvatarController(
   createRenderer(),
   readout,
-  avatarBubble
+  avatarBubble,
+  stage
 );
 
 function updateRendererStatus() {

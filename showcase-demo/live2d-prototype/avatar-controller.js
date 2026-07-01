@@ -1,10 +1,11 @@
 import { mapAvatarSequence, mapAvatarState, mapBridgeMessage } from "./state-mapper.js";
 
 export class AvatarController {
-  constructor(renderer, readoutElement, bubbleElement = null) {
+  constructor(renderer, readoutElement, bubbleElement = null, stageElement = null) {
     this.renderer = renderer;
     this.readoutElement = readoutElement;
     this.bubbleElement = bubbleElement;
+    this.stageElement = stageElement;
     this.bubbleTimer = 0;
     this.currentState = {
       emotion: "neutral",
@@ -57,6 +58,7 @@ export class AvatarController {
     this.renderer.applyState(this.currentState);
     this.renderReadout();
     this.renderBubble();
+    this.renderStageState();
   }
 
   renderReadout() {
@@ -92,5 +94,14 @@ export class AvatarController {
       }, bubble.ttlMs);
       this.bubbleTimer.unref?.();
     }
+  }
+
+  renderStageState() {
+    if (!this.stageElement) {
+      return;
+    }
+
+    const stateClass = `is-state-${this.currentState.motion || this.currentState.emotion || "idle"}`;
+    this.stageElement.className = ["avatar-stage", stateClass].join(" ");
   }
 }

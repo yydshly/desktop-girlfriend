@@ -103,9 +103,43 @@ h2 {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0)),
     radial-gradient(circle at 50% 68%, rgba(242, 166, 179, 0.18), transparent 34%);
+  transition: background 220ms ease;
+}
+
+.avatar-stage::after {
+  position: absolute;
+  inset: 12%;
+  z-index: 1;
+  border-radius: 50%;
+  background: transparent;
+  content: "";
+  filter: blur(34px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.avatar-stage.is-state-happy::after,
+.avatar-stage.is-state-reply::after,
+.avatar-stage.is-state-comfort::after {
+  background: radial-gradient(circle, rgba(242, 166, 179, 0.34), transparent 62%);
+  opacity: 1;
+  transform: scale(1.02);
+}
+
+.avatar-stage.is-state-think::after {
+  background: radial-gradient(circle, rgba(151, 204, 255, 0.28), transparent 62%);
+  opacity: 0.9;
+}
+
+.avatar-stage.is-state-sad::after {
+  background: radial-gradient(circle, rgba(170, 181, 187, 0.22), transparent 64%);
+  opacity: 0.8;
 }
 
 #avatarCanvas {
+  position: relative;
+  z-index: 2;
   width: min(86vh, 78vw);
   max-width: 980px;
   height: auto;
