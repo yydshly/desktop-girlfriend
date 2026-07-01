@@ -34,6 +34,7 @@ export function mapStateToLive2DCommands(state = {}, pointer = { x: 0, y: 0 }) {
   const intensity = clamp(Number(state.intensity ?? 0.25), 0, 1);
   const pointerX = clamp(Number(pointer.x ?? 0), -1, 1);
   const pointerY = clamp(Number(pointer.y ?? 0), -1, 1);
+  const pointerStrength = rounded(clamp(Math.hypot(pointerX, pointerY), 0, 1));
   const mouth = clamp(Number(state.mouth ?? 0), 0, 1);
 
   const parameters = {
@@ -54,6 +55,11 @@ export function mapStateToLive2DCommands(state = {}, pointer = { x: 0, y: 0 }) {
     parameters,
     expression: emotion.expression,
     motion: state.sequence || state.motion || "idle",
+    pointer: {
+      x: pointerX,
+      y: pointerY,
+      strength: pointerStrength
+    },
     source: state.source || "unknown"
   };
 }

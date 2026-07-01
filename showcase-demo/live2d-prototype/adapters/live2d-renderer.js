@@ -671,6 +671,9 @@ export function calculateAnimatedLive2DParameters(parameters = {}, command = {},
   const motion = command.motion || "";
   const adapterAction = command.modelCommands?.motion?.action || "";
   const adapterExpression = command.modelCommands?.expression?.semantic || "";
+  const pointer = normalizePointerCommand(command);
+  const idleHeadScale = 1 - pointer.strength * 0.35;
+  const idleEyeScale = 1 - pointer.strength * 0.7;
   const speaking = motion === "reply"
     || motion === "speak"
     || command.expression === "speaking"
@@ -699,22 +702,26 @@ export function calculateAnimatedLive2DParameters(parameters = {}, command = {},
     const breath = 0.5 + Math.sin(now / 900) * 0.08;
     next.ParamBreath = roundToThree(Math.max(Number(next.ParamBreath ?? 0.5), breath));
     next.ParamAngleZ = roundParameter(
-      Number(next.ParamAngleZ ?? 0) + Math.sin(now / 1400) * 0.9
+      Number(next.ParamAngleZ ?? 0) + Math.sin(now / 1400) * 0.9 * idleHeadScale
     );
     next.ParamAngleY = roundParameter(
-      Number(next.ParamAngleY ?? 0) + Math.sin(now / 2100) * 1.1
+      Number(next.ParamAngleY ?? 0) + Math.sin(now / 2100) * 1.1 * idleHeadScale
     );
-    next.ParamEyeBallX = roundParameter(
-      Number(next.ParamEyeBallX ?? 0) + Math.sin(now / 1800) * 0.12
+    next.ParamEyeBallX = clampRoundedParameter(
+      Number(next.ParamEyeBallX ?? 0) + Math.sin(now / 1800) * 0.12 * idleEyeScale,
+      -1,
+      1
     );
-    next.ParamEyeBallY = roundParameter(
-      Number(next.ParamEyeBallY ?? 0) + Math.sin(now / 2400) * 0.06
+    next.ParamEyeBallY = clampRoundedParameter(
+      Number(next.ParamEyeBallY ?? 0) + Math.sin(now / 2400) * 0.06 * idleEyeScale,
+      -1,
+      1
     );
     next.ParamBodyAngleX = roundParameter(
-      Number(next.ParamBodyAngleX ?? 0) + Math.sin(now / 1250) * 0.8
+      Number(next.ParamBodyAngleX ?? 0) + Math.sin(now / 1250) * 0.8 * idleHeadScale
     );
     next.ParamBodyAngleY = roundParameter(
-      Number(next.ParamBodyAngleY ?? 0) + Math.sin(now / 2300) * 0.5
+      Number(next.ParamBodyAngleY ?? 0) + Math.sin(now / 2300) * 0.5 * idleHeadScale
     );
   }
 
@@ -739,6 +746,37 @@ function roundToThree(value) {
 
 function roundParameter(value) {
   return Number(value.toFixed(3));
+}
+
+function clampRoundedParameter(value, min, max) {
+  return roundParameter(Math.min(max, Math.max(min, value)));
+}
+
+function normalizePointerCommand(command = {}) {
+  const pointer = command.pointer;
+  if (!pointer || typeof pointer !== "object") {
+    return { x: 0, y: 0, strength: 0 };
+  }
+
+  const x = clampUnit(Number(pointer.x ?? 0));
+  const y = clampUnit(Number(pointer.y ?? 0));
+  const fallbackStrength = Math.min(1, Math.hypot(x, y));
+  const strength = clamp01(Number(pointer.strength ?? fallbackStrength));
+  return { x, y, strength };
+}
+
+function clamp01(value) {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+  return Math.min(1, Math.max(0, value));
+}
+
+function clampUnit(value) {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+  return Math.min(1, Math.max(-1, value));
 }
 
 export function smoothPointer(current = { x: 0, y: 0 }, target = { x: 0, y: 0 }, alpha = 0.18) {

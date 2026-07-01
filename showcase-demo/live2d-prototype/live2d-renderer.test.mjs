@@ -8,6 +8,7 @@ import {
   shouldAutoRotateIdleMotion,
   smoothPointer
 } from "./adapters/live2d-renderer.js";
+import { mapStateToLive2DCommands } from "./live2d-parameter-mapper.js";
 
 function createCanvasProbe() {
   return {
@@ -691,6 +692,42 @@ function testPointerSmoothingSnapsTinyDeltas() {
   assert.deepEqual(next, { x: 1, y: -1 });
 }
 
+function testMappedPointerCarriesGazeMetadata() {
+  const command = mapStateToLive2DCommands(
+    { emotion: "neutral", intensity: 0.8 },
+    { x: 0.6, y: -0.4 }
+  );
+
+  assert.deepEqual(command.pointer, { x: 0.6, y: -0.4, strength: 0.721 });
+}
+
+function testStrongPointerGazeDampsIdleEyeDrift() {
+  const withoutPointer = calculateAnimatedLive2DParameters(
+    { ParamEyeBallX: 0.8, ParamEyeBallY: -0.8 },
+    { motion: "idle", expression: "neutral" },
+    1400
+  );
+  const withPointer = calculateAnimatedLive2DParameters(
+    { ParamEyeBallX: 0.8, ParamEyeBallY: -0.8 },
+    { motion: "idle", expression: "neutral", pointer: { x: 0.8, y: -0.8, strength: 1 } },
+    1400
+  );
+
+  assert.ok(Math.abs(withPointer.ParamEyeBallX - 0.8) < Math.abs(withoutPointer.ParamEyeBallX - 0.8));
+  assert.ok(Math.abs(withPointer.ParamEyeBallY + 0.8) < Math.abs(withoutPointer.ParamEyeBallY + 0.8));
+}
+
+function testPointerGazeClampsEyeParameters() {
+  const parameters = calculateAnimatedLive2DParameters(
+    { ParamEyeBallX: 1, ParamEyeBallY: -1 },
+    { motion: "idle", expression: "neutral", pointer: { x: 1, y: -1, strength: 1 } },
+    1400
+  );
+
+  assert.equal(parameters.ParamEyeBallX, 1);
+  assert.ok(parameters.ParamEyeBallY >= -1);
+}
+
 function testExpressiveMotionSchedulesReturnToIdle() {
   assert.equal(getReturnToIdleDelayMs({ motion: "reply" }), 4200);
   assert.equal(getReturnToIdleDelayMs({ motion: "comfort" }), 4200);
@@ -722,6 +759,9 @@ function testAdvanceReturnToIdlePlaysIdleMotion() {
 
 testPointerSmoothingMovesTowardTarget();
 testPointerSmoothingSnapsTinyDeltas();
+testMappedPointerCarriesGazeMetadata();
+testStrongPointerGazeDampsIdleEyeDrift();
+testPointerGazeClampsEyeParameters();
 testExpressiveMotionSchedulesReturnToIdle();
 testAdvanceReturnToIdlePlaysIdleMotion();
 console.log("live2d-renderer tests passed");
