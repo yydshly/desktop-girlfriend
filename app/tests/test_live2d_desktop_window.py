@@ -8,6 +8,7 @@ from app.ui.live2d_desktop_window import (
     Live2DDesktopWindowPosition,
     build_live2d_context_menu_actions,
     calculate_dragged_position,
+    ensure_live2d_window_position_visible,
     load_live2d_window_position,
     probe_live2d_desktop_dependencies,
     reset_live2d_window_position,
@@ -118,6 +119,34 @@ def test_calculate_dragged_position_uses_global_delta() -> None:
         move_global_x=40,
         move_global_y=55,
     ) == Live2DDesktopWindowPosition(x=130, y=235)
+
+
+def test_visible_window_position_is_kept() -> None:
+    """Saved positions that intersect the desktop remain unchanged."""
+    position = Live2DDesktopWindowPosition(x=120, y=240)
+
+    assert ensure_live2d_window_position_visible(
+        position=position,
+        window_width=520,
+        window_height=760,
+        screen_x=0,
+        screen_y=0,
+        screen_width=1920,
+        screen_height=1080,
+    ) == position
+
+
+def test_offscreen_window_position_resets_to_default() -> None:
+    """A saved position fully outside the desktop is pulled back on launch."""
+    assert ensure_live2d_window_position_visible(
+        position=Live2DDesktopWindowPosition(x=4000, y=240),
+        window_width=520,
+        window_height=760,
+        screen_x=0,
+        screen_y=0,
+        screen_width=1920,
+        screen_height=1080,
+    ) == Live2DDesktopWindowPosition(x=80, y=80)
 
 
 def test_context_menu_actions_describe_desktop_controls() -> None:

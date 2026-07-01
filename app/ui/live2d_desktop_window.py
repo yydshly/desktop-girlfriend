@@ -130,6 +130,32 @@ def reset_live2d_window_position(
     return default_position
 
 
+def ensure_live2d_window_position_visible(
+    *,
+    position: Live2DDesktopWindowPosition,
+    window_width: int,
+    window_height: int,
+    screen_x: int,
+    screen_y: int,
+    screen_width: int,
+    screen_height: int,
+    default_position: Live2DDesktopWindowPosition = DEFAULT_LIVE2D_WINDOW_POSITION,
+) -> Live2DDesktopWindowPosition:
+    """Return position when visible, otherwise a known safe default."""
+
+    window_right = position.x + max(1, window_width)
+    window_bottom = position.y + max(1, window_height)
+    screen_right = screen_x + max(1, screen_width)
+    screen_bottom = screen_y + max(1, screen_height)
+    intersects_screen = (
+        window_right > screen_x
+        and position.x < screen_right
+        and window_bottom > screen_y
+        and position.y < screen_bottom
+    )
+    return position if intersects_screen else default_position
+
+
 def build_live2d_context_menu_actions(
     *,
     always_on_top: bool,
@@ -317,7 +343,19 @@ def run_live2d_desktop_window(spec: Live2DDesktopShellSpec) -> int:
     view.setWindowOpacity(spec.opacity)
     saved_position = load_live2d_window_position(position_path)
     if saved_position is not None:
-        view.move(saved_position.x, saved_position.y)
+        available = view.screen().availableGeometry()
+        safe_position = ensure_live2d_window_position_visible(
+            position=saved_position,
+            window_width=spec.width,
+            window_height=spec.height,
+            screen_x=available.x(),
+            screen_y=available.y(),
+            screen_width=available.width(),
+            screen_height=available.height(),
+        )
+        if safe_position != saved_position:
+            save_live2d_window_position(position_path, safe_position)
+        view.move(safe_position.x, safe_position.y)
 
     flags = qt.WindowType.Window
     if spec.frameless:
