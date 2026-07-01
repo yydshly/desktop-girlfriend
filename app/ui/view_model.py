@@ -91,6 +91,7 @@ class DesktopViewModel:
             "Model: scanning local Live2D packages"
         )
         self.live2d_model_catalog_details: str = ""
+        self.live2d_model_import_guide: str = ""
         self.live2d_model_options: tuple[tuple[str, str], ...] = ()
         self.selected_live2d_model_id: str = ""
         # Settings panel state (Phase 2-E)
@@ -580,6 +581,10 @@ class DesktopViewModel:
     def set_live2d_model_catalog_details(self, text: str) -> None:
         """Set detailed Live2D model package diagnostics text."""
         self.live2d_model_catalog_details = text.strip()
+
+    def set_live2d_model_import_guide(self, text: str) -> None:
+        """Set Live2D model import guidance and suitability hints."""
+        self.live2d_model_import_guide = text.strip()
 
     def set_live2d_model_options(
         self,

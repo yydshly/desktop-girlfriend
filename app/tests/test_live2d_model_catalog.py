@@ -11,6 +11,7 @@ from app.ui.live2d_model_catalog import (
     inspect_live2d_model_package,
     render_live2d_model_catalog_details,
     render_live2d_model_catalog_summary,
+    render_live2d_model_import_guide,
     scan_live2d_model_catalog,
 )
 
@@ -275,3 +276,21 @@ def test_render_live2d_model_catalog_details_reports_each_package(
         "sample/Hiyori: ready, motions 1, groups Idle, expressions 0, textures 1"
         in details
     )
+
+
+def test_render_live2d_model_import_guide_reports_model_suitability(
+    tmp_path: Path,
+) -> None:
+    """Import guide explains where models go and whether the active model is rich."""
+    _write_model(tmp_path / "sample" / "Hiyori" / "Hiyori.model3.json")
+    packages = scan_live2d_model_catalog(tmp_path)
+
+    guide = render_live2d_model_import_guide(
+        tmp_path,
+        packages,
+        selected_model_id="sample/Hiyori",
+    )
+
+    assert "Put custom models under" in guide
+    assert "custom/<Name>/<Name>.model3.json" in guide
+    assert "limited: add more motion groups or expressions" in guide

@@ -191,6 +191,35 @@ def render_live2d_model_catalog_details(
     return "\n".join(lines)
 
 
+def render_live2d_model_import_guide(
+    catalog_root: Path,
+    packages: tuple[Live2DModelPackage, ...],
+    *,
+    selected_model_id: str | None = None,
+) -> str:
+    """Render practical guidance for adding and judging Live2D model packages."""
+    selected = _selected_package(packages, selected_model_id) or (
+        packages[0] if packages else None
+    )
+    lines = [
+        f"Put custom models under: {catalog_root / 'custom' / '<Name>'}",
+        "Expected entry: custom/<Name>/<Name>.model3.json",
+        "Good desktop model: multiple motion groups, expressions, moc3, textures, physics.",
+    ]
+    if selected is None:
+        lines.append("Current fit: no model found yet.")
+        return "\n".join(lines)
+
+    if selected.status == Live2DModelPackageStatus.BROKEN:
+        missing = ", ".join(selected.missing) if selected.missing else "unknown parts"
+        lines.append(f"Current fit: broken, fix {missing}.")
+    elif len(selected.motion_groups) < 2 or selected.expression_count == 0:
+        lines.append("Current fit: limited: add more motion groups or expressions.")
+    else:
+        lines.append("Current fit: good candidate for richer action mapping.")
+    return "\n".join(lines)
+
+
 def _read_model_json(model_json: Path) -> dict[str, Any]:
     try:
         data = json.loads(model_json.read_text(encoding="utf-8"))
