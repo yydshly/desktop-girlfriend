@@ -9,6 +9,7 @@ export class Live2DRenderer {
     this.modelUrl = options.modelUrl || "";
     this.allowTextureFallback = options.allowTextureFallback !== false;
     this.onStatusChange = options.onStatusChange || (() => {});
+    this.motionBindings = options.motionBindings || {};
     this.app = null;
     this.model = null;
     this.live2dModel = null;
@@ -66,6 +67,11 @@ export class Live2DRenderer {
 
   getLastCommands() {
     return this.lastCommands;
+  }
+
+  setMotionBindings(bindings = {}) {
+    this.motionBindings = sanitizeMotionBindings(bindings);
+    this.emitStatus();
   }
 
   async loadPreviewTexture() {
@@ -318,7 +324,8 @@ export class Live2DRenderer {
 
     const motion = options.override || mapCommandToModelMotion(
       this.lastCommands,
-      this.model?.motionGroupCounts
+      this.model?.motionGroupCounts,
+      this.motionBindings
     );
     const motionKey = `${motion.group}:${motion.index}:${motion.source}`;
     if (!options.force && motionKey === this.lastMotionKey) {
@@ -376,7 +383,8 @@ export class Live2DRenderer {
       activeMotion: this.activeMotion,
       activeExpression: this.activeExpression,
       modelCapabilities: getModelCapabilities(this.model),
-      commandDiagnostics: getCommandDiagnostics(this.lastCommands, this.model)
+      commandDiagnostics: getCommandDiagnostics(this.lastCommands, this.model, this.motionBindings),
+      motionBindings: this.motionBindings
     });
   }
 }
@@ -409,8 +417,13 @@ export function calculateLive2DPlacement(canvasSize, modelSize) {
   };
 }
 
-export function mapCommandToModelMotion(command = {}, motionGroupCounts = null) {
+export function mapCommandToModelMotion(command = {}, motionGroupCounts = null, motionBindings = {}) {
   const motion = command.motion || "idle";
+  const binding = resolveMotionBinding(motion, motionBindings, motionGroupCounts);
+  if (binding) {
+    return { ...binding, source: `${motion}-binding` };
+  }
+
   const expressiveMotions = new Set(["greet", "happy", "reply", "comfort", "speak"]);
   if (expressiveMotions.has(motion) && hasMotionGroup(motionGroupCounts, "TapBody")) {
     return {
@@ -427,6 +440,19 @@ export function mapCommandToModelMotion(command = {}, motionGroupCounts = null) 
   };
 }
 
+function resolveMotionBinding(motion, motionBindings = {}, motionGroupCounts = null) {
+  const binding = motionBindings?.[motion];
+  if (!binding) {
+    return null;
+  }
+  const group = String(binding.group || "");
+  const index = Math.max(0, Math.floor(Number(binding.index ?? 0)));
+  if (!group || !hasMotionIndex(motionGroupCounts, group, index)) {
+    return null;
+  }
+  return { group, index };
+}
+
 function getMotionGroupCount(motionGroupCounts = {}, group, fallback) {
   const count = Number((motionGroupCounts || {})[group] ?? fallback);
   return Number.isFinite(count) && count > 0 ? Math.floor(count) : fallback;
@@ -438,6 +464,14 @@ function hasMotionGroup(motionGroupCounts = null, group) {
   }
   const count = Number(motionGroupCounts[group] ?? 0);
   return Number.isFinite(count) && count > 0;
+}
+
+function hasMotionIndex(motionGroupCounts = null, group, index) {
+  if (!motionGroupCounts) {
+    return group === "TapBody" ? index === 0 : group === "Idle" && index >= 0 && index < DEFAULT_IDLE_MOTION_COUNT;
+  }
+  const count = Number(motionGroupCounts[group] ?? 0);
+  return Number.isFinite(count) && index >= 0 && index < count;
 }
 
 function getIdleMotionVariantIndex(motion, motionGroupCounts = null) {
@@ -487,7 +521,7 @@ export function getModelCapabilities(model = null) {
   };
 }
 
-export function getCommandDiagnostics(command = {}, model = null) {
+export function getCommandDiagnostics(command = {}, model = null, motionBindings = {}) {
   const requestedMotion = command.motion || "";
   const requestedExpression = command.expression || "";
   const resolvedExpression = resolveSupportedExpression(
@@ -497,10 +531,24 @@ export function getCommandDiagnostics(command = {}, model = null) {
   return {
     requestedMotion,
     requestedExpression,
-    resolvedMotion: mapCommandToModelMotion(command, model?.motionGroupCounts),
+    resolvedMotion: mapCommandToModelMotion(command, model?.motionGroupCounts, motionBindings),
     resolvedExpression,
     expressionSupport: getExpressionSupport(requestedExpression, resolvedExpression, model)
   };
+}
+
+export function sanitizeMotionBindings(bindings = {}) {
+  return Object.fromEntries(
+    Object.entries(bindings || {})
+      .map(([motion, binding]) => [
+        motion,
+        {
+          group: String(binding?.group || "Idle"),
+          index: Math.max(0, Math.floor(Number(binding?.index ?? 0)))
+        }
+      ])
+      .filter(([motion]) => typeof motion === "string" && motion.length > 0)
+  );
 }
 
 function getExpressionSupport(requestedExpression, resolvedExpression, model = null) {

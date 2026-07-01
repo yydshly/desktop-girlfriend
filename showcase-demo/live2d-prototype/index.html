@@ -110,6 +110,25 @@
         </section>
 
         <section class="panel-section">
+          <h2>Motion Binding</h2>
+          <div class="binding-row">
+            <select id="motionBindingState">
+              <option value="idle">idle</option>
+              <option value="happy">happy</option>
+              <option value="think">think</option>
+              <option value="sad">sad</option>
+              <option value="listen">listen</option>
+              <option value="reply">reply</option>
+              <option value="comfort">comfort</option>
+              <option value="speak">speak</option>
+              <option value="greet">greet</option>
+            </select>
+            <button id="bindActiveMotion">Bind active</button>
+          </div>
+          <pre id="motionBindingStatus" class="motion-binding-status">{}</pre>
+        </section>
+
+        <section class="panel-section">
           <h2>桥接状态</h2>
           <div class="bridge-row">
             <input id="bridgeUrl" value="ws://127.0.0.1:8879" />

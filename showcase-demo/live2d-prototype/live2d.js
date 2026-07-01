@@ -23,6 +23,9 @@ const summaryExpression = document.querySelector("#summaryExpression");
 const summaryCapabilities = document.querySelector("#summaryCapabilities");
 const summarySdk = document.querySelector("#summarySdk");
 const setModelUrl = document.querySelector("#setModelUrl");
+const motionBindingState = document.querySelector("#motionBindingState");
+const bindActiveMotion = document.querySelector("#bindActiveMotion");
+const motionBindingStatus = document.querySelector("#motionBindingStatus");
 const bridgeUrl = document.querySelector("#bridgeUrl");
 const connectBridge = document.querySelector("#connectBridge");
 const disconnectBridge = document.querySelector("#disconnectBridge");
@@ -34,9 +37,11 @@ document.documentElement.dataset.mode = isDesktopMode ? "desktop" : "showcase";
 
 rendererSelect.value = "live2d";
 
+const MOTION_BINDINGS_STORAGE_KEY = "desktop-girlfriend.live2d.motionBindings.v1";
 let configuredModelUrl = resolveModelUrlFromRoute(routeParams, modelUrl.value);
 modelUrl.value = configuredModelUrl;
 let activeRendererMode = rendererSelect.value;
+let motionBindings = loadMotionBindings();
 let socket = null;
 let bridgeReconnectTimer = null;
 let bridgeReconnectEnabled = false;
@@ -52,6 +57,7 @@ function createRenderer() {
   return createAvatarRenderer(activeRendererMode, canvas, {
     modelUrl: configuredModelUrl,
     allowTextureFallback: !isDesktopMode,
+    motionBindings,
     onStatusChange: (status) => {
       lastRendererStatus = status;
       updateRendererStatus();
@@ -158,6 +164,7 @@ async function updateModelPackageStatus() {
 controller.start();
 updateRendererStatus();
 updateModelPackageStatus();
+updateMotionBindingStatus();
 
 rendererSelect.addEventListener("change", () => {
   activeRendererMode = rendererSelect.value;
@@ -180,6 +187,24 @@ document.querySelectorAll("[data-motion-group]").forEach((button) => {
   button.addEventListener("click", () => {
     controller.playMotionProbe(button.dataset.motionGroup, button.dataset.motionIndex);
   });
+});
+
+bindActiveMotion.addEventListener("click", () => {
+  const motion = lastRendererStatus.activeMotion;
+  if (!motion?.group) {
+    return;
+  }
+  const state = motionBindingState.value;
+  motionBindings = {
+    ...motionBindings,
+    [state]: {
+      group: motion.group,
+      index: motion.index
+    }
+  };
+  saveMotionBindings(motionBindings);
+  controller.renderer.setMotionBindings?.(motionBindings);
+  updateMotionBindingStatus();
 });
 
 stage.addEventListener("pointermove", (event) => {
@@ -283,3 +308,22 @@ window.live2dPrototype = {
   detectSdk: () => detectLive2DSdk(window),
   inspectModel: () => inspectModelPackage(configuredModelUrl)
 };
+
+function loadMotionBindings() {
+  try {
+    return JSON.parse(window.localStorage.getItem(MOTION_BINDINGS_STORAGE_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function saveMotionBindings(bindings) {
+  window.localStorage.setItem(MOTION_BINDINGS_STORAGE_KEY, JSON.stringify(bindings));
+}
+
+function updateMotionBindingStatus() {
+  if (!motionBindingStatus) {
+    return;
+  }
+  motionBindingStatus.textContent = JSON.stringify(motionBindings, null, 2);
+}

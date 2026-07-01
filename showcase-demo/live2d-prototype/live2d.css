@@ -270,7 +270,8 @@ button:hover {
 }
 
 .asset-row,
-.bridge-row {
+.bridge-row,
+.binding-row {
   display: grid;
   grid-template-columns: 1fr;
   gap: 8px;
@@ -362,6 +363,11 @@ pre {
 .bridge-status {
   min-height: 112px;
   max-height: 160px;
+}
+
+.motion-binding-status {
+  min-height: 84px;
+  max-height: 130px;
 }
 
 .model-preview {

@@ -309,10 +309,56 @@ function testAbstractMotionClampsIdleVariantToModelMotionCount() {
   );
 }
 
+function testAbstractMotionUsesConfiguredBinding() {
+  assert.deepEqual(
+    mapCommandToModelMotion(
+      { motion: "happy" },
+      { Idle: 9, TapBody: 1 },
+      { happy: { group: "Idle", index: 5 } }
+    ),
+    { group: "Idle", index: 5, source: "happy-binding" }
+  );
+}
+
+function testAbstractMotionIgnoresUnavailableConfiguredBinding() {
+  assert.deepEqual(
+    mapCommandToModelMotion(
+      { motion: "happy" },
+      { Idle: 2 },
+      { happy: { group: "Idle", index: 5 } }
+    ),
+    { group: "Idle", index: 0, source: "happy" }
+  );
+}
+
+function testRendererUsesRuntimeMotionBindings() {
+  const renderer = new Live2DRenderer(createCanvasProbe());
+  const calls = [];
+  renderer.model = { motionGroupCounts: { Idle: 9, TapBody: 1 } };
+  renderer.live2dModel = {
+    motion(group, index) {
+      calls.push({ group, index });
+    },
+    internalModel: {
+      coreModel: {
+        setParameterValueById() {}
+      }
+    }
+  };
+
+  renderer.setMotionBindings({ happy: { group: "Idle", index: 5 } });
+  renderer.applyState({ motion: "happy", emotion: "happy" });
+
+  assert.deepEqual(calls, [{ group: "Idle", index: 5 }]);
+}
+
 testSequenceTriggersTapBodyMotion();
 testAbstractMotionUsesAvailableModelMotionGroups();
 testAbstractMotionUsesDistinctIdleVariants();
 testAbstractMotionClampsIdleVariantToModelMotionCount();
+testAbstractMotionUsesConfiguredBinding();
+testAbstractMotionIgnoresUnavailableConfiguredBinding();
+testRendererUsesRuntimeMotionBindings();
 testIdleStateTriggersIdleMotion();
 testStateAppliesLive2DExpression();
 testStateSkipsUnavailableLive2DExpression();
