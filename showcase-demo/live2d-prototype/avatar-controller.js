@@ -1,4 +1,6 @@
 import { mapAvatarSequence, mapAvatarState, mapBridgeMessage } from "./state-mapper.js";
+import { mapBridgeMessageToEmotionState, normalizeEmotionState } from "./emotion-state.js";
+import { planBehaviorFromEmotionState } from "./behavior-planner.js";
 
 export class AvatarController {
   constructor(renderer, readoutElement, bubbleElement = null, stageElement = null) {
@@ -50,7 +52,10 @@ export class AvatarController {
   }
 
   handleBridgeMessage(message) {
-    this.applyMappedState(mapBridgeMessage(message));
+    this.applyMappedState(
+      mapBridgeMessage(message),
+      mapBridgeMessageToEmotionState(message)
+    );
   }
 
   setPointerFromEvent(event, element) {
@@ -60,10 +65,14 @@ export class AvatarController {
     this.renderer.setPointer(x, y);
   }
 
-  applyMappedState(nextState) {
+  applyMappedState(nextState, emotionState = null) {
+    const nextEmotionState = emotionState || normalizeEmotionState(nextState);
+    const behavior = planBehaviorFromEmotionState(nextEmotionState);
     this.currentState = {
       ...this.currentState,
       ...nextState,
+      emotionState: nextEmotionState,
+      behavior,
       updatedAt: new Date().toISOString()
     };
     this.renderer.applyState(this.currentState);

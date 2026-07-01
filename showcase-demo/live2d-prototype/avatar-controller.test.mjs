@@ -90,6 +90,37 @@ function testControllerUsesVisualIntentForStageClass() {
   assert.equal(stage.className, "avatar-stage is-state-speaking");
 }
 
+function testControllerStoresEmotionAndBehaviorForMappedState() {
+  const renderer = createRendererProbe();
+  const readout = createTextElement();
+  const controller = new AvatarController(renderer, readout);
+
+  controller.handleBridgeMessage({
+    type: "avatar.state",
+    payload: {
+      state: "speaking"
+    }
+  });
+
+  const applied = renderer.appliedStates.at(-1);
+  assert.deepEqual(applied.emotionState, {
+    state: "speaking",
+    emotion: "engaged",
+    intensity: 0.76,
+    activity: "speak",
+    gaze: "cursor",
+    mouth: 0.65,
+    source: "avatar.state"
+  });
+  assert.deepEqual(applied.behavior, {
+    action: "speak",
+    expression: "engaged",
+    intensity: 0.76,
+    gaze: "cursor",
+    mouth: 0.65
+  });
+}
+
 function testControllerPlaysMotionProbe() {
   const renderer = createRendererProbe();
   const readout = createTextElement();
@@ -106,5 +137,6 @@ testControllerRendersSpeechBubbleFromDialogueTurn();
 testControllerHidesBubbleForIdleStateWithoutBubble();
 testControllerMarksStageWithVisualStateClass();
 testControllerUsesVisualIntentForStageClass();
+testControllerStoresEmotionAndBehaviorForMappedState();
 testControllerPlaysMotionProbe();
 console.log("avatar-controller tests passed");
