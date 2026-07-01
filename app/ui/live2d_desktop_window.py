@@ -73,6 +73,14 @@ class Live2DDesktopWindowPosition:
     y: int
 
 
+@dataclass(frozen=True)
+class Live2DDesktopContextMenuAction:
+    """Right-click action exposed by the Live2D desktop companion window."""
+
+    key: str
+    label: str
+
+
 def default_live2d_position_path() -> Path:
     """Return the default local path for Live2D desktop window state."""
 
@@ -109,6 +117,21 @@ def save_live2d_window_position(
     )
 
 
+def build_live2d_context_menu_actions(
+    *,
+    always_on_top: bool,
+) -> tuple[Live2DDesktopContextMenuAction, ...]:
+    """Return the right-click menu actions for the Live2D desktop companion."""
+
+    return (
+        Live2DDesktopContextMenuAction("reset_position", "重置位置"),
+        Live2DDesktopContextMenuAction("opacity_down", "淡一点"),
+        Live2DDesktopContextMenuAction("opacity_up", "实一点"),
+        Live2DDesktopContextMenuAction("toggle_top", "取消置顶" if always_on_top else "置顶"),
+        Live2DDesktopContextMenuAction("close", "隐藏人物"),
+    )
+
+
 def calculate_dragged_position(
     window_x: int,
     window_y: int,
@@ -138,6 +161,7 @@ def run_live2d_desktop_window(spec: Live2DDesktopShellSpec) -> int:
 
     q_application = qt_widgets.QApplication
     q_web_engine_view = qt_webengine_widgets.QWebEngineView
+    q_menu = qt_widgets.QMenu
     qt = qt_core.Qt
     q_url = qt_core.QUrl
     q_color = qt_gui.QColor
@@ -159,9 +183,17 @@ def run_live2d_desktop_window(spec: Live2DDesktopShellSpec) -> int:
                 child.installEventFilter(self)
 
         def eventFilter(self, watched, event) -> bool:  # noqa: N802
+            if self._handle_context_menu_event(event):
+                return True
             if self._handle_drag_event(event):
                 return True
             return super().eventFilter(watched, event)
+
+        def contextMenuEvent(self, event) -> None:  # noqa: N802
+            if self._show_context_menu(_event_global_position(event)):
+                event.accept()
+                return
+            super().contextMenuEvent(event)
 
         def mousePressEvent(self, event) -> None:  # noqa: N802
             if self._handle_drag_event(event):
@@ -218,6 +250,55 @@ def run_live2d_desktop_window(spec: Live2DDesktopShellSpec) -> int:
                 event.accept()
                 return True
             return False
+
+        def _handle_context_menu_event(self, event) -> bool:
+            if event.type() != qt_core.QEvent.Type.ContextMenu:
+                return False
+            self._show_context_menu(_event_global_position(event))
+            event.accept()
+            return True
+
+        def _show_context_menu(self, global_position) -> bool:
+            menu = q_menu(self)
+            action_by_key = {}
+            for menu_action in build_live2d_context_menu_actions(
+                always_on_top=bool(self.windowFlags() & qt.WindowType.WindowStaysOnTopHint)
+            ):
+                action = menu.addAction(menu_action.label)
+                action_by_key[action] = menu_action.key
+            selected = menu.exec(global_position)
+            selected_key = action_by_key.get(selected)
+            if selected_key is None:
+                return False
+            self._apply_context_menu_action(selected_key)
+            return True
+
+        def _apply_context_menu_action(self, key: str) -> None:
+            if key == "reset_position":
+                try:
+                    position_path.unlink(missing_ok=True)
+                except OSError:
+                    pass
+                self.move(80, 80)
+                return
+            if key == "opacity_down":
+                self.setWindowOpacity(max(0.45, round(self.windowOpacity() - 0.1, 2)))
+                return
+            if key == "opacity_up":
+                self.setWindowOpacity(min(1.0, round(self.windowOpacity() + 0.1, 2)))
+                return
+            if key == "toggle_top":
+                currently_top = bool(
+                    self.windowFlags() & qt.WindowType.WindowStaysOnTopHint
+                )
+                self.setWindowFlag(
+                    qt.WindowType.WindowStaysOnTopHint,
+                    not currently_top,
+                )
+                self.show()
+                return
+            if key == "close":
+                self.close()
 
     app = q_application.instance() or q_application([])
     view = Live2DDesktopWebView()

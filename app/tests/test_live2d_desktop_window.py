@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from app.ui.live2d_desktop_window import (
+    Live2DDesktopContextMenuAction,
     Live2DDesktopDependencyStatus,
     Live2DDesktopWindowPosition,
+    build_live2d_context_menu_actions,
     calculate_dragged_position,
     load_live2d_window_position,
     probe_live2d_desktop_dependencies,
@@ -102,3 +104,21 @@ def test_calculate_dragged_position_uses_global_delta() -> None:
         move_global_x=40,
         move_global_y=55,
     ) == Live2DDesktopWindowPosition(x=130, y=235)
+
+
+def test_context_menu_actions_describe_desktop_controls() -> None:
+    """Right-click menu exposes the most useful desktop companion controls."""
+    assert build_live2d_context_menu_actions(always_on_top=True) == (
+        Live2DDesktopContextMenuAction("reset_position", "重置位置"),
+        Live2DDesktopContextMenuAction("opacity_down", "淡一点"),
+        Live2DDesktopContextMenuAction("opacity_up", "实一点"),
+        Live2DDesktopContextMenuAction("toggle_top", "取消置顶"),
+        Live2DDesktopContextMenuAction("close", "隐藏人物"),
+    )
+
+
+def test_context_menu_top_label_reflects_current_window_flag() -> None:
+    """Pin label changes when the desktop companion is not currently on top."""
+    actions = build_live2d_context_menu_actions(always_on_top=False)
+
+    assert actions[3] == Live2DDesktopContextMenuAction("toggle_top", "置顶")
