@@ -1,6 +1,11 @@
 import { inspectModelPackage } from "../model-package-inspector.js";
 import { ensureLive2DSdk } from "../live2d-sdk-loader.js";
 import { mapStateToLive2DCommands } from "../live2d-parameter-mapper.js";
+import {
+  canRunPassiveBehavior,
+  HOVER_REACTION_COOLDOWN_MS,
+  updateHoverDwellSchedule
+} from "../passive-behavior-scheduler.js";
 import { sanitizeMotionBindings } from "../motion-bindings.js";
 
 export class Live2DRenderer {
@@ -343,41 +348,22 @@ export class Live2DRenderer {
   }
 
   advanceHoverDwell(now) {
-    if (!this.hasPointerInput || !shouldAutoRotateIdleMotion(this.lastCommands)) {
-      this.hoverDwellStartedAt = 0;
+    const schedule = updateHoverDwellSchedule({
+      now,
+      pointer: this.pointer,
+      command: this.lastCommands,
+      hasPointerInput: this.hasPointerInput,
+      activeReaction: calculatePointerReactionEffect(this.pointerReaction, now).active,
+      hoverDwellStartedAt: this.hoverDwellStartedAt,
+      nextHoverReactionAt: this.nextHoverReactionAt
+    });
+    this.hoverDwellStartedAt = schedule.hoverDwellStartedAt;
+    this.nextHoverReactionAt = schedule.nextHoverReactionAt;
+    if (!schedule.reaction) {
       return;
     }
 
-    if (now < this.nextHoverReactionAt) {
-      return;
-    }
-
-    if (!isPointerNearAvatarCenter(this.pointer)) {
-      this.hoverDwellStartedAt = 0;
-      return;
-    }
-
-    if (calculatePointerReactionEffect(this.pointerReaction, now).active) {
-      return;
-    }
-
-    if (!this.hoverDwellStartedAt) {
-      this.hoverDwellStartedAt = now;
-      return;
-    }
-
-    if (now - this.hoverDwellStartedAt < HOVER_DWELL_MS) {
-      return;
-    }
-
-    this.pointerReaction = {
-      startedAt: now,
-      durationMs: HOVER_REACTION_DURATION_MS,
-      x: clampUnit(this.pointer.x * 0.45),
-      y: clampUnit(this.pointer.y * 0.35 - 0.12)
-    };
-    this.hoverDwellStartedAt = 0;
-    this.nextHoverReactionAt = now + HOVER_REACTION_COOLDOWN_MS;
+    this.pointerReaction = schedule.reaction;
     this.recordBehaviorEvent("pointer.hover-dwell", {
       x: this.pointerReaction.x,
       y: this.pointerReaction.y
@@ -568,10 +554,6 @@ const IDLE_MOTION_INTERVAL_MS = 6500;
 const MOTION_COOLDOWN_MS = 650;
 const EXPRESSIVE_RETURN_TO_IDLE_MS = 4200;
 const AMBIENT_GESTURE_INTERVAL_MS = 7200;
-const HOVER_DWELL_MS = 1400;
-const HOVER_REACTION_COOLDOWN_MS = 5200;
-const HOVER_REACTION_DURATION_MS = 640;
-const HOVER_REACTION_RADIUS = 0.58;
 const MAX_BEHAVIOR_EVENTS = 12;
 const AMBIENT_GESTURES = [
   { x: 0.28, y: -0.24, durationMs: 860 },
@@ -590,15 +572,6 @@ function getLive2DModelFactory(PIXI) {
 function getAmbientGestureIntervalMs(placementProfile = {}) {
   const interval = Number(placementProfile.ambientGestureIntervalMs ?? AMBIENT_GESTURE_INTERVAL_MS);
   return Number.isFinite(interval) && interval > 0 ? interval : AMBIENT_GESTURE_INTERVAL_MS;
-}
-
-function isPointerNearAvatarCenter(pointer = { x: 0, y: 0 }) {
-  const x = Number(pointer.x ?? 0);
-  const y = Number(pointer.y ?? 0);
-  if (!Number.isFinite(x) || !Number.isFinite(y)) {
-    return false;
-  }
-  return Math.hypot(x, y) <= HOVER_REACTION_RADIUS;
 }
 
 function getUnscaledLive2DModelSize(model) {
@@ -817,8 +790,7 @@ function getIdleMotionVariantIndex(motion, motionGroupCounts = null) {
 }
 
 export function shouldAutoRotateIdleMotion(command = {}) {
-  const motion = command.motion || "idle";
-  return motion === "idle" || motion === "think" || motion === "sad";
+  return canRunPassiveBehavior(command);
 }
 
 export function getReturnToIdleDelayMs(command = {}) {
