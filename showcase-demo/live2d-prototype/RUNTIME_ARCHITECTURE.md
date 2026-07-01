@@ -21,6 +21,8 @@ Done:
   - model package capability diagnostics
   - Motion Probe controls for testing motion groups and indexes
   - model profile.json motion binding support
+  - Character Contract v1 for stable semantic states, actions, and expressions
+  - profile.json schemaVersion 1 mappings for model-specific action/expression adapters
   - PySide6 desktop WebView shell
   - local WebSocket bridge from the Python app to the Live2D page
   - runtime-app.js / debug-panel.js split with a thin live2d.js entrypoint
@@ -29,6 +31,7 @@ Not done yet:
   - profile-based expression aliases and parameter ranges
   - product-facing desktop controls and packaging polish
   - custom character production
+  - dedicated Emotion State and Model Adapter modules
 ```
 
 ## Target Runtime Flow
@@ -155,9 +158,34 @@ expressions/
 physics3.json
 ```
 
-`profile.json` is the model-specific tuning file. It should hold motion bindings,
-expression aliases, and later parameter ranges. Browser `localStorage` is only a
-debug override for the currently selected model.
+`profile.json` is the model-specific tuning file. It implements Character
+Contract v1 and should use this shape:
+
+```json
+{
+  "schemaVersion": 1,
+  "displayName": "Hiyori",
+  "desktopPlacement": {
+    "scaleMultiplier": 1.06,
+    "xOffsetRatio": 0,
+    "yRatio": 0.54
+  },
+  "mappings": {
+    "actions": {
+      "idle": { "group": "Idle", "index": 0 },
+      "speak": { "group": "TapBody", "index": 0 }
+    },
+    "expressions": {
+      "neutral": "default",
+      "happy": "smile"
+    }
+  }
+}
+```
+
+Browser `localStorage` is only a debug override for the currently selected
+model. Legacy `motionBindings` are still accepted by the loader so older test
+profiles do not break, but new models should use `mappings.actions`.
 
 ### Desktop Shell
 
@@ -183,11 +211,17 @@ local websocket bridge to AI runtime
 Move all model-specific runtime decisions into `profile.json`:
 
 ```text
-motionBindings
-expressionAliases
+schemaVersion 1
+mappings.actions
+mappings.expressions
+desktopPlacement
 parameterRanges
 debug notes for chosen motion indexes
 ```
+
+Status: Character Contract v1 and profile mappings are now the mainline shape.
+The remaining work is using expression mappings and parameter ranges in the
+renderer adapter.
 
 ### Step 2: Stable Avatar Protocol
 
