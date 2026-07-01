@@ -14,10 +14,14 @@ Current technical validation sample:
 
 ```text
 showcase-demo/live2d-prototype/assets/models/sample/Hiyori/Hiyori.model3.json
+showcase-demo/live2d-prototype/assets/models/sample/Natori/Natori.model3.json
 ```
 
 The Live2D prototype now loads `.model3.json` packages through the local
 Live2D runtime. The placeholder renderer remains only as a debug fallback.
+
+Hiyori is the baseline model. Natori is the second official sample candidate
+for comparing richer expression and motion behavior.
 
 Each model folder should include:
 

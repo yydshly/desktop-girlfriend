@@ -179,6 +179,8 @@ error
 - 实验输出会列出每一步的 motion / expression / mouth / intensity，用来判断模型动态效果是否符合“小云”规格。
 - 模型资产区会显示 candidate score。这个分数不是审美评分，而是模型包动态能力评分：actions、expressions、lip sync、eye blink、physics、idle motion 等是否满足小云规格。
 - 如果 candidate score 低，优先看 `missing`；它会说明缺少 expression 映射、动作映射、physics 或口型参数。
+- 第二个官方样例候选已接入：`./assets/models/sample/Natori/Natori.model3.json`。它比 Hiyori 更适合测试表情和动作表现。
+- 对比方法：先加载 Hiyori 跑一次模型实验，再把 Model URL 改成 Natori 路径，点击“设置模型路径”，再跑同一条模型实验。
 
 桌面应用正常时：
 

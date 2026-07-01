@@ -11,6 +11,14 @@
       "allowed_use": "technical validation only after accepting Live2D Free Material License and model-specific sample terms",
       "local_model_json": "./assets/models/sample/Hiyori/Hiyori.model3.json",
       "integrated_model": "Hiyori",
+      "additional_integrated_models": [
+        {
+          "display_name": "Natori",
+          "local_model_json": "./assets/models/sample/Natori/Natori.model3.json",
+          "source_path": "Samples/Resources/Natori",
+          "purpose": "second candidate for Live2D model comparison and Xiaoyun dynamic capability scoring"
+        }
+      ],
       "candidate_models": [
         "Haru",
         "Hiyori",
@@ -21,7 +29,7 @@
         "Rice",
         "Wanko"
       ],
-      "notes": "Hiyori has been copied from Samples/Resources/Hiyori for local technical validation. Use requires compliance with Live2D Free Material License and Live2D sample model terms."
+      "notes": "Hiyori and Natori have been copied from Samples/Resources for local technical validation. Use requires compliance with Live2D Free Material License and Live2D sample model terms."
     }
   ]
 }

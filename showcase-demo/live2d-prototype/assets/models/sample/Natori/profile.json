@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "displayName": "Natori",
+  "desktopPlacement": {
+    "scaleMultiplier": 1.08,
+    "xOffsetRatio": 0,
+    "yRatio": 0.55
+  },
+  "mappings": {
+    "actions": {
+      "idle": { "group": "Idle", "index": 0 },
+      "listen": { "group": "Idle", "index": 1 },
+      "think": { "group": "Idle", "index": 2 },
+      "speak": { "group": "TapBody", "index": 0 },
+      "happy": { "group": "TapBody", "index": 1 },
+      "comfort": { "group": "TapBody", "index": 2 },
+      "greet": { "group": "TapBody", "index": 3 },
+      "sad": { "group": "Idle", "index": 2 },
+      "reply": { "group": "TapBody", "index": 0 }
+    },
+    "expressions": {
+      "neutral": "Normal",
+      "happy": "Smile",
+      "thinking": "exp_03",
+      "sad": "Sad",
+      "soft": "Blushing",
+      "engaged": "Smile"
+    }
+  }
+}
