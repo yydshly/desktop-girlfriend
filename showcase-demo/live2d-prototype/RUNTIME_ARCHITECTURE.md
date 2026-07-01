@@ -2,7 +2,7 @@
 
 This document defines the mainline architecture after the PNG puppet prototype.
 
-The current UI is not the final visual target. It is a runtime harness for proving that AI dialogue state can drive a real Live2D model later.
+The current UI is not the final visual target. It is a runtime harness for proving that AI dialogue state can drive a real Live2D model and for tuning model-specific behavior before the desktop shell becomes product-facing.
 
 ## Current Position
 
@@ -14,12 +14,21 @@ Done:
   - model asset path entrypoint
   - renderer mode switching
   - avatar state to Live2D parameter mapping
+  - legal sample Live2D model package for technical validation
+  - local Live2D SDK runtime loading
+  - .model3.json loading through PIXI Live2D
+  - parameter, expression, and motion playback
+  - model package capability diagnostics
+  - Motion Probe controls for testing motion groups and indexes
+  - model profile.json motion binding support
+  - PySide6 desktop WebView shell
+  - local WebSocket bridge from the Python app to the Live2D page
 
 Not done yet:
-  - legal sample Live2D model
-  - real Live2D SDK loader
-  - expression and motion playback against a real .model3.json
-  - Electron transparent desktop shell
+  - stable shared avatar state schema
+  - profile-based expression aliases and parameter ranges
+  - separation of runtime code from debug panel code
+  - product-facing desktop controls and packaging polish
   - custom character production
 ```
 
@@ -100,9 +109,10 @@ PlaceholderRenderer
   - not a product visual target
 
 Live2DRenderer
-  - dry-run adapter now
-  - will load .model3.json through a Live2D SDK
-  - will apply parameters, expressions, motions, and physics
+  - loads .model3.json through the local Live2D SDK runtime
+  - applies parameters, expressions, and motions
+  - reads model package capabilities before issuing expression and motion commands
+  - uses model profile motion bindings before falling back to generic mappings
 ```
 
 ### Live2D Parameter Mapper
@@ -139,15 +149,22 @@ Expected asset package:
 
 ```text
 model.model3.json
+profile.json
 textures/
 motions/
 expressions/
 physics3.json
 ```
 
+`profile.json` is the model-specific tuning file. It should hold motion bindings,
+expression aliases, and later parameter ranges. Browser `localStorage` is only a
+debug override for the currently selected model.
+
 ### Desktop Shell
 
-The Web prototype should later be wrapped by Electron.
+The Web prototype is currently hosted by a PySide6 `QWebEngineView` desktop shell.
+Electron remains an optional future packaging route, but it is not required for
+the current Python app integration.
 
 Expected shell features:
 
@@ -162,57 +179,59 @@ local websocket bridge to AI runtime
 
 ## Iteration Plan
 
-### Step 1: Real Model Loading
+### Step 1: Model Profile Mainline
 
-Add a legal Live2D sample model under `assets/models/sample/`.
-
-Record the model source in `assets/models/sample-model-manifest.json` before connecting it to runtime code.
-
-Then implement the first real `Live2DRenderer` loader:
+Move all model-specific runtime decisions into `profile.json`:
 
 ```text
-detect SDK runtime
-load SDK
-load .model3.json
-fit model to stage
-keep current renderer mode switch
-show clear loading and error states
+motionBindings
+expressionAliases
+parameterRanges
+debug notes for chosen motion indexes
 ```
 
-### Step 2: Parameter Drive
+### Step 2: Stable Avatar Protocol
 
-Apply `live2d-parameter-mapper.js` output to the model:
+Make Python and JavaScript share one small, renderer-neutral avatar state contract:
 
 ```text
-eye tracking
-head angle
-body angle
-mouth open
-mouth form
-breathing
+idle
+listening
+thinking
+speaking
+happy
+sad
+comfort
+error
 ```
 
-### Step 3: Expressions And Motions
+Python should emit stable intent/state messages. JavaScript should translate
+those messages through the active model profile.
 
-Map product states to Live2D expressions and motions:
+### Step 3: Runtime / Debug Split
+
+Separate the browser code into focused modules:
 
 ```text
-happy -> happy expression + greet/reply motion
-thinking -> thinking expression + listen motion
-sad -> sad expression + slower idle
-soft -> comfort expression + comfort motion
-engaged -> speaking expression + reply motion
+runtime-app.js
+bridge-client.js
+debug-panel.js
+model-profile-loader.js
 ```
 
-### Step 4: Desktop Runtime
+The desktop shell should load the runtime without showing debug controls by
+default. The browser showcase can keep the debug panel.
 
-Move from browser prototype to desktop shell:
+### Step 4: Desktop Runtime Polish
+
+Continue hardening the PySide6 shell:
 
 ```text
-Electron window
 transparent background
-window controls outside the character stage
-bridge connection to local AI runtime
+drag and position persistence
+always-on-top and click-through controls
+startup diagnostics
+bridge reconnect diagnostics
 ```
 
 ### Step 5: Custom Character
@@ -230,16 +249,19 @@ runtime integration
 
 ## Why The Current UI Looks Weak
 
-The current UI uses a canvas placeholder. It can prove data flow, but it cannot provide final product presence.
+The current model is a sample validation asset with limited motions and no rich
+expression set. It proves the runtime but does not represent final product
+presence.
 
 Visual quality will improve only after these are true:
 
 ```text
-real model asset
-real renderer
-real expression and motion playback
+custom model asset
+profile tuned for that model
+rich expression and motion set
 desktop transparent shell
 custom character art direction
 ```
 
-Until then, UI polish should support debugging and model integration. It should not be treated as the final desktop girlfriend visual.
+Until then, UI polish should support debugging, model integration, and profile
+tuning. It should not be treated as the final desktop girlfriend visual.
