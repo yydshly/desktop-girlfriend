@@ -49,8 +49,8 @@
 在项目根目录执行：
 
 ```powershell
-cd D:\claude_code\20260628_桌面女友\desktop-girlfriend\showcase-demo
-python -m http.server 8786
+cd D:\claude_code\20260628_桌面女友\desktop-girlfriend
+.\scripts\run_showcase.ps1
 ```
 
 然后打开：
