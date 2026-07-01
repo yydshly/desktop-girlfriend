@@ -41,6 +41,7 @@ class Live2DDesktopShellSpec:
     always_on_top: bool = True
     click_through: bool = False
     devtools_enabled: bool = False
+    opacity: float = 1.0
 
 
 def build_live2d_desktop_shell_spec(
@@ -48,6 +49,8 @@ def build_live2d_desktop_shell_spec(
     *,
     devtools_enabled: bool = False,
     click_through: bool = False,
+    scale: float = 1.0,
+    opacity: float = 1.0,
 ) -> Live2DDesktopShellSpec:
     """Build the desktop shell spec that points at the local Live2D runtime."""
 
@@ -55,8 +58,11 @@ def build_live2d_desktop_shell_spec(
     source_url = f"{route.resolve().as_uri()}?{LIVE2D_DESKTOP_QUERY}"
     return Live2DDesktopShellSpec(
         source_url=source_url,
+        width=round(LIVE2D_DESKTOP_WIDTH * scale),
+        height=round(LIVE2D_DESKTOP_HEIGHT * scale),
         click_through=click_through,
         devtools_enabled=devtools_enabled,
+        opacity=opacity,
     )
 
 

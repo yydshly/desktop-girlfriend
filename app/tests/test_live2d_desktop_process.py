@@ -36,6 +36,25 @@ def test_command_launches_live2d_desktop_module() -> None:
     assert process.command == ["python.exe", "-m", "app.live2d_desktop"]
 
 
+def test_command_includes_live2d_desktop_controls() -> None:
+    """Launch command carries desktop companion scale and opacity controls."""
+    process = Live2DDesktopProcess(
+        python_executable="python.exe",
+        scale=0.82,
+        opacity=0.74,
+    )
+
+    assert process.command == [
+        "python.exe",
+        "-m",
+        "app.live2d_desktop",
+        "--scale",
+        "0.82",
+        "--opacity",
+        "0.74",
+    ]
+
+
 def test_start_uses_popen_factory_with_workspace_cwd() -> None:
     """Process start delegates to Popen with a stable workspace cwd."""
     calls = []

@@ -90,6 +90,12 @@ class DesktopWindow(QMainWindow):
         on_product_status_requested: Callable[[], None] | None = None,
         on_hide_requested: Callable[[], None] | None = None,
         on_close_requested: Callable[[], bool] | None = None,
+        on_live2d_scale_up_requested: Callable[[], None] | None = None,
+        on_live2d_scale_down_requested: Callable[[], None] | None = None,
+        on_live2d_opacity_down_requested: Callable[[], None] | None = None,
+        on_live2d_opacity_up_requested: Callable[[], None] | None = None,
+        on_live2d_visibility_toggled: Callable[[], None] | None = None,
+        on_live2d_position_reset_requested: Callable[[], None] | None = None,
         memory_management_enabled: bool = False,
     ) -> None:
         super().__init__()
@@ -106,6 +112,12 @@ class DesktopWindow(QMainWindow):
         self._on_product_status_requested = on_product_status_requested
         self._on_hide_requested = on_hide_requested
         self._on_close_requested = on_close_requested
+        self._on_live2d_scale_up_requested = on_live2d_scale_up_requested
+        self._on_live2d_scale_down_requested = on_live2d_scale_down_requested
+        self._on_live2d_opacity_down_requested = on_live2d_opacity_down_requested
+        self._on_live2d_opacity_up_requested = on_live2d_opacity_up_requested
+        self._on_live2d_visibility_toggled = on_live2d_visibility_toggled
+        self._on_live2d_position_reset_requested = on_live2d_position_reset_requested
         self._memory_management_enabled = memory_management_enabled
         self._drag_origin = None
         self._window_origin = None
@@ -203,6 +215,36 @@ class DesktopWindow(QMainWindow):
         layout.addWidget(header_widget)
         for drag_handle in self._drag_handle_widgets:
             drag_handle.installEventFilter(self)
+
+        live2d_control_row = QWidget()
+        live2d_control_layout = QHBoxLayout(live2d_control_row)
+        live2d_control_layout.setContentsMargins(0, 0, 0, 0)
+        self._live2d_scale_up_button = QPushButton("人物+")
+        self._live2d_scale_up_button.setStyleSheet(window_style.SECONDARY_BUTTON_STYLE)
+        self._live2d_scale_up_button.clicked.connect(self._on_live2d_scale_up_clicked)
+        live2d_control_layout.addWidget(self._live2d_scale_up_button)
+        self._live2d_scale_down_button = QPushButton("人物-")
+        self._live2d_scale_down_button.setStyleSheet(window_style.SECONDARY_BUTTON_STYLE)
+        self._live2d_scale_down_button.clicked.connect(self._on_live2d_scale_down_clicked)
+        live2d_control_layout.addWidget(self._live2d_scale_down_button)
+        self._live2d_opacity_down_button = QPushButton("淡一点")
+        self._live2d_opacity_down_button.setStyleSheet(window_style.SECONDARY_BUTTON_STYLE)
+        self._live2d_opacity_down_button.clicked.connect(self._on_live2d_opacity_down_clicked)
+        live2d_control_layout.addWidget(self._live2d_opacity_down_button)
+        self._live2d_opacity_up_button = QPushButton("实一点")
+        self._live2d_opacity_up_button.setStyleSheet(window_style.SECONDARY_BUTTON_STYLE)
+        self._live2d_opacity_up_button.clicked.connect(self._on_live2d_opacity_up_clicked)
+        live2d_control_layout.addWidget(self._live2d_opacity_up_button)
+        self._live2d_toggle_button = QPushButton("人物")
+        self._live2d_toggle_button.setStyleSheet(window_style.SECONDARY_BUTTON_STYLE)
+        self._live2d_toggle_button.clicked.connect(self._on_live2d_toggle_clicked)
+        live2d_control_layout.addWidget(self._live2d_toggle_button)
+        self._live2d_reset_button = QPushButton("重置人物")
+        self._live2d_reset_button.setStyleSheet(window_style.SECONDARY_BUTTON_STYLE)
+        self._live2d_reset_button.clicked.connect(self._on_live2d_reset_clicked)
+        live2d_control_layout.addWidget(self._live2d_reset_button)
+        live2d_control_layout.addStretch()
+        layout.addWidget(live2d_control_row)
 
         # Phase 3-B: Onboarding card — shown at first run
         self._onboarding_card = QWidget()
@@ -560,6 +602,30 @@ class DesktopWindow(QMainWindow):
         """Handle hide button click (Phase 2-F)."""
         if self._on_hide_requested:
             self._on_hide_requested()
+
+    def _on_live2d_scale_up_clicked(self) -> None:
+        if self._on_live2d_scale_up_requested:
+            self._on_live2d_scale_up_requested()
+
+    def _on_live2d_scale_down_clicked(self) -> None:
+        if self._on_live2d_scale_down_requested:
+            self._on_live2d_scale_down_requested()
+
+    def _on_live2d_opacity_down_clicked(self) -> None:
+        if self._on_live2d_opacity_down_requested:
+            self._on_live2d_opacity_down_requested()
+
+    def _on_live2d_opacity_up_clicked(self) -> None:
+        if self._on_live2d_opacity_up_requested:
+            self._on_live2d_opacity_up_requested()
+
+    def _on_live2d_toggle_clicked(self) -> None:
+        if self._on_live2d_visibility_toggled:
+            self._on_live2d_visibility_toggled()
+
+    def _on_live2d_reset_clicked(self) -> None:
+        if self._on_live2d_position_reset_requested:
+            self._on_live2d_position_reset_requested()
 
     def eventFilter(self, watched, event) -> bool:  # noqa: N802
         """Allow dragging the main window from non-button header surfaces."""

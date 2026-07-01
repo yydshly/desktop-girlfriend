@@ -23,6 +23,14 @@ _STATE_TO_AVATAR_STATE = {
     "error": "sad",
 }
 
+_STATE_TO_VISUAL_FEEDBACK = {
+    "idle": {"motion": "idle", "intensity": 0.25},
+    "listening": {"motion": "think", "intensity": 0.48},
+    "thinking": {"motion": "think", "intensity": 0.52},
+    "speaking": {"motion": "reply", "intensity": 0.78},
+    "error": {"motion": "sad", "intensity": 0.58},
+}
+
 _SUPPORTED_EVENT_TYPES = (
     USER_TEXT_SUBMITTED,
     ASSISTANT_TEXT_RECEIVED,
@@ -83,6 +91,10 @@ class Live2DBridgeEventMapper:
             event,
             app_state=state_name,
             reason=event.payload.get("reason", ""),
+            **_STATE_TO_VISUAL_FEEDBACK.get(
+                state_name,
+                _STATE_TO_VISUAL_FEEDBACK["idle"],
+            ),
         )
 
     @staticmethod

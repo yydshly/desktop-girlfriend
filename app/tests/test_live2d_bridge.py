@@ -10,8 +10,7 @@ from app.contracts.events import (
     USER_TEXT_SUBMITTED,
     BaseEvent,
 )
-from app.ui.live2d_bridge import Live2DBridgeEventMapper
-from app.ui.live2d_bridge import Live2DBridgeEventDispatcher
+from app.ui.live2d_bridge import Live2DBridgeEventDispatcher, Live2DBridgeEventMapper
 
 
 def _event(event_type: str, payload: dict | None = None) -> BaseEvent:
@@ -74,8 +73,21 @@ def test_state_changed_maps_app_state_to_avatar_state() -> None:
             "source_event": STATE_CHANGED,
             "app_state": "speaking",
             "reason": "",
+            "motion": "reply",
+            "intensity": 0.78,
         },
     }
+
+
+def test_thinking_state_includes_motion_feedback() -> None:
+    """Thinking state includes visual motion hints for the Live2D renderer."""
+    mapper = Live2DBridgeEventMapper()
+
+    message = mapper.map_event(_event(STATE_CHANGED, {"current_state": "thinking"}))
+
+    assert message["payload"]["state"] == "think"
+    assert message["payload"]["motion"] == "think"
+    assert message["payload"]["intensity"] == 0.52
 
 
 def test_error_event_maps_to_sad_state() -> None:

@@ -17,10 +17,14 @@ class Live2DDesktopProcess:
         *,
         python_executable: str | None = None,
         cwd: Path | None = None,
+        scale: float = 1.0,
+        opacity: float = 1.0,
         popen_factory: Callable[..., Popen] = subprocess.Popen,
     ) -> None:
         self.python_executable = python_executable or sys.executable
         self.cwd = cwd or Path(__file__).resolve().parents[2]
+        self.scale = scale
+        self.opacity = opacity
         self._popen_factory = popen_factory
         self._process: Popen | None = None
 
@@ -60,10 +64,19 @@ class Live2DDesktopProcess:
     def command(self) -> Sequence[str]:
         """Return the command used to launch the Live2D desktop window."""
 
-        return [self.python_executable, "-m", "app.live2d_desktop"]
+        command = [self.python_executable, "-m", "app.live2d_desktop"]
+        if self.scale != 1.0:
+            command.extend(["--scale", _format_float(self.scale)])
+        if self.opacity != 1.0:
+            command.extend(["--opacity", _format_float(self.opacity)])
+        return command
 
 
 def _creation_flags() -> int:
     if sys.platform != "win32":
         return 0
     return getattr(subprocess, "CREATE_NO_WINDOW", 0)
+
+
+def _format_float(value: float) -> str:
+    return f"{value:.2f}".rstrip("0").rstrip(".")

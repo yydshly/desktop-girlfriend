@@ -223,6 +223,7 @@ def run_live2d_desktop_window(spec: Live2DDesktopShellSpec) -> int:
     view = Live2DDesktopWebView()
     view.setWindowTitle("Live2D Desktop Girlfriend")
     view.resize(spec.width, spec.height)
+    view.setWindowOpacity(spec.opacity)
     saved_position = load_live2d_window_position(position_path)
     if saved_position is not None:
         view.move(saved_position.x, saved_position.y)

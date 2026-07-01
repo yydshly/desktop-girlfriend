@@ -137,6 +137,18 @@ class TestLive2DDesktopShellSpec:
         assert spec.devtools_enabled is True
         assert spec.click_through is True
 
+    def test_build_shell_spec_applies_scale_and_opacity(self, tmp_path) -> None:
+        """Shell spec can size and fade the desktop companion window."""
+        target = tmp_path / LIVE2D_PROTOTYPE_ROUTE
+        target.parent.mkdir(parents=True)
+        target.write_text("<!doctype html>", encoding="utf-8")
+
+        spec = build_live2d_desktop_shell_spec(tmp_path, scale=0.8, opacity=0.7)
+
+        assert spec.width == round(LIVE2D_DESKTOP_WIDTH * 0.8)
+        assert spec.height == round(LIVE2D_DESKTOP_HEIGHT * 0.8)
+        assert spec.opacity == 0.7
+
     def test_shell_summary_describes_window_capabilities(self) -> None:
         """Summary makes the active desktop shell behavior visible."""
         spec = Live2DDesktopShellSpec(source_url="file:///tmp/live2d/index.html")
@@ -253,6 +265,42 @@ class TestWindowPresenceShell:
         assert window._product_status_button not in drag_handles
         assert window._pin_button not in drag_handles
         assert window._compact_button not in drag_handles
+
+    @staticmethod
+    def test_live2d_companion_control_buttons_trigger_callbacks(
+        qapp: QApplication,
+    ) -> None:
+        """Desktop companion controls are visible and trigger app callbacks."""
+        calls = []
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_live2d_scale_up_requested=lambda: calls.append("scale_up"),
+            on_live2d_scale_down_requested=lambda: calls.append("scale_down"),
+            on_live2d_opacity_down_requested=lambda: calls.append("opacity_down"),
+            on_live2d_opacity_up_requested=lambda: calls.append("opacity_up"),
+            on_live2d_visibility_toggled=lambda: calls.append("visibility"),
+            on_live2d_position_reset_requested=lambda: calls.append("reset"),
+        )
+        window.show()
+
+        window._live2d_scale_up_button.click()
+        window._live2d_scale_down_button.click()
+        window._live2d_opacity_down_button.click()
+        window._live2d_opacity_up_button.click()
+        window._live2d_toggle_button.click()
+        window._live2d_reset_button.click()
+
+        assert calls == [
+            "scale_up",
+            "scale_down",
+            "opacity_down",
+            "opacity_up",
+            "visibility",
+            "reset",
+        ]
 
     @staticmethod
     def test_status_button_first_click_opens_panel(qapp: QApplication) -> None:

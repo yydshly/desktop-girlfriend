@@ -67,6 +67,7 @@ from app.ui.close_behavior import decide_close_behavior
 from app.ui.live2d_bridge import Live2DBridgeEventDispatcher
 from app.ui.live2d_bridge_server import Live2DBridgeServer
 from app.ui.live2d_desktop_process import Live2DDesktopProcess
+from app.ui.live2d_desktop_window import default_live2d_position_path
 from app.ui.onboarding_view import build_onboarding_view, render_onboarding_text
 from app.ui.product_status_builder import build_product_status_view
 from app.ui.qt_event_bridge import QtEventBridge
@@ -301,6 +302,55 @@ def main() -> None:
             return False
         return decision.should_accept_close
 
+    live2d_desktop_scale = 1.0
+    live2d_desktop_opacity = 1.0
+    live2d_desktop_visible = live2d_desktop_process is not None
+
+    def _restart_live2d_desktop() -> None:
+        if live2d_desktop_process is None:
+            return
+        live2d_desktop_process.stop()
+        live2d_desktop_process.scale = live2d_desktop_scale
+        live2d_desktop_process.opacity = live2d_desktop_opacity
+        if live2d_desktop_visible:
+            live2d_desktop_process.start()
+
+    def _on_live2d_scale_up_requested() -> None:
+        nonlocal live2d_desktop_scale
+        live2d_desktop_scale = min(1.35, round(live2d_desktop_scale + 0.1, 2))
+        _restart_live2d_desktop()
+
+    def _on_live2d_scale_down_requested() -> None:
+        nonlocal live2d_desktop_scale
+        live2d_desktop_scale = max(0.65, round(live2d_desktop_scale - 0.1, 2))
+        _restart_live2d_desktop()
+
+    def _on_live2d_opacity_down_requested() -> None:
+        nonlocal live2d_desktop_opacity
+        live2d_desktop_opacity = max(0.45, round(live2d_desktop_opacity - 0.1, 2))
+        _restart_live2d_desktop()
+
+    def _on_live2d_opacity_up_requested() -> None:
+        nonlocal live2d_desktop_opacity
+        live2d_desktop_opacity = min(1.0, round(live2d_desktop_opacity + 0.1, 2))
+        _restart_live2d_desktop()
+
+    def _on_live2d_visibility_toggled() -> None:
+        nonlocal live2d_desktop_visible
+        if live2d_desktop_process is None:
+            return
+        live2d_desktop_visible = not live2d_desktop_visible
+        if live2d_desktop_visible:
+            live2d_desktop_process.start()
+        else:
+            live2d_desktop_process.stop()
+
+    def _on_live2d_position_reset_requested() -> None:
+        position_path = default_live2d_position_path()
+        if position_path.exists():
+            position_path.unlink()
+        _restart_live2d_desktop()
+
     window = DesktopWindow(
         view_model,
         on_user_text_submitted=submit_user_text,
@@ -315,6 +365,12 @@ def main() -> None:
         on_product_status_requested=_on_product_status_requested,
         on_hide_requested=_on_hide_requested,
         on_close_requested=_handle_close_requested,
+        on_live2d_scale_up_requested=_on_live2d_scale_up_requested,
+        on_live2d_scale_down_requested=_on_live2d_scale_down_requested,
+        on_live2d_opacity_down_requested=_on_live2d_opacity_down_requested,
+        on_live2d_opacity_up_requested=_on_live2d_opacity_up_requested,
+        on_live2d_visibility_toggled=_on_live2d_visibility_toggled,
+        on_live2d_position_reset_requested=_on_live2d_position_reset_requested,
         memory_management_enabled=config.memory_management_enabled,
     )
 
