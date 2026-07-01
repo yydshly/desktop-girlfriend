@@ -9,6 +9,7 @@ export class AvatarController {
     this.bubbleElement = bubbleElement;
     this.stageElement = stageElement;
     this.getModelProfile = options.getModelProfile || (() => ({}));
+    this.getNow = options.getNow || getRuntimeNow;
     this.bubbleTimer = 0;
     this.pointerState = {
       available: false,
@@ -102,7 +103,8 @@ export class AvatarController {
       mappedState: nextState,
       emotionState,
       pointerState: this.pointerState,
-      profile: this.getModelProfile()
+      profile: this.getModelProfile(),
+      now: this.getNow()
     });
     this.renderer.applyState(this.currentState);
     this.renderReadout();
@@ -153,4 +155,11 @@ export class AvatarController {
     const stateClass = `is-state-${this.currentState.visualIntent || this.currentState.motion || this.currentState.emotion || "idle"}`;
     this.stageElement.className = ["avatar-stage", stateClass].join(" ");
   }
+}
+
+function getRuntimeNow() {
+  if (typeof globalThis.performance?.now === "function") {
+    return globalThis.performance.now();
+  }
+  return Date.now();
 }

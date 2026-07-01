@@ -106,7 +106,9 @@ function testControllerUsesVisualIntentForStageClass() {
 function testControllerStoresEmotionAndBehaviorForMappedState() {
   const renderer = createRendererProbe();
   const readout = createTextElement();
-  const controller = new AvatarController(renderer, readout);
+  const controller = new AvatarController(renderer, readout, null, null, {
+    getNow: () => 0
+  });
 
   controller.handleBridgeMessage({
     type: "avatar.state",
@@ -140,7 +142,7 @@ function testControllerStoresEmotionAndBehaviorForMappedState() {
     },
     attention: {
       target: "user",
-      source: "speaking",
+      source: "state",
       gaze: "user",
       bodyFollow: "soft",
       intensity: 0.55
@@ -148,10 +150,23 @@ function testControllerStoresEmotionAndBehaviorForMappedState() {
   });
 }
 
+function testControllerPassesRuntimeNowToSpeakingDriver() {
+  const renderer = createRendererProbe();
+  const readout = createTextElement();
+  const controller = new AvatarController(renderer, readout, null, null, {
+    getNow: () => 900
+  });
+
+  controller.applyStateName("speaking");
+
+  assert.equal(renderer.appliedStates.at(-1).speakingState.mouth, 0.525);
+}
+
 function testControllerStoresModelCommandsWhenProfileProviderExists() {
   const renderer = createRendererProbe();
   const readout = createTextElement();
   const controller = new AvatarController(renderer, readout, null, null, {
+    getNow: () => 0,
     getModelProfile: () => ({
       mappings: {
         actions: {
@@ -250,6 +265,7 @@ testControllerHidesBubbleForIdleStateWithoutBubble();
 testControllerMarksStageWithVisualStateClass();
 testControllerUsesVisualIntentForStageClass();
 testControllerStoresEmotionAndBehaviorForMappedState();
+testControllerPassesRuntimeNowToSpeakingDriver();
 testControllerStoresModelCommandsWhenProfileProviderExists();
 testControllerPlaysMotionProbe();
 testControllerTriggersPointerReactionFromEvent();

@@ -651,18 +651,42 @@ testMotionProbePlaysRequestedModelMotion();
 function testSpeakingStateAnimatesMouthOpen() {
   const parameters = calculateAnimatedLive2DParameters(
     { ParamMouthOpenY: 0.1, ParamAngleX: 2 },
-    { motion: "reply", expression: "speaking" },
+    {
+      motion: "reply",
+      expression: "speaking",
+      modelCommands: {
+        parameters: {
+          mouth: 0.62,
+          speaking: {
+            active: true,
+            source: "tts",
+            rhythm: "simulated"
+          }
+        }
+      }
+    },
     1000
   );
 
-  assert.ok(parameters.ParamMouthOpenY > 0.1);
+  assert.equal(parameters.ParamMouthOpenY, 0.62);
   assert.notEqual(parameters.ParamAngleX, 2);
 }
 
 function testSpeakingStateAddsSubtleBodyMotion() {
   const parameters = calculateAnimatedLive2DParameters(
     { ParamMouthOpenY: 0.1, ParamAngleX: 0, ParamBodyAngleX: 0 },
-    { motion: "reply", expression: "speaking" },
+    {
+      modelCommands: {
+        parameters: {
+          mouth: 0.58,
+          speaking: {
+            active: true,
+            source: "tts",
+            rhythm: "simulated"
+          }
+        }
+      }
+    },
     900
   );
 
@@ -677,8 +701,8 @@ function testVisualIntentSpeakingAnimatesMouthOpen() {
     100
   );
 
-  assert.ok(parameters.ParamMouthOpenY > 0.1);
-  assert.notEqual(parameters.ParamAngleX, 0);
+  assert.equal(parameters.ParamMouthOpenY, 0.1);
+  assert.equal(parameters.ParamAngleX, 0);
 }
 
 function testModelAdapterSpeakActionAnimatesMouthOpen() {
@@ -688,13 +712,20 @@ function testModelAdapterSpeakActionAnimatesMouthOpen() {
       modelCommands: {
         motion: { action: "speak" },
         expression: { semantic: "engaged" },
-        parameters: { mouth: 0.65 }
+        parameters: {
+          mouth: 0.65,
+          speaking: {
+            active: true,
+            source: "state",
+            rhythm: "simulated"
+          }
+        }
       }
     },
     1000
   );
 
-  assert.ok(parameters.ParamMouthOpenY > 0.1);
+  assert.equal(parameters.ParamMouthOpenY, 0.65);
   assert.notEqual(parameters.ParamAngleX, 0);
 }
 

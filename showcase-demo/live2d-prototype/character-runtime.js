@@ -20,7 +20,8 @@ export function buildCharacterRuntimeState({
   });
   const attentionState = resolveAttentionState({
     emotionState: nextEmotionState,
-    pointerState
+    pointerState,
+    speakingState
   });
   const behavior = planBehaviorFromEmotionState(nextEmotionState, attentionState, speakingState);
   const modelCommands = adaptBehaviorToModelCommands(behavior, profile);

@@ -8,7 +8,8 @@ const DEFAULT_ATTENTION = Object.freeze({
 
 export function resolveAttentionState({
   emotionState = {},
-  pointerState = {}
+  pointerState = {},
+  speakingState = {}
 } = {}) {
   if (isPointerActive(pointerState)) {
     return {
@@ -24,11 +25,12 @@ export function resolveAttentionState({
   const activity = String(emotionState.activity || "").trim();
   const emotion = String(emotionState.emotion || "").trim();
 
-  if (state === "speaking" || activity === "speak") {
+  if (speakingState.active) {
+    const target = pointerState.available === false ? "user" : "cursor";
     return {
-      target: pointerState.available === false ? "user" : "cursor",
-      source: "speaking",
-      gaze: pointerState.available === false ? "user" : "cursor",
+      target,
+      source: String(speakingState.source || "speaking"),
+      gaze: target,
       bodyFollow: "soft",
       intensity: 0.55
     };

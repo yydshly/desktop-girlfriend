@@ -257,7 +257,9 @@ Current status:
 
 ```text
 The semantic speak state is runtime-driven.
-The rhythmic mouth pulse is still renderer-local.
+Speaking Driver v1 owns active/source/base mouth/rhythm.
+Model Adapter passes speaking and mouth parameters to the renderer.
+The renderer consumes those parameters and may add low-level head/body motion while speaking.
 ```
 
 Near-term rule:
@@ -307,11 +309,17 @@ Suggested ownership:
 - return-to-idle timing
 - idle motion rotation
 - pointer reaction timing
-- speaking mouth pulse
 - passive suppression windows
 ```
 
 This is acceptable as a transitional state, but Attention / Gaze must not be added there.
+
+Boundary note:
+
+```text
+Speaking mouth active/source/base mouth/rhythm now comes from Speaking Driver through adapter parameters.
+Renderer auto-return-to-idle still bypasses the runtime chain and remains a known transitional risk.
+```
 
 ### State Semantics Are Still Duplicated
 

@@ -49,7 +49,7 @@ function testRuntimeStateBuildsBehaviorAndModelCommands() {
     },
     attention: {
       target: "cursor",
-      source: "speaking",
+      source: "state",
       gaze: "cursor",
       bodyFollow: "soft",
       intensity: 0.55
@@ -176,6 +176,7 @@ function testDialogueTtsSpeakingIsRuntimeSpeakingSource() {
   });
 
   assert.equal(state.speakingState.source, "tts");
+  assert.equal(state.attentionState.source, "tts");
   assert.equal(state.modelCommands.parameters.speaking.source, "tts");
   assert.equal(state.modelCommands.parameters.speaking.active, true);
 }

@@ -54,7 +54,7 @@ function testTimelineBuildsEmotionBehaviorAndAdapterCommands() {
     },
     attention: {
       target: "cursor",
-      source: "speaking",
+      source: "state",
       gaze: "cursor",
       bodyFollow: "soft",
       intensity: 0.55

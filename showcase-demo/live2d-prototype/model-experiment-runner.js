@@ -27,13 +27,14 @@ export function buildModelExperimentTimeline(profile = {}, options = {}) {
 
   return states.map((state, index) => {
     const emotionState = normalizeEmotionState({ state });
-    const attentionState = resolveAttentionState({
-      emotionState,
-      pointerState: options.pointerState || {}
-    });
     const speakingState = resolveSpeakingState({
       emotionState,
       now: stepNow(options.now, index, durationMs)
+    });
+    const attentionState = resolveAttentionState({
+      emotionState,
+      pointerState: options.pointerState || {},
+      speakingState
     });
     const behavior = planBehaviorFromEmotionState(emotionState, attentionState, speakingState);
     return {

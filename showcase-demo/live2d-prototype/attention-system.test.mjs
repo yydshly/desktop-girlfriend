@@ -5,19 +5,35 @@ function testSpeakingLooksAtCursorWhenPointerAvailable() {
   assert.deepEqual(
     resolveAttentionState({
       emotionState: {
-        state: "speaking",
-        activity: "speak",
         emotion: "engaged"
+      },
+      speakingState: {
+        active: true,
+        source: "tts"
       },
       pointerState: { available: true }
     }),
     {
       target: "cursor",
-      source: "speaking",
+      source: "tts",
       gaze: "cursor",
       bodyFollow: "soft",
       intensity: 0.55
     }
+  );
+}
+
+function testAttentionDoesNotInferSpeakingWithoutSpeakingState() {
+  assert.equal(
+    resolveAttentionState({
+      emotionState: {
+        state: "speaking",
+        activity: "speak",
+        emotion: "engaged"
+      },
+      pointerState: { available: true }
+    }).source,
+    "idle"
   );
 }
 
@@ -104,6 +120,7 @@ function testSadLooksAwayWithLowBodyFollow() {
 }
 
 testSpeakingLooksAtCursorWhenPointerAvailable();
+testAttentionDoesNotInferSpeakingWithoutSpeakingState();
 testThinkingLooksDownLeft();
 testIdleUsesIdleScanFallback();
 testPointerActiveOverridesStateAttention();
