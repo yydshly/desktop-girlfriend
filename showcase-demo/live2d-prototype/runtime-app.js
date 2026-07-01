@@ -60,7 +60,10 @@ export function createLive2DRuntime({
     createRenderer(),
     readout,
     avatarBubble,
-    stage
+    stage,
+    {
+      getModelProfile: () => modelProfile
+    }
   );
 
   const bridgeClient = createBridgeClient({

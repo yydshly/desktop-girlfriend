@@ -121,6 +121,48 @@ function testControllerStoresEmotionAndBehaviorForMappedState() {
   });
 }
 
+function testControllerStoresModelCommandsWhenProfileProviderExists() {
+  const renderer = createRendererProbe();
+  const readout = createTextElement();
+  const controller = new AvatarController(renderer, readout, null, null, {
+    getModelProfile: () => ({
+      mappings: {
+        actions: {
+          speak: { group: "TapBody", index: 0 },
+          idle: { group: "Idle", index: 0 }
+        },
+        expressions: {
+          engaged: "smile"
+        }
+      }
+    })
+  });
+
+  controller.handleBridgeMessage({
+    type: "avatar.state",
+    payload: {
+      state: "speaking"
+    }
+  });
+
+  assert.deepEqual(renderer.appliedStates.at(-1).modelCommands, {
+    motion: {
+      group: "TapBody",
+      index: 0,
+      action: "speak"
+    },
+    expression: {
+      name: "smile",
+      semantic: "engaged"
+    },
+    parameters: {
+      gaze: "cursor",
+      mouth: 0.65,
+      intensity: 0.76
+    }
+  });
+}
+
 function testControllerPlaysMotionProbe() {
   const renderer = createRendererProbe();
   const readout = createTextElement();
@@ -138,5 +180,6 @@ testControllerHidesBubbleForIdleStateWithoutBubble();
 testControllerMarksStageWithVisualStateClass();
 testControllerUsesVisualIntentForStageClass();
 testControllerStoresEmotionAndBehaviorForMappedState();
+testControllerStoresModelCommandsWhenProfileProviderExists();
 testControllerPlaysMotionProbe();
 console.log("avatar-controller tests passed");
