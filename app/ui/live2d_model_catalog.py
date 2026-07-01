@@ -111,6 +111,13 @@ def render_live2d_model_catalog_summary(
     )
 
 
+def build_live2d_model_options(
+    packages: tuple[Live2DModelPackage, ...],
+) -> tuple[tuple[str, str], ...]:
+    """Build `(model_id, label)` pairs for the desktop model selector."""
+    return tuple((package.model_id, package.display_name) for package in packages)
+
+
 def _read_model_json(model_json: Path) -> dict[str, Any]:
     try:
         data = json.loads(model_json.read_text(encoding="utf-8"))

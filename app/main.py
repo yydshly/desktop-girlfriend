@@ -70,6 +70,7 @@ from app.ui.live2d_bridge_server import Live2DBridgeServer
 from app.ui.live2d_desktop_process import Live2DDesktopProcess
 from app.ui.live2d_desktop_window import default_live2d_position_path
 from app.ui.live2d_model_catalog import (
+    build_live2d_model_options,
     render_live2d_model_catalog_summary,
     scan_live2d_model_catalog,
 )
@@ -163,12 +164,7 @@ def main() -> None:
     live2d_model_packages = scan_live2d_model_catalog(live2d_model_root)
     live2d_model_summary = render_live2d_model_catalog_summary(live2d_model_packages)
     view_model.set_live2d_model_catalog_summary(live2d_model_summary)
-    view_model.set_live2d_model_options(
-        tuple(
-            (package.model_id, package.display_name)
-            for package in live2d_model_packages
-        )
-    )
+    view_model.set_live2d_model_options(build_live2d_model_options(live2d_model_packages))
     logger.info(
         "Live2D model catalog scanned root=%s packages=%d summary=%s",
         live2d_model_root,
@@ -472,6 +468,27 @@ def main() -> None:
         )
         _restart_live2d_desktop()
 
+    def _on_live2d_models_refresh_requested() -> None:
+        nonlocal live2d_desktop_model_id
+        preferred_model_id = view_model.selected_live2d_model_id
+        packages = scan_live2d_model_catalog(live2d_model_root)
+        summary = render_live2d_model_catalog_summary(packages)
+        view_model.set_live2d_model_catalog_summary(summary)
+        view_model.set_live2d_model_options(
+            build_live2d_model_options(packages),
+            selected_model_id=preferred_model_id,
+        )
+        live2d_desktop_model_id = view_model.selected_live2d_model_id
+        logger.info(
+            "Live2D model catalog refreshed root=%s packages=%d selected_model_id=%s summary=%s",
+            live2d_model_root,
+            len(packages),
+            live2d_desktop_model_id,
+            summary,
+        )
+        _restart_live2d_desktop()
+        window.update_from_view_model()
+
     window = DesktopWindow(
         view_model,
         on_user_text_submitted=submit_user_text,
@@ -493,6 +510,7 @@ def main() -> None:
         on_live2d_visibility_toggled=_on_live2d_visibility_toggled,
         on_live2d_position_reset_requested=_on_live2d_position_reset_requested,
         on_live2d_model_selected=_on_live2d_model_selected,
+        on_live2d_models_refresh_requested=_on_live2d_models_refresh_requested,
         memory_management_enabled=config.memory_management_enabled,
     )
 

@@ -98,6 +98,7 @@ class DesktopWindow(QMainWindow):
         on_live2d_visibility_toggled: Callable[[], None] | None = None,
         on_live2d_position_reset_requested: Callable[[], None] | None = None,
         on_live2d_model_selected: Callable[[str], None] | None = None,
+        on_live2d_models_refresh_requested: Callable[[], None] | None = None,
         memory_management_enabled: bool = False,
     ) -> None:
         super().__init__()
@@ -121,6 +122,7 @@ class DesktopWindow(QMainWindow):
         self._on_live2d_visibility_toggled = on_live2d_visibility_toggled
         self._on_live2d_position_reset_requested = on_live2d_position_reset_requested
         self._on_live2d_model_selected = on_live2d_model_selected
+        self._on_live2d_models_refresh_requested = on_live2d_models_refresh_requested
         self._memory_management_enabled = memory_management_enabled
         self._drag_origin = None
         self._window_origin = None
@@ -261,6 +263,14 @@ class DesktopWindow(QMainWindow):
         )
         layout.addWidget(self._live2d_model_selector)
         self._sync_live2d_model_selector()
+        self._live2d_model_refresh_button = QPushButton("刷新模型")
+        self._live2d_model_refresh_button.setStyleSheet(
+            window_style.SECONDARY_BUTTON_STYLE
+        )
+        self._live2d_model_refresh_button.clicked.connect(
+            self._on_live2d_models_refresh_clicked
+        )
+        layout.addWidget(self._live2d_model_refresh_button)
 
         # Phase 3-B: Onboarding card — shown at first run
         self._onboarding_card = QWidget()
@@ -651,6 +661,10 @@ class DesktopWindow(QMainWindow):
             return
         if self._on_live2d_model_selected:
             self._on_live2d_model_selected(model_id)
+
+    def _on_live2d_models_refresh_clicked(self) -> None:
+        if self._on_live2d_models_refresh_requested:
+            self._on_live2d_models_refresh_requested()
 
     def _sync_live2d_model_selector(self) -> None:
         selector = self._live2d_model_selector

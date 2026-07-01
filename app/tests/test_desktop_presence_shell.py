@@ -391,6 +391,26 @@ class TestWindowPresenceShell:
         assert vm.selected_live2d_model_id == "custom/Xiaoyun"
 
     @staticmethod
+    def test_live2d_model_refresh_button_triggers_callback(
+        qapp: QApplication,
+    ) -> None:
+        """Desktop window can request a fresh local Live2D model catalog scan."""
+        calls = []
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_live2d_models_refresh_requested=lambda: calls.append("refresh"),
+        )
+        window.show()
+
+        window._live2d_model_refresh_button.click()
+        qapp.processEvents()
+
+        assert calls == ["refresh"]
+
+    @staticmethod
     def test_status_button_first_click_opens_panel(qapp: QApplication) -> None:
         """First click on status button opens the panel."""
         vm = DesktopViewModel()

@@ -7,6 +7,7 @@ from pathlib import Path
 
 from app.ui.live2d_model_catalog import (
     Live2DModelPackageStatus,
+    build_live2d_model_options,
     inspect_live2d_model_package,
     render_live2d_model_catalog_summary,
     scan_live2d_model_catalog,
@@ -128,4 +129,18 @@ def test_render_live2d_model_catalog_summary_reports_empty_catalog() -> None:
     """Empty model directories produce a clear status instead of a blank label."""
     assert render_live2d_model_catalog_summary(()) == (
         "Model: no local Live2D model packages found"
+    )
+
+
+def test_build_live2d_model_options_uses_model_ids_and_display_names(
+    tmp_path: Path,
+) -> None:
+    """Catalog packages become stable model selector options."""
+    _write_model(tmp_path / "sample" / "Hiyori" / "Hiyori.model3.json")
+    _write_model(tmp_path / "custom" / "Xiaoyun" / "Xiaoyun.model3.json")
+    packages = scan_live2d_model_catalog(tmp_path)
+
+    assert build_live2d_model_options(packages) == (
+        ("custom/Xiaoyun", "Xiaoyun"),
+        ("sample/Hiyori", "Hiyori"),
     )
