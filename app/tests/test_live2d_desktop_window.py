@@ -12,6 +12,7 @@ from app.ui.live2d_desktop_window import (
     load_live2d_window_position,
     probe_live2d_desktop_dependencies,
     reset_live2d_window_position,
+    resolve_live2d_initial_window_position,
     save_live2d_window_position,
 )
 
@@ -97,6 +98,44 @@ def test_reset_window_position_writes_default_position(tmp_path) -> None:
         x=80,
         y=80,
     )
+
+
+def test_missing_initial_window_position_uses_and_saves_default(tmp_path) -> None:
+    """First desktop companion launch starts from a predictable position."""
+    path = tmp_path / "window.json"
+
+    position = resolve_live2d_initial_window_position(
+        path=path,
+        window_width=520,
+        window_height=760,
+        screen_x=0,
+        screen_y=0,
+        screen_width=1920,
+        screen_height=1080,
+    )
+
+    assert position == Live2DDesktopWindowPosition(x=80, y=80)
+    assert load_live2d_window_position(path) == position
+
+
+def test_saved_initial_window_position_is_kept_when_visible(tmp_path) -> None:
+    """Visible saved positions remain stable across launches."""
+    path = tmp_path / "window.json"
+    saved = Live2DDesktopWindowPosition(x=240, y=180)
+    save_live2d_window_position(path, saved)
+
+    position = resolve_live2d_initial_window_position(
+        path=path,
+        window_width=520,
+        window_height=760,
+        screen_x=0,
+        screen_y=0,
+        screen_width=1920,
+        screen_height=1080,
+    )
+
+    assert position == saved
+    assert load_live2d_window_position(path) == saved
 
 
 def test_missing_or_invalid_window_position_returns_none(tmp_path) -> None:

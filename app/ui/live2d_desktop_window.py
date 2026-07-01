@@ -159,6 +159,35 @@ def ensure_live2d_window_position_visible(
     return position if has_usable_visible_area else default_position
 
 
+def resolve_live2d_initial_window_position(
+    *,
+    path: Path,
+    window_width: int,
+    window_height: int,
+    screen_x: int,
+    screen_y: int,
+    screen_width: int,
+    screen_height: int,
+    default_position: Live2DDesktopWindowPosition = DEFAULT_LIVE2D_WINDOW_POSITION,
+) -> Live2DDesktopWindowPosition:
+    """Load, validate, persist, and return the initial Live2D window position."""
+
+    saved_position = load_live2d_window_position(path) or default_position
+    safe_position = ensure_live2d_window_position_visible(
+        position=saved_position,
+        window_width=window_width,
+        window_height=window_height,
+        screen_x=screen_x,
+        screen_y=screen_y,
+        screen_width=screen_width,
+        screen_height=screen_height,
+        default_position=default_position,
+    )
+    if safe_position != saved_position or load_live2d_window_position(path) is None:
+        save_live2d_window_position(path, safe_position)
+    return safe_position
+
+
 def build_live2d_context_menu_actions(
     *,
     always_on_top: bool,
@@ -344,21 +373,17 @@ def run_live2d_desktop_window(spec: Live2DDesktopShellSpec) -> int:
     view.setWindowTitle("Live2D Desktop Girlfriend")
     view.resize(spec.width, spec.height)
     view.setWindowOpacity(spec.opacity)
-    saved_position = load_live2d_window_position(position_path)
-    if saved_position is not None:
-        available = view.screen().availableGeometry()
-        safe_position = ensure_live2d_window_position_visible(
-            position=saved_position,
-            window_width=spec.width,
-            window_height=spec.height,
-            screen_x=available.x(),
-            screen_y=available.y(),
-            screen_width=available.width(),
-            screen_height=available.height(),
-        )
-        if safe_position != saved_position:
-            save_live2d_window_position(position_path, safe_position)
-        view.move(safe_position.x, safe_position.y)
+    available = view.screen().availableGeometry()
+    initial_position = resolve_live2d_initial_window_position(
+        path=position_path,
+        window_width=spec.width,
+        window_height=spec.height,
+        screen_x=available.x(),
+        screen_y=available.y(),
+        screen_width=available.width(),
+        screen_height=available.height(),
+    )
+    view.move(initial_position.x, initial_position.y)
 
     flags = qt.WindowType.Window
     if spec.frameless:
