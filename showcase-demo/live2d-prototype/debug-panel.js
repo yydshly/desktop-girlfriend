@@ -410,6 +410,7 @@ function formatExperimentStep(step) {
     : "none";
   const activeExpression = step.activeLive2D?.expression || "none";
   const validation = step.validation || {};
+  const resolvedParameters = formatResolvedParameters(step.resolvedParameters);
   const warnings = Array.isArray(validation.warnings) && validation.warnings.length
     ? validation.warnings.join(" | ")
     : "none";
@@ -423,10 +424,20 @@ function formatExperimentStep(step) {
     `behavior ${step.behavior?.action || "unknown"} / ${step.behavior?.expression || "unknown"} / gaze ${step.behavior?.gaze || "unknown"} / mouth ${formatNumber(step.behavior?.mouth)} / intensity ${formatNumber(step.behavior?.intensity)}`,
     `adapter expression ${expression}`,
     `adapter parameters mouth ${parameters.mouth ?? 0} / intensity ${parameters.intensity ?? 0} / gaze ${parameters.gaze || "cursor"}`,
+    `resolved parameters ${resolvedParameters}`,
     `active Live2D ${activeMotion} / expression ${activeExpression}`,
     `warnings ${warnings}`,
     `blockers ${blockers}`
   ].join("; ");
+}
+
+function formatResolvedParameters(parameters = {}) {
+  const mouthOpen = parameters.mouthOpen;
+  const breath = parameters.breath;
+  return [
+    `mouthOpen ${mouthOpen?.id || "unknown"} (${mouthOpen?.source || "unknown"})`,
+    `breath ${breath?.id || "unknown"} (${breath?.source || "unknown"})`
+  ].join(" / ");
 }
 
 function formatCapabilitySummary(capabilities = null) {

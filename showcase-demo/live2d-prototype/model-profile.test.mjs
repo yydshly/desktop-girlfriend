@@ -36,7 +36,8 @@ function testNormalizeModelProfileSanitizesMotionBindings() {
         },
         expressions: {}
       },
-      desktopPlacement: {}
+      desktopPlacement: {},
+      parameters: defaultParameters()
     }
   );
 }
@@ -76,7 +77,8 @@ function testNormalizeModelProfileUsesContractMappings() {
           engaged: "smile"
         }
       },
-      desktopPlacement: {}
+      desktopPlacement: {},
+      parameters: defaultParameters()
     }
   );
 }
@@ -117,7 +119,8 @@ function testNormalizeModelProfileSanitizesDesktopPlacement() {
         bodyTrackingMultiplier: 0.8,
         ambientGestureIntervalMs: 8500,
         pointerFollow: false
-      }
+      },
+      parameters: defaultParameters()
     }
   );
 }
@@ -143,6 +146,57 @@ function testNormalizeModelProfileClampsInteractionTuning() {
       ambientGestureIntervalMs: 4000
     }
   );
+}
+
+function testNormalizeModelProfileProvidesDefaultParameterAliases() {
+  const parameters = normalizeModelProfile({}).parameters;
+
+  assert.equal(parameters.mouthOpen.id, "ParamMouthOpenY");
+  assert.equal(parameters.mouthForm.id, "ParamMouthForm");
+  assert.equal(parameters.breath.id, "ParamBreath");
+  assert.equal(parameters.headX.id, "ParamAngleX");
+  assert.equal(parameters.headY.id, "ParamAngleY");
+  assert.equal(parameters.headZ.id, "ParamAngleZ");
+  assert.equal(parameters.eyeX.id, "ParamEyeBallX");
+  assert.equal(parameters.eyeY.id, "ParamEyeBallY");
+  assert.equal(parameters.bodyX.id, "ParamBodyAngleX");
+  assert.equal(parameters.mouthOpen.source, "default");
+}
+
+function testNormalizeModelProfileSanitizesParameterAliases() {
+  const parameters = normalizeModelProfile({
+    parameters: {
+      mouthOpen: {
+        id: "ParamCustomMouth",
+        min: "-0.5",
+        max: "1.5",
+        scale: "0.8",
+        invert: true
+      },
+      headX: "ParamCustomHeadX",
+      unknown: { id: "ParamIgnored" }
+    }
+  }).parameters;
+
+  assert.deepEqual(parameters.mouthOpen, {
+    id: "ParamCustomMouth",
+    min: -0.5,
+    max: 1.5,
+    scale: 0.8,
+    invert: true,
+    source: "profile"
+  });
+  assert.deepEqual(parameters.headX, {
+    id: "ParamCustomHeadX",
+    min: -30,
+    max: 30,
+    scale: 1,
+    invert: false,
+    source: "profile"
+  });
+  assert.equal(parameters.eyeX.id, "ParamEyeBallX");
+  assert.equal(parameters.eyeX.source, "default");
+  assert.equal(parameters.unknown, undefined);
 }
 
 function testCreateEffectiveModelProfileAppliesActionOverrides() {
@@ -197,7 +251,8 @@ async function testLoadModelProfileReturnsEmptyProfileWhenMissing() {
       actions: {},
       expressions: {}
     },
-    desktopPlacement: {}
+    desktopPlacement: {},
+    parameters: defaultParameters()
   });
 }
 
@@ -243,8 +298,26 @@ async function testLoadModelProfileParsesProfileJson() {
     desktopPlacement: {
       scaleMultiplier: 1.08,
       yRatio: 0.56
-    }
+    },
+    parameters: defaultParameters()
   });
+}
+
+function defaultParameters() {
+  return {
+    mouthOpen: { id: "ParamMouthOpenY", min: 0, max: 1, scale: 1, invert: false, source: "default" },
+    mouthForm: { id: "ParamMouthForm", min: -1, max: 1, scale: 1, invert: false, source: "default" },
+    breath: { id: "ParamBreath", min: 0, max: 1, scale: 1, invert: false, source: "default" },
+    headX: { id: "ParamAngleX", min: -30, max: 30, scale: 1, invert: false, source: "default" },
+    headY: { id: "ParamAngleY", min: -30, max: 30, scale: 1, invert: false, source: "default" },
+    headZ: { id: "ParamAngleZ", min: -30, max: 30, scale: 1, invert: false, source: "default" },
+    eyeX: { id: "ParamEyeBallX", min: -1, max: 1, scale: 1, invert: false, source: "default" },
+    eyeY: { id: "ParamEyeBallY", min: -1, max: 1, scale: 1, invert: false, source: "default" },
+    eyeLOpen: { id: "ParamEyeLOpen", min: 0, max: 1, scale: 1, invert: false, source: "default" },
+    eyeROpen: { id: "ParamEyeROpen", min: 0, max: 1, scale: 1, invert: false, source: "default" },
+    bodyX: { id: "ParamBodyAngleX", min: -10, max: 10, scale: 1, invert: false, source: "default" },
+    bodyY: { id: "ParamBodyAngleY", min: -10, max: 10, scale: 1, invert: false, source: "default" }
+  };
 }
 
 testModelJsonUrlToProfileUrlUsesSameDirectory();
@@ -252,6 +325,8 @@ testNormalizeModelProfileSanitizesMotionBindings();
 testNormalizeModelProfileUsesContractMappings();
 testNormalizeModelProfileSanitizesDesktopPlacement();
 testNormalizeModelProfileClampsInteractionTuning();
+testNormalizeModelProfileProvidesDefaultParameterAliases();
+testNormalizeModelProfileSanitizesParameterAliases();
 testCreateEffectiveModelProfileAppliesActionOverrides();
 await testLoadModelProfileReturnsEmptyProfileWhenMissing();
 await testLoadModelProfileParsesProfileJson();

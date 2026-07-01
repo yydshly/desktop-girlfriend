@@ -1,3 +1,5 @@
+import { sanitizeParameterAliases } from "./model-profile.js";
+
 const PARAMETER_IDS = {
   angleX: "ParamAngleX",
   angleY: "ParamAngleY",
@@ -30,6 +32,7 @@ function rounded(value) {
 }
 
 export function mapStateToLive2DCommands(state = {}, pointer = { x: 0, y: 0 }, interactionProfile = {}) {
+  const parameterAliases = resolveLive2DParameterAliases(interactionProfile.parameters || {});
   const emotion = EMOTION_PRESETS[state.emotion] || EMOTION_PRESETS.neutral;
   const intensity = clamp(Number(state.intensity ?? 0.25), 0, 1);
   const pointerX = clamp(Number(pointer.x ?? 0), -1, 1);
@@ -41,23 +44,24 @@ export function mapStateToLive2DCommands(state = {}, pointer = { x: 0, y: 0 }, i
   const bodyMultiplier = readMultiplier(interactionProfile.bodyTrackingMultiplier, 1);
   const mouth = clamp(Number(state.mouth ?? 0), 0, 1);
 
-  const parameters = {
-    [PARAMETER_IDS.angleX]: rounded(pointerX * 44 * followIntensity * headMultiplier),
-    [PARAMETER_IDS.angleY]: rounded(pointerY * -38 * followIntensity * headMultiplier),
-    [PARAMETER_IDS.angleZ]: rounded(emotion.angleZ * intensity),
-    [PARAMETER_IDS.bodyAngleX]: rounded(pointerX * 17 * followIntensity * bodyMultiplier),
-    [PARAMETER_IDS.bodyAngleY]: rounded(pointerY * -10 * followIntensity * bodyMultiplier),
-    [PARAMETER_IDS.eyeLOpen]: rounded(emotion.eyeOpen),
-    [PARAMETER_IDS.eyeROpen]: rounded(emotion.eyeOpen),
-    [PARAMETER_IDS.eyeBallX]: rounded(clamp(pointerX * 1.25 * eyeMultiplier, -1, 1)),
-    [PARAMETER_IDS.eyeBallY]: rounded(clamp(pointerY * -1.5 * eyeMultiplier, -1, 1)),
-    [PARAMETER_IDS.mouthOpenY]: rounded(mouth),
-    [PARAMETER_IDS.mouthForm]: rounded(emotion.mouthForm),
-    [PARAMETER_IDS.breath]: rounded(0.5 + intensity * 0.5)
-  };
+  const parameters = {};
+  writeResolvedParameter(parameters, parameterAliases.aliases.headX, pointerX * 44 * followIntensity * headMultiplier);
+  writeResolvedParameter(parameters, parameterAliases.aliases.headY, pointerY * -38 * followIntensity * headMultiplier);
+  writeResolvedParameter(parameters, parameterAliases.aliases.headZ, emotion.angleZ * intensity);
+  writeResolvedParameter(parameters, parameterAliases.aliases.bodyX, pointerX * 17 * followIntensity * bodyMultiplier);
+  writeResolvedParameter(parameters, parameterAliases.aliases.bodyY, pointerY * -10 * followIntensity * bodyMultiplier);
+  writeResolvedParameter(parameters, parameterAliases.aliases.eyeLOpen, emotion.eyeOpen);
+  writeResolvedParameter(parameters, parameterAliases.aliases.eyeROpen, emotion.eyeOpen);
+  writeResolvedParameter(parameters, parameterAliases.aliases.eyeX, clamp(pointerX * 1.25 * eyeMultiplier, -1, 1));
+  writeResolvedParameter(parameters, parameterAliases.aliases.eyeY, clamp(pointerY * -1.5 * eyeMultiplier, -1, 1));
+  writeResolvedParameter(parameters, parameterAliases.aliases.mouthOpen, mouth);
+  writeResolvedParameter(parameters, parameterAliases.aliases.mouthForm, emotion.mouthForm);
+  writeResolvedParameter(parameters, parameterAliases.aliases.breath, 0.5 + intensity * 0.5);
 
   return {
     parameters,
+    parameterDiagnostics: parameterAliases.aliases,
+    parameterWarnings: parameterAliases.warnings,
     expression: emotion.expression,
     motion: state.sequence || state.motion || "idle",
     pointer: {
@@ -71,6 +75,27 @@ export function mapStateToLive2DCommands(state = {}, pointer = { x: 0, y: 0 }, i
 
 export function getLive2DParameterIds() {
   return { ...PARAMETER_IDS };
+}
+
+export function resolveLive2DParameterAliases(parameters = {}) {
+  const aliases = sanitizeParameterAliases(parameters);
+  const warnings = [];
+  for (const [semantic, alias] of Object.entries(parameters || {})) {
+    const id = typeof alias === "string" ? alias : alias?.id;
+    if (Object.hasOwn(aliases, semantic) && (typeof id !== "string" || !id.trim())) {
+      warnings.push(`parameter ${semantic} has no id; using default ${aliases[semantic].id}`);
+    }
+  }
+  return { aliases, warnings };
+}
+
+function writeResolvedParameter(parameters, alias, value) {
+  if (!alias?.id) {
+    return;
+  }
+  const scaled = Number(value) * Number(alias.scale ?? 1);
+  const inverted = alias.invert ? -scaled : scaled;
+  parameters[alias.id] = rounded(clamp(inverted, Number(alias.min), Number(alias.max)));
 }
 
 function readMultiplier(value, fallback) {

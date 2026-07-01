@@ -180,6 +180,10 @@ function createRuntime() {
             parameters: { mouth: 0, intensity: 0.25, gaze: "cursor" }
           },
           activeLive2D: { motion: { group: "Idle", index: 0 }, expression: "default" },
+          resolvedParameters: {
+            mouthOpen: { id: "ParamMouthOpenY", source: "default" },
+            breath: { id: "ParamBreath", source: "default" }
+          },
           validation: { layer: "ok", warnings: [], blockers: [] }
         },
         {
@@ -195,6 +199,10 @@ function createRuntime() {
             parameters: { mouth: 0.65, intensity: 0.76, gaze: "cursor" }
           },
           activeLive2D: { motion: { group: "TapBody", index: 0 }, expression: "smile" },
+          resolvedParameters: {
+            mouthOpen: { id: "ParamCustomMouth", source: "profile" },
+            breath: { id: "ParamBreath", source: "default" }
+          },
           validation: { layer: "profile/model", warnings: ["expression engaged is unmapped"], blockers: [] }
         }
       ];
@@ -534,6 +542,7 @@ function testShowcasePanelRunsModelExperiment() {
   assert.match(elements["#modelExperimentStatus"].textContent, /speaking active \/ state \/ simulated \/ mouth 0\.514/);
   assert.match(elements["#modelExperimentStatus"].textContent, /behavior speak \/ engaged \/ gaze cursor/);
   assert.match(elements["#modelExperimentStatus"].textContent, /adapter parameters mouth 0.65 \/ intensity 0.76 \/ gaze cursor/);
+  assert.match(elements["#modelExperimentStatus"].textContent, /resolved parameters mouthOpen ParamCustomMouth \(profile\) \/ breath ParamBreath \(default\)/);
   assert.match(elements["#modelExperimentStatus"].textContent, /active Live2D TapBody\[0\] \/ expression smile/);
   assert.match(elements["#modelExperimentStatus"].textContent, /warnings expression engaged is unmapped/);
   assert.match(elements["#modelExperimentStatus"].textContent, /blockers none/);

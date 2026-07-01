@@ -56,7 +56,7 @@ export function createLive2DRuntime({
       modelUrl: configuredModelUrl,
       allowTextureFallback: !isDesktopMode,
       motionBindings: getEffectiveMotionBindings(),
-      placementProfile: getEffectiveModelProfile().desktopPlacement || {},
+      placementProfile: getRendererParameterProfile(),
       onStatusChange: (status) => {
         lastRendererStatus = status;
         listeners.onRendererStatus(status);
@@ -255,6 +255,14 @@ export function createLive2DRuntime({
     return createEffectiveModelProfile(modelProfile, motionBindings);
   }
 
+  function getRendererParameterProfile() {
+    const effectiveProfile = getEffectiveModelProfile();
+    return {
+      ...(effectiveProfile.desktopPlacement || {}),
+      parameters: effectiveProfile.parameters || {}
+    };
+  }
+
   function getInteractionTuning() {
     return { ...(modelProfile.desktopPlacement || {}) };
   }
@@ -272,7 +280,7 @@ export function createLive2DRuntime({
         ...interactionTuningOverride
       }
     };
-    controller.renderer.setPlacementProfile?.(getEffectiveModelProfile().desktopPlacement || {});
+    controller.renderer.setPlacementProfile?.(getRendererParameterProfile());
     return getInteractionTuning();
   }
 
@@ -283,7 +291,7 @@ export function createLive2DRuntime({
       ...modelProfile,
       desktopPlacement: { ...profileDesktopPlacement }
     };
-    controller.renderer.setPlacementProfile?.(getEffectiveModelProfile().desktopPlacement || {});
+    controller.renderer.setPlacementProfile?.(getRendererParameterProfile());
     return getInteractionTuning();
   }
 
@@ -299,7 +307,7 @@ export function createLive2DRuntime({
       }
     };
     controller.renderer.setMotionBindings?.(getEffectiveMotionBindings());
-    controller.renderer.setPlacementProfile?.(getEffectiveModelProfile().desktopPlacement || {});
+    controller.renderer.setPlacementProfile?.(getRendererParameterProfile());
     listeners.onMotionBindingStatus();
     updateModelPackageStatus();
   }

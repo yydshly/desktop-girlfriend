@@ -311,7 +311,7 @@ export class Live2DRenderer {
 
     const now = performance.now();
     const parameters = calculateAnimatedLive2DParameters(
-      mergeAdapterParameters(this.lastCommands.parameters, this.currentState),
+      mergeAdapterParameters(this.lastCommands.parameters, this.currentState, this.lastCommands),
       {
         ...this.lastCommands,
         pointerReaction: calculatePointerReactionEffect(this.pointerReaction, now)
@@ -691,24 +691,35 @@ function resolveAdapterExpression(state = {}) {
   return typeof expression === "string" ? expression.trim() : "";
 }
 
-function mergeAdapterParameters(parameters = {}, state = {}) {
+function mergeAdapterParameters(parameters = {}, state = {}, command = {}) {
   const adapterParameters = state.modelCommands?.parameters;
   if (!adapterParameters) {
     return parameters;
   }
 
   const next = { ...parameters };
+  const aliases = command.parameterDiagnostics || {};
   const mouth = readUnitParameter(adapterParameters.mouth);
   if (mouth !== null) {
-    next.ParamMouthOpenY = roundToThree(mouth);
+    writeAliasedParameter(next, aliases.mouthOpen, mouth, "ParamMouthOpenY");
   }
 
   const intensity = readUnitParameter(adapterParameters.intensity);
   if (intensity !== null) {
-    next.ParamBreath = roundToThree(0.5 + intensity * 0.5);
+    writeAliasedParameter(next, aliases.breath, 0.5 + intensity * 0.5, "ParamBreath");
   }
 
   return next;
+}
+
+function writeAliasedParameter(parameters, alias = null, value, fallbackId) {
+  const id = typeof alias?.id === "string" && alias.id.trim() ? alias.id.trim() : fallbackId;
+  const min = Number.isFinite(Number(alias?.min)) ? Number(alias.min) : 0;
+  const max = Number.isFinite(Number(alias?.max)) ? Number(alias.max) : 1;
+  const scale = Number.isFinite(Number(alias?.scale)) ? Number(alias.scale) : 1;
+  const scaled = Number(value) * scale;
+  const next = alias?.invert ? -scaled : scaled;
+  parameters[id] = roundToThree(Math.min(max, Math.max(min, next)));
 }
 
 function readUnitParameter(value) {

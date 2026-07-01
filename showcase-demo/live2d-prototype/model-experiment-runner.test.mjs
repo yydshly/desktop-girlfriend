@@ -99,6 +99,8 @@ function testTimelineBuildsEmotionBehaviorAndAdapterCommands() {
   assert.equal(timeline[3].semanticState, "speak");
   assert.equal(timeline[3].validation.blockers.length, 0);
   assert.equal(timeline[3].validation.warnings.length, 0);
+  assert.equal(timeline[3].resolvedParameters.mouthOpen.id, "ParamMouthOpenY");
+  assert.equal(timeline[3].resolvedParameters.mouthOpen.source, "default");
 }
 
 function testTimelineUsesStableStepDurations() {
@@ -139,9 +141,22 @@ function testTimelineReportsProfileAndModelCapabilityProblems() {
   assert.equal(speakingStep.validation.layer, "profile/model");
 }
 
+function testTimelineReportsProfileParameterAliases() {
+  const timeline = buildModelExperimentTimeline({
+    ...profile,
+    parameters: {
+      mouthOpen: { id: "ParamCustomMouth", min: 0, max: 2, scale: 2, invert: false, source: "profile" }
+    }
+  });
+
+  assert.equal(timeline[3].resolvedParameters.mouthOpen.id, "ParamCustomMouth");
+  assert.equal(timeline[3].resolvedParameters.mouthOpen.source, "profile");
+}
+
 testDefaultExperimentStatesMatchXiaoyunModelSpec();
 testRuntimeValidationSequenceUsesCompactSemanticInputs();
 testTimelineBuildsEmotionBehaviorAndAdapterCommands();
 testTimelineUsesStableStepDurations();
 testTimelineReportsProfileAndModelCapabilityProblems();
+testTimelineReportsProfileParameterAliases();
 console.log("model-experiment-runner tests passed");

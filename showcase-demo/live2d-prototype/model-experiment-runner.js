@@ -1,4 +1,5 @@
 import { buildCharacterRuntimeState } from "./character-runtime.js";
+import { resolveLive2DParameterAliases } from "./live2d-parameter-mapper.js";
 
 const DEFAULT_STEP_DURATION_MS = 3200;
 const RUNTIME_VALIDATION_SEQUENCE_STATES = Object.freeze([
@@ -26,6 +27,7 @@ export function buildModelExperimentTimeline(profile = {}, options = {}) {
   const durationMs = readDurationMs(options.durationMs);
 
   return states.map((state, index) => {
+    const resolvedParameterAliases = resolveLive2DParameterAliases(profile.parameters || {});
     const runtimeState = buildCharacterRuntimeState({
       mappedState: {
         state,
@@ -49,13 +51,19 @@ export function buildModelExperimentTimeline(profile = {}, options = {}) {
       behavior: runtimeState.behavior,
       modelCommands: runtimeState.modelCommands,
       activeLive2D: normalizeActiveLive2D(options.rendererStatus),
-      validation: validateRuntimeStep(runtimeState, profile, options.modelCapabilities)
+      resolvedParameters: resolvedParameterAliases.aliases,
+      validation: validateRuntimeStep(
+        runtimeState,
+        profile,
+        options.modelCapabilities,
+        resolvedParameterAliases.warnings
+      )
     };
   });
 }
 
-function validateRuntimeStep(runtimeState = {}, profile = {}, modelCapabilities = null) {
-  const warnings = [];
+function validateRuntimeStep(runtimeState = {}, profile = {}, modelCapabilities = null, parameterWarnings = []) {
+  const warnings = [...parameterWarnings];
   const blockers = [];
   const actions = profile?.mappings?.actions || {};
   const expressions = profile?.mappings?.expressions || {};

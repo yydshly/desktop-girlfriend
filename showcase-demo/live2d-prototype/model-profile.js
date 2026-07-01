@@ -17,7 +17,8 @@ export function normalizeModelProfile(profile = {}) {
     displayName: typeof profile.displayName === "string" ? profile.displayName : "",
     motionBindings: mappings.actions,
     mappings,
-    desktopPlacement: sanitizeDesktopPlacement(profile.desktopPlacement || {})
+    desktopPlacement: sanitizeDesktopPlacement(profile.desktopPlacement || {}),
+    parameters: sanitizeParameterAliases(profile.parameters || {})
   };
 }
 
@@ -33,8 +34,51 @@ export function createEffectiveModelProfile(profile = {}, actionOverrides = {}) 
   return {
     ...normalizedProfile,
     motionBindings: mappings.actions,
-    mappings
+    mappings,
+    parameters: normalizedProfile.parameters
   };
+}
+
+export const DEFAULT_PARAMETER_ALIASES = Object.freeze({
+  mouthOpen: { id: "ParamMouthOpenY", min: 0, max: 1, scale: 1, invert: false },
+  mouthForm: { id: "ParamMouthForm", min: -1, max: 1, scale: 1, invert: false },
+  breath: { id: "ParamBreath", min: 0, max: 1, scale: 1, invert: false },
+  headX: { id: "ParamAngleX", min: -30, max: 30, scale: 1, invert: false },
+  headY: { id: "ParamAngleY", min: -30, max: 30, scale: 1, invert: false },
+  headZ: { id: "ParamAngleZ", min: -30, max: 30, scale: 1, invert: false },
+  eyeX: { id: "ParamEyeBallX", min: -1, max: 1, scale: 1, invert: false },
+  eyeY: { id: "ParamEyeBallY", min: -1, max: 1, scale: 1, invert: false },
+  eyeLOpen: { id: "ParamEyeLOpen", min: 0, max: 1, scale: 1, invert: false },
+  eyeROpen: { id: "ParamEyeROpen", min: 0, max: 1, scale: 1, invert: false },
+  bodyX: { id: "ParamBodyAngleX", min: -10, max: 10, scale: 1, invert: false },
+  bodyY: { id: "ParamBodyAngleY", min: -10, max: 10, scale: 1, invert: false }
+});
+
+export function sanitizeParameterAliases(parameters = {}) {
+  const sanitized = {};
+  for (const [semantic, defaults] of Object.entries(DEFAULT_PARAMETER_ALIASES)) {
+    const source = parameters?.[semantic];
+    const override = typeof source === "string" ? { id: source } : source;
+    const hasProfileAlias = Boolean(override && typeof override === "object");
+    sanitized[semantic] = {
+      id: readParameterId(override?.id, defaults.id),
+      min: finiteNumber(override?.min) ?? defaults.min,
+      max: finiteNumber(override?.max) ?? defaults.max,
+      scale: finiteNumber(override?.scale) ?? defaults.scale,
+      invert: typeof override?.invert === "boolean" ? override.invert : defaults.invert,
+      source: hasProfileAlias ? "profile" : "default"
+    };
+    if (sanitized[semantic].max < sanitized[semantic].min) {
+      const min = sanitized[semantic].max;
+      sanitized[semantic].max = sanitized[semantic].min;
+      sanitized[semantic].min = min;
+    }
+  }
+  return sanitized;
+}
+
+function readParameterId(value, fallback) {
+  return typeof value === "string" && value.trim() ? value.trim() : fallback;
 }
 
 export function sanitizeProfileMappings(mappings = {}, legacyMotionBindings = {}) {

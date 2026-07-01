@@ -367,6 +367,46 @@ function testModelAdapterParametersOverrideLegacyStateParameters() {
   assert.equal(parameters.ParamBreath, 0.9);
 }
 
+function testModelAdapterParametersUseProfileParameterAliases() {
+  const renderer = new Live2DRenderer(createCanvasProbe(), {
+    placementProfile: {
+      parameters: {
+        mouthOpen: { id: "ParamCustomMouth", min: 0, max: 2, scale: 2, invert: false, source: "profile" },
+        breath: { id: "ParamCustomBreath", min: 0, max: 1, scale: 1, invert: false, source: "profile" }
+      }
+    }
+  });
+  const parameters = {};
+  renderer.live2dModel = {
+    expression() {},
+    motion() {},
+    internalModel: {
+      coreModel: {
+        setParameterValueById(id, value) {
+          parameters[id] = value;
+        }
+      }
+    }
+  };
+
+  renderer.applyState({
+    emotion: "neutral",
+    mouth: 0,
+    intensity: 0,
+    modelCommands: {
+      parameters: {
+        mouth: 0.5,
+        intensity: 0.8,
+        gaze: "cursor"
+      }
+    }
+  });
+
+  assert.equal(parameters.ParamCustomMouth, 1);
+  assert.equal(parameters.ParamCustomBreath, 0.9);
+  assert.equal(parameters.ParamMouthOpenY, undefined);
+}
+
 function testStateSkipsUnavailableLive2DExpression() {
   const renderer = new Live2DRenderer(createCanvasProbe());
   const expressions = [];
@@ -640,6 +680,7 @@ testIdleStateTriggersIdleMotion();
 testStateAppliesLive2DExpression();
 testModelAdapterExpressionOverridesLegacyExpressionMapping();
 testModelAdapterParametersOverrideLegacyStateParameters();
+testModelAdapterParametersUseProfileParameterAliases();
 testStateSkipsUnavailableLive2DExpression();
 testStateDoesNotRepeatSameLive2DExpression();
 testStatusReportsModelCapabilities();
@@ -1035,7 +1076,7 @@ function testMappedPointerPrioritizesHeadAndEyeTracking() {
 
   assert.ok(command.parameters.ParamAngleX >= 28);
   assert.ok(command.parameters.ParamAngleY >= 15);
-  assert.ok(command.parameters.ParamBodyAngleX >= 11);
+  assert.equal(command.parameters.ParamBodyAngleX, 10);
   assert.equal(command.parameters.ParamEyeBallX, 1);
   assert.equal(command.parameters.ParamEyeBallY, 0.75);
 }
