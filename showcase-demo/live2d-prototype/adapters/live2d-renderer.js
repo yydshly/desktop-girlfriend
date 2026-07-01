@@ -339,7 +339,7 @@ export class Live2DRenderer {
       return;
     }
 
-    const motion = options.override || mapCommandToModelMotion(
+    const motion = options.override || resolveAdapterMotion(this.currentState) || mapCommandToModelMotion(
       this.lastCommands,
       this.model?.motionGroupCounts,
       this.motionBindings
@@ -441,6 +441,18 @@ export function calculateLive2DPlacement(canvasSize, modelSize, placementProfile
 function roundTo(value, digits) {
   const factor = 10 ** digits;
   return Math.round(value * factor) / factor;
+}
+
+function resolveAdapterMotion(state = {}) {
+  const command = state.modelCommands?.motion;
+  if (!command?.group) {
+    return null;
+  }
+  return {
+    group: String(command.group),
+    index: Math.max(0, Math.floor(Number(command.index ?? 0))),
+    source: `model-adapter:${command.action || "unknown"}`
+  };
 }
 
 export function mapCommandToModelMotion(command = {}, motionGroupCounts = null, motionBindings = {}) {
