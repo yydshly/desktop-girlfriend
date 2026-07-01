@@ -29,12 +29,15 @@ Done:
   - PySide6 desktop WebView shell
   - local WebSocket bridge from the Python app to the Live2D page
   - runtime-app.js / debug-panel.js split with a thin live2d.js entrypoint
+  - Emotion State / Behavior Planner / Model Adapter chain wired into the active renderer path
+  - adapter-driven Live2D motion, expression, mouth, and intensity parameters
+  - browser diagnostics for model adapter commands
 
 Not done yet:
   - profile-based expression aliases and parameter ranges
   - product-facing desktop controls and packaging polish
   - custom character production
-  - wiring the new Emotion State / Behavior Planner / Model Adapter chain into the active renderer path
+  - Model Gallery fixed-sequence candidate evaluation
 ```
 
 ## Target Runtime Flow
@@ -333,6 +336,16 @@ Live2D Cubism rigging
 exported model3 package
 runtime integration
 ```
+
+The Xiaoyun model target is defined in:
+
+```text
+docs/XIAOYUN_CHARACTER_MODEL_SPEC.md
+```
+
+The core point is that model quality and dynamic behavior are the product
+ceiling. Hiyori remains a baseline validation model, not the final visual
+standard.
 
 ## Why The Current UI Looks Weak
 

@@ -244,6 +244,7 @@ LIVE2D_DESKTOP_AUTO_LAUNCH=true
    - Hiyori 作为 baseline。
    - 增加一个表现更丰富的商业/示例模型做对照。
    - 重点看 idle 舒适度、微表情、长期观看疲劳、说话口型。
+   - 模型目标规格见 `docs/XIAOYUN_CHARACTER_MODEL_SPEC.md`。
 
 4. 优化桌面人物窗口体验
    - 拖动稳定。
