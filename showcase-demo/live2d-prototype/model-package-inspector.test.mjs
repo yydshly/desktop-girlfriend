@@ -18,6 +18,10 @@ globalThis.fetch = async () => ({
         Moc: "Model.moc3",
         Textures: ["textures/texture_00.png"],
         Physics: "Model.physics3.json",
+        Expressions: [
+          { Name: "smile", File: "expressions/smile.exp3.json" },
+          { Name: "sad", File: "expressions/sad.exp3.json" }
+        ],
         Motions: {
           Idle: [{ File: "motions/idle_0.motion3.json" }, { File: "motions/idle_1.motion3.json" }],
           TapBody: [{ File: "motions/tap.motion3.json" }]
@@ -38,6 +42,8 @@ async function testInspectModelPackageReportsMotionGroupCounts() {
   assert.deepEqual(info.motionGroups, ["Idle", "TapBody"]);
   assert.deepEqual(info.motionGroupCounts, { Idle: 2, TapBody: 1 });
   assert.deepEqual(info.lipSyncIds, ["ParamMouthOpenY"]);
+  assert.equal(info.expressionCount, 2);
+  assert.deepEqual(info.expressionNames, ["smile", "sad"]);
 }
 
 await testInspectModelPackageReportsMotionGroupCounts();

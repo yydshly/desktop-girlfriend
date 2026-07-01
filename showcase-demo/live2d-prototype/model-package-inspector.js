@@ -12,6 +12,10 @@ export async function inspectModelPackage(modelUrl) {
   const references = model.FileReferences || {};
   const textures = references.Textures || [];
   const motions = references.Motions || {};
+  const expressions = Array.isArray(references.Expressions) ? references.Expressions : [];
+  const expressionNames = expressions
+    .map((entry) => entry?.Name)
+    .filter((name) => typeof name === "string" && name.length > 0);
   const motionCount = Object.values(motions).reduce((count, group) => count + group.length, 0);
   const motionGroupCounts = Object.fromEntries(
     Object.entries(motions).map(([group, entries]) => [
@@ -27,6 +31,8 @@ export async function inspectModelPackage(modelUrl) {
     firstTextureUrl: textures[0] ? resolveAssetUrl(modelUrl, textures[0]) : "",
     physics: references.Physics || "",
     pose: references.Pose || "",
+    expressionCount: expressions.length,
+    expressionNames,
     motionGroups: Object.keys(motions),
     motionGroupCounts,
     motionCount,

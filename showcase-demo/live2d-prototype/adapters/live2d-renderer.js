@@ -337,7 +337,10 @@ export class Live2DRenderer {
       return;
     }
 
-    const expression = this.lastCommands.expression || "";
+    const expression = resolveSupportedExpression(
+      this.lastCommands.expression || "",
+      this.model?.expressionNames
+    );
     if (!expression || expression === this.lastExpressionKey) {
       return;
     }
@@ -424,6 +427,16 @@ export function getReturnToIdleDelayMs(command = {}) {
   const motion = command.motion || "";
   const expressiveMotions = new Set(["greet", "happy", "reply", "comfort", "speak"]);
   return expressiveMotions.has(motion) ? EXPRESSIVE_RETURN_TO_IDLE_MS : 0;
+}
+
+export function resolveSupportedExpression(expression = "", expressionNames = null) {
+  if (!expression) {
+    return "";
+  }
+  if (!Array.isArray(expressionNames)) {
+    return expression;
+  }
+  return expressionNames.includes(expression) ? expression : "";
 }
 
 export function calculateAnimatedLive2DParameters(parameters = {}, command = {}, now = 0) {
