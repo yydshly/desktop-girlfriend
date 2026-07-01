@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  createEffectiveModelProfile,
   loadModelProfile,
   modelJsonUrlToProfileUrl,
   normalizeModelProfile
@@ -144,6 +145,41 @@ function testNormalizeModelProfileClampsInteractionTuning() {
   );
 }
 
+function testCreateEffectiveModelProfileAppliesActionOverrides() {
+  const effectiveProfile = createEffectiveModelProfile(
+    {
+      displayName: "Hiyori",
+      mappings: {
+        actions: {
+          idle: { group: "Idle", index: 0 },
+          speak: { group: "TapBody", index: 0 }
+        },
+        expressions: {
+          engaged: "smile"
+        }
+      },
+      desktopPlacement: {
+        yRatio: 0.56
+      }
+    },
+    {
+      speak: { group: "Idle", index: 4 }
+    }
+  );
+
+  assert.deepEqual(effectiveProfile.mappings.actions, {
+    idle: { group: "Idle", index: 0 },
+    speak: { group: "Idle", index: 4 }
+  });
+  assert.deepEqual(effectiveProfile.motionBindings, effectiveProfile.mappings.actions);
+  assert.deepEqual(effectiveProfile.mappings.expressions, {
+    engaged: "smile"
+  });
+  assert.deepEqual(effectiveProfile.desktopPlacement, {
+    yRatio: 0.56
+  });
+}
+
 async function testLoadModelProfileReturnsEmptyProfileWhenMissing() {
   globalThis.fetch = async () => ({
     ok: false,
@@ -216,6 +252,7 @@ testNormalizeModelProfileSanitizesMotionBindings();
 testNormalizeModelProfileUsesContractMappings();
 testNormalizeModelProfileSanitizesDesktopPlacement();
 testNormalizeModelProfileClampsInteractionTuning();
+testCreateEffectiveModelProfileAppliesActionOverrides();
 await testLoadModelProfileReturnsEmptyProfileWhenMissing();
 await testLoadModelProfileParsesProfileJson();
 console.log("model-profile tests passed");

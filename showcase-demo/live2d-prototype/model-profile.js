@@ -21,6 +21,22 @@ export function normalizeModelProfile(profile = {}) {
   };
 }
 
+export function createEffectiveModelProfile(profile = {}, actionOverrides = {}) {
+  const normalizedProfile = normalizeModelProfile(profile);
+  const mappings = sanitizeProfileMappings({
+    ...normalizedProfile.mappings,
+    actions: {
+      ...(normalizedProfile.mappings.actions || {}),
+      ...actionOverrides
+    }
+  });
+  return {
+    ...normalizedProfile,
+    motionBindings: mappings.actions,
+    mappings
+  };
+}
+
 export function sanitizeProfileMappings(mappings = {}, legacyMotionBindings = {}) {
   const actions = sanitizeActionMappings({
     ...legacyMotionBindings,

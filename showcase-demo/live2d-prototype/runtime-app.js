@@ -1,7 +1,11 @@
 import { AvatarController } from "./avatar-controller.js";
 import { createBridgeClient } from "./bridge-client.js";
 import { createBridgeStatus, updateBridgeStatus } from "./bridge-status.js";
-import { loadModelProfile, sanitizeDesktopPlacement } from "./model-profile.js";
+import {
+  createEffectiveModelProfile,
+  loadModelProfile,
+  sanitizeDesktopPlacement
+} from "./model-profile.js";
 import { resolveModelUrlFromRoute } from "./live2d-model-route.js";
 import { inspectModelPackage } from "./model-package-inspector.js";
 import { buildModelExperimentTimeline } from "./model-experiment-runner.js";
@@ -52,7 +56,7 @@ export function createLive2DRuntime({
       modelUrl: configuredModelUrl,
       allowTextureFallback: !isDesktopMode,
       motionBindings: getEffectiveMotionBindings(),
-      placementProfile: modelProfile.desktopPlacement || {},
+      placementProfile: getEffectiveModelProfile().desktopPlacement || {},
       onStatusChange: (status) => {
         lastRendererStatus = status;
         listeners.onRendererStatus(status);
@@ -66,7 +70,7 @@ export function createLive2DRuntime({
     avatarBubble,
     stage,
     {
-      getModelProfile: () => modelProfile
+      getModelProfile: getEffectiveModelProfile
     }
   );
 
@@ -238,6 +242,10 @@ export function createLive2DRuntime({
     };
   }
 
+  function getEffectiveModelProfile() {
+    return createEffectiveModelProfile(modelProfile, motionBindings);
+  }
+
   function getInteractionTuning() {
     return { ...(modelProfile.desktopPlacement || {}) };
   }
@@ -255,7 +263,7 @@ export function createLive2DRuntime({
         ...interactionTuningOverride
       }
     };
-    controller.renderer.setPlacementProfile?.(modelProfile.desktopPlacement || {});
+    controller.renderer.setPlacementProfile?.(getEffectiveModelProfile().desktopPlacement || {});
     return getInteractionTuning();
   }
 
@@ -266,7 +274,7 @@ export function createLive2DRuntime({
       ...modelProfile,
       desktopPlacement: { ...profileDesktopPlacement }
     };
-    controller.renderer.setPlacementProfile?.(modelProfile.desktopPlacement || {});
+    controller.renderer.setPlacementProfile?.(getEffectiveModelProfile().desktopPlacement || {});
     return getInteractionTuning();
   }
 
@@ -282,7 +290,7 @@ export function createLive2DRuntime({
       }
     };
     controller.renderer.setMotionBindings?.(getEffectiveMotionBindings());
-    controller.renderer.setPlacementProfile?.(modelProfile.desktopPlacement || {});
+    controller.renderer.setPlacementProfile?.(getEffectiveModelProfile().desktopPlacement || {});
     listeners.onMotionBindingStatus();
     updateModelPackageStatus();
   }
@@ -359,6 +367,7 @@ export function createLive2DRuntime({
     getLastRendererStatus: () => lastRendererStatus,
     getMotionBindings: () => motionBindings,
     getModelProfile: () => modelProfile,
+    getEffectiveModelProfile,
     getBridgeStatus: () => currentBridgeStatus,
     isDesktopMode: () => isDesktopMode,
     inspectModel: () => inspectModelPackage(configuredModelUrl)
