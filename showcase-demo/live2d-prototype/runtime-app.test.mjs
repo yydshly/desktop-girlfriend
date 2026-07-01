@@ -21,6 +21,16 @@ function createCanvas() {
   return {
     width: 900,
     height: 1200,
+    getContext() {
+      return new Proxy({}, {
+        get(target, key) {
+          if (!(key in target)) {
+            target[key] = () => {};
+          }
+          return target[key];
+        }
+      });
+    },
     cloneNode() {
       return createCanvas();
     },
@@ -59,6 +69,11 @@ function createRuntimeHarness() {
   return { runtime, elements };
 }
 
+async function flushAsyncWork() {
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 function testRuntimeRunsModelExperimentTimeline() {
   const { runtime, elements } = createRuntimeHarness();
 
@@ -75,5 +90,62 @@ function testRuntimeRunsModelExperimentTimeline() {
   assert.equal(readout.modelCommands.motion.group, "Idle");
 }
 
+async function testStartRefreshesPackageStatusAfterProfileLoads() {
+  const { runtime } = createRuntimeHarness();
+  const packageStatuses = [];
+  globalThis.window = {
+    location: {
+      href: "http://127.0.0.1:8786/live2d-prototype/"
+    }
+  };
+  globalThis.requestAnimationFrame = () => 0;
+  globalThis.cancelAnimationFrame = () => {};
+  globalThis.fetch = async (url) => {
+    const requestUrl = String(url);
+    if (requestUrl.endsWith("profile.json")) {
+      return {
+        ok: true,
+        async json() {
+          return {
+            displayName: "Candidate",
+            mappings: {
+              actions: {
+                idle: { group: "Idle", index: 0 }
+              }
+            }
+          };
+        }
+      };
+    }
+    return {
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      async json() {
+        return {
+          Version: 3,
+          FileReferences: {
+            Moc: "Model.moc3",
+            Textures: ["texture.png"],
+            Motions: {
+              Idle: [{ File: "idle.motion3.json" }]
+            }
+          }
+        };
+      }
+    };
+  };
+  runtime.setStatusListeners({
+    onModelPackageStatus: (status) => packageStatuses.push(status)
+  });
+
+  runtime.setRendererMode("placeholder");
+  runtime.start();
+  await flushAsyncWork();
+
+  assert.ok(packageStatuses.length >= 2);
+}
+
 testRuntimeRunsModelExperimentTimeline();
+await testStartRefreshesPackageStatusAfterProfileLoads();
 console.log("runtime-app tests passed");

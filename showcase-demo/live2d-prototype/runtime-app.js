@@ -235,6 +235,7 @@ export function createLive2DRuntime({
     controller.renderer.setMotionBindings?.(getEffectiveMotionBindings());
     controller.renderer.setPlacementProfile?.(modelProfile.desktopPlacement || {});
     listeners.onMotionBindingStatus();
+    updateModelPackageStatus();
   }
 
   function motionBindingsStorageKey() {
