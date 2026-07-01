@@ -97,6 +97,7 @@ cd D:\claude_code\20260628_桌面女友\desktop-girlfriend
 
 人物窗口的缩放、透明度和显示/隐藏状态会保存到 `.tmp/live2d-desktop-settings.json`。
 模型选择会保存到 `.tmp/live2d-model-selection.json`。
+人物窗口右键菜单里的“更透明 / 更清晰 / 置顶 / 隐藏人物”也会写回同一份人物窗口设置。
 
 默认情况下，`.env.example` 里 `LIVE2D_DESKTOP_AUTO_LAUNCH=true`，所以复制出的 `.env` 也会默认自动启动人物窗口。
 

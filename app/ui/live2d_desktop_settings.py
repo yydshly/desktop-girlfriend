@@ -21,6 +21,7 @@ class Live2DDesktopSettings:
     scale: float = 1.0
     opacity: float = 1.0
     visible: bool = True
+    always_on_top: bool = True
 
 
 def default_live2d_desktop_settings_path() -> Path:
@@ -44,15 +45,19 @@ def load_live2d_desktop_settings(path: Path) -> Live2DDesktopSettings:
     scale = data.get("scale")
     opacity = data.get("opacity")
     visible = data.get("visible")
+    always_on_top = data.get("always_on_top", True)
     if not isinstance(scale, int | float) or not isinstance(opacity, int | float):
         return Live2DDesktopSettings()
     if not isinstance(visible, bool):
+        return Live2DDesktopSettings()
+    if not isinstance(always_on_top, bool):
         return Live2DDesktopSettings()
 
     return Live2DDesktopSettings(
         scale=_clamp(float(scale), _MIN_SCALE, _MAX_SCALE),
         opacity=_clamp(float(opacity), _MIN_OPACITY, _MAX_OPACITY),
         visible=visible,
+        always_on_top=always_on_top,
     )
 
 
@@ -67,6 +72,7 @@ def save_live2d_desktop_settings(
         scale=_clamp(settings.scale, _MIN_SCALE, _MAX_SCALE),
         opacity=_clamp(settings.opacity, _MIN_OPACITY, _MAX_OPACITY),
         visible=settings.visible,
+        always_on_top=settings.always_on_top,
     )
     path.write_text(
         json.dumps(
@@ -74,12 +80,36 @@ def save_live2d_desktop_settings(
                 "scale": safe_settings.scale,
                 "opacity": safe_settings.opacity,
                 "visible": safe_settings.visible,
+                "always_on_top": safe_settings.always_on_top,
             },
             ensure_ascii=False,
             indent=2,
         ),
         encoding="utf-8",
     )
+
+
+def update_live2d_desktop_settings(
+    path: Path,
+    *,
+    scale: float | None = None,
+    opacity: float | None = None,
+    visible: bool | None = None,
+    always_on_top: bool | None = None,
+) -> Live2DDesktopSettings:
+    """Update selected Live2D desktop settings while preserving the rest."""
+
+    current = load_live2d_desktop_settings(path)
+    next_settings = Live2DDesktopSettings(
+        scale=current.scale if scale is None else scale,
+        opacity=current.opacity if opacity is None else opacity,
+        visible=current.visible if visible is None else visible,
+        always_on_top=current.always_on_top
+        if always_on_top is None
+        else always_on_top,
+    )
+    save_live2d_desktop_settings(path, next_settings)
+    return load_live2d_desktop_settings(path)
 
 
 def _clamp(value: float, minimum: float, maximum: float) -> float:

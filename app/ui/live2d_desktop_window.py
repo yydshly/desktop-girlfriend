@@ -9,6 +9,10 @@ from importlib import import_module
 from pathlib import Path
 
 from app.ui.desktop_presence import Live2DDesktopShellSpec
+from app.ui.live2d_desktop_settings import (
+    default_live2d_desktop_settings_path,
+    update_live2d_desktop_settings,
+)
 
 _REQUIRED_QT_MODULES = (
     "PySide6.QtCore",
@@ -266,6 +270,7 @@ def run_live2d_desktop_window(spec: Live2DDesktopShellSpec) -> int:
     q_color = qt_gui.QColor
     q_web_engine_settings = qt_webengine_core.QWebEngineSettings
     position_path = default_live2d_position_path()
+    settings_path = default_live2d_desktop_settings_path()
 
     class Live2DDesktopWebView(q_web_engine_view):
         def __init__(self) -> None:
@@ -388,22 +393,32 @@ def run_live2d_desktop_window(spec: Live2DDesktopShellSpec) -> int:
                 self.move(position.x, position.y)
                 return
             if key == "opacity_down":
-                self.setWindowOpacity(max(0.45, round(self.windowOpacity() - 0.1, 2)))
+                opacity = max(0.45, round(self.windowOpacity() - 0.1, 2))
+                self.setWindowOpacity(opacity)
+                update_live2d_desktop_settings(settings_path, opacity=opacity)
                 return
             if key == "opacity_up":
-                self.setWindowOpacity(min(1.0, round(self.windowOpacity() + 0.1, 2)))
+                opacity = min(1.0, round(self.windowOpacity() + 0.1, 2))
+                self.setWindowOpacity(opacity)
+                update_live2d_desktop_settings(settings_path, opacity=opacity)
                 return
             if key == "toggle_top":
                 currently_top = bool(
                     self.windowFlags() & qt.WindowType.WindowStaysOnTopHint
                 )
+                next_top = not currently_top
                 self.setWindowFlag(
                     qt.WindowType.WindowStaysOnTopHint,
-                    not currently_top,
+                    next_top,
                 )
                 self.show()
+                update_live2d_desktop_settings(
+                    settings_path,
+                    always_on_top=next_top,
+                )
                 return
             if key == "close":
+                update_live2d_desktop_settings(settings_path, visible=False)
                 self.close()
 
     app = q_application.instance() or q_application([])

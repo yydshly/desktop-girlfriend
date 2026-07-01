@@ -57,6 +57,7 @@ def build_live2d_desktop_shell_spec(
     scale: float = 1.0,
     opacity: float = 1.0,
     model_id: str = "",
+    always_on_top: bool = True,
 ) -> Live2DDesktopShellSpec:
     """Build the desktop shell spec that points at the local Live2D runtime."""
 
@@ -78,6 +79,7 @@ def build_live2d_desktop_shell_spec(
         click_through=click_through,
         devtools_enabled=devtools_enabled,
         opacity=safe_opacity,
+        always_on_top=always_on_top,
     )
 
 

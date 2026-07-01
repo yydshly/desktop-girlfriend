@@ -408,6 +408,9 @@ def main() -> None:
                 scale=live2d_desktop_scale,
                 opacity=live2d_desktop_opacity,
                 visible=live2d_desktop_visible,
+                always_on_top=load_live2d_desktop_settings(
+                    live2d_desktop_settings_path
+                ).always_on_top,
             ),
         )
 

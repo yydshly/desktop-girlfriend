@@ -180,6 +180,16 @@ class TestLive2DDesktopShellSpec:
             "/showcase-demo/live2d-prototype/index.html?desktop=1&model=custom%2FXiaoyun"
         )
 
+    def test_build_shell_spec_can_disable_always_on_top(self, tmp_path) -> None:
+        """Saved desktop settings can restore a non-top Live2D window."""
+        target = tmp_path / LIVE2D_PROTOTYPE_ROUTE
+        target.parent.mkdir(parents=True)
+        target.write_text("<!doctype html>", encoding="utf-8")
+
+        spec = build_live2d_desktop_shell_spec(tmp_path, always_on_top=False)
+
+        assert spec.always_on_top is False
+
     def test_shell_summary_describes_window_capabilities(self) -> None:
         """Summary makes the active desktop shell behavior visible."""
         spec = Live2DDesktopShellSpec(source_url="file:///tmp/live2d/index.html")
