@@ -1,5 +1,7 @@
 """Tests for desktop presence shell (Phase 2-D)."""
 
+# ruff: noqa: E402, I001
+
 from __future__ import annotations
 
 import os
@@ -28,8 +30,8 @@ from app.ui.desktop_presence import (
     LIVE2D_PROTOTYPE_ROUTE,
     Live2DDesktopShellSpec,
     build_live2d_desktop_shell_spec,
-    render_live2d_shell_summary,
     render_compact_button_text,
+    render_live2d_shell_summary,
     render_pin_button_text,
 )
 if HAS_PY311_ENUM:
@@ -229,6 +231,28 @@ class TestWindowPresenceShell:
         window.show()
         assert hasattr(window, "_compact_button")
         assert window._compact_button.text() == "小窗"
+
+    @staticmethod
+    def test_header_info_surface_is_registered_for_window_dragging(
+        qapp: QApplication,
+    ) -> None:
+        """Header identity/status surfaces act as drag handles, but buttons do not."""
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+        )
+        window.show()
+
+        drag_handles = set(window._drag_handle_widgets)
+        assert window._avatar_label in drag_handles
+        assert window._name_label in drag_handles
+        assert window._companion_status_label in drag_handles
+        assert window._proactive_status_label in drag_handles
+        assert window._product_status_button not in drag_handles
+        assert window._pin_button not in drag_handles
+        assert window._compact_button not in drag_handles
 
     @staticmethod
     def test_status_button_first_click_opens_panel(qapp: QApplication) -> None:

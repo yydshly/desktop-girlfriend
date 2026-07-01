@@ -2,7 +2,7 @@
 
 from collections.abc import Callable
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QTextCursor
 from PySide6.QtWidgets import (
     QApplication,
@@ -32,6 +32,7 @@ from app.ui.desktop_presence import (
     render_compact_button_text,
     render_pin_button_text,
 )
+from app.ui.live2d_desktop_window import calculate_dragged_position
 from app.ui.memory_record_view import render_memory_record_text
 from app.ui.memory_suggestion import render_memory_suggestion_text
 from app.ui.view_model import DesktopViewModel
@@ -106,6 +107,8 @@ class DesktopWindow(QMainWindow):
         self._on_hide_requested = on_hide_requested
         self._on_close_requested = on_close_requested
         self._memory_management_enabled = memory_management_enabled
+        self._drag_origin = None
+        self._window_origin = None
 
         config = get_config()
         self.setWindowTitle(config.app_name)
@@ -121,6 +124,7 @@ class DesktopWindow(QMainWindow):
 
         # Companion header — subtle card background (Phase 2-C)
         header_widget = QWidget()
+        self._drag_handle_widgets: list[QWidget] = [header_widget]
         header_widget.setStyleSheet(window_style.HEADER_CARD_STYLE)
         header_layout = QHBoxLayout(header_widget)
         header_layout.setContentsMargins(12, 10, 12, 10)
@@ -129,6 +133,7 @@ class DesktopWindow(QMainWindow):
         self._avatar_label.setToolTip(self._view_model.effective_avatar_label)
         self._avatar_label.setStyleSheet(self._view_model.effective_avatar_style)
         header_layout.addWidget(self._avatar_label)
+        self._drag_handle_widgets.append(self._avatar_label)
 
         # Avatar expression label (Phase 2-H)
         self._avatar_expression_label = QLabel()
@@ -136,8 +141,10 @@ class DesktopWindow(QMainWindow):
             window_style.AVATAR_EXPRESSION_LABEL_STYLE
         )
         header_layout.addWidget(self._avatar_expression_label)
+        self._drag_handle_widgets.append(self._avatar_expression_label)
 
         info_widget = QWidget()
+        self._drag_handle_widgets.append(info_widget)
         info_layout = QVBoxLayout(info_widget)
         info_layout.setContentsMargins(0, 0, 0, 0)
         info_layout.setSpacing(2)
@@ -145,26 +152,31 @@ class DesktopWindow(QMainWindow):
         self._name_label = QLabel(self._view_model.companion_name)
         self._name_label.setStyleSheet(window_style.NAME_LABEL_STYLE)
         info_layout.addWidget(self._name_label)
+        self._drag_handle_widgets.append(self._name_label)
 
         self._subtitle_label = QLabel(self._view_model.companion_subtitle)
         self._subtitle_label.setStyleSheet(window_style.SUBTITLE_LABEL_STYLE)
         info_layout.addWidget(self._subtitle_label)
+        self._drag_handle_widgets.append(self._subtitle_label)
 
         # Phase 2-A: Natural companion status text
         self._companion_status_label = QLabel(self._view_model.companion_status_text)
         self._companion_status_label.setStyleSheet(window_style.STATUS_LABEL_STYLE)
         info_layout.addWidget(self._companion_status_label)
+        self._drag_handle_widgets.append(self._companion_status_label)
 
         # Phase 3-D: Proactive status hint (e.g., "小云会安静一会儿。")
         self._proactive_status_label = QLabel(self._view_model.proactive_status_text)
         self._proactive_status_label.setStyleSheet(window_style.PROACTIVE_STATUS_LABEL_STYLE)
         info_layout.addWidget(self._proactive_status_label)
+        self._drag_handle_widgets.append(self._proactive_status_label)
 
         # Phase 2-A: Version and release stage
         version_text = f"{self._view_model.companion_version_text} · {self._view_model.companion_release_stage_text}"
         self._version_label = QLabel(version_text)
         self._version_label.setStyleSheet(window_style.VERSION_LABEL_STYLE)
         info_layout.addWidget(self._version_label)
+        self._drag_handle_widgets.append(self._version_label)
 
         header_layout.addWidget(info_widget, stretch=1)
 
@@ -189,6 +201,8 @@ class DesktopWindow(QMainWindow):
         header_layout.addWidget(self._compact_button)
 
         layout.addWidget(header_widget)
+        for drag_handle in self._drag_handle_widgets:
+            drag_handle.installEventFilter(self)
 
         # Phase 3-B: Onboarding card — shown at first run
         self._onboarding_card = QWidget()
@@ -547,6 +561,51 @@ class DesktopWindow(QMainWindow):
         if self._on_hide_requested:
             self._on_hide_requested()
 
+    def eventFilter(self, watched, event) -> bool:  # noqa: N802
+        """Allow dragging the main window from non-button header surfaces."""
+
+        if watched not in self._drag_handle_widgets:
+            return super().eventFilter(watched, event)
+
+        event_type = event.type()
+        if (
+            event_type == QEvent.Type.MouseButtonPress
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            self._drag_origin = _event_global_position(event)
+            self._window_origin = self.pos()
+            event.accept()
+            return True
+
+        if (
+            event_type == QEvent.Type.MouseMove
+            and self._drag_origin is not None
+            and self._window_origin is not None
+        ):
+            current = _event_global_position(event)
+            next_position = calculate_dragged_position(
+                self._window_origin.x(),
+                self._window_origin.y(),
+                self._drag_origin.x(),
+                self._drag_origin.y(),
+                current.x(),
+                current.y(),
+            )
+            self.move(next_position.x, next_position.y)
+            event.accept()
+            return True
+
+        if (
+            event_type == QEvent.Type.MouseButtonRelease
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            self._drag_origin = None
+            self._window_origin = None
+            event.accept()
+            return True
+
+        return super().eventFilter(watched, event)
+
     def _on_onboarding_dismiss(self) -> None:
         """Handle '知道了' button click (Phase 3-B)."""
         self._view_model.dismiss_onboarding()
@@ -726,3 +785,9 @@ class DesktopWindow(QMainWindow):
             event.accept()
         else:
             event.ignore()
+
+
+def _event_global_position(event: object) -> object:
+    if hasattr(event, "globalPosition"):
+        return event.globalPosition().toPoint()
+    return event.globalPos()

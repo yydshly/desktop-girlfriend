@@ -150,16 +150,49 @@ def run_live2d_desktop_window(spec: Live2DDesktopShellSpec) -> int:
             self._drag_origin = None
             self._window_origin = None
 
+        def install_drag_event_filters(self) -> None:
+            self.installEventFilter(self)
+            focus_proxy = self.focusProxy()
+            if focus_proxy is not None:
+                focus_proxy.installEventFilter(self)
+            for child in self.findChildren(qt_core.QObject):
+                child.installEventFilter(self)
+
+        def eventFilter(self, watched, event) -> bool:  # noqa: N802
+            if self._handle_drag_event(event):
+                return True
+            return super().eventFilter(watched, event)
+
         def mousePressEvent(self, event) -> None:  # noqa: N802
-            if event.button() == qt.MouseButton.LeftButton:
-                self._drag_origin = _event_global_position(event)
-                self._window_origin = self.pos()
-                event.accept()
+            if self._handle_drag_event(event):
                 return
             super().mousePressEvent(event)
 
         def mouseMoveEvent(self, event) -> None:  # noqa: N802
-            if self._drag_origin is not None and self._window_origin is not None:
+            if self._handle_drag_event(event):
+                return
+            super().mouseMoveEvent(event)
+
+        def mouseReleaseEvent(self, event) -> None:  # noqa: N802
+            if self._handle_drag_event(event):
+                return
+            super().mouseReleaseEvent(event)
+
+        def _handle_drag_event(self, event) -> bool:
+            event_type = event.type()
+            if (
+                event_type == qt_core.QEvent.Type.MouseButtonPress
+                and event.button() == qt.MouseButton.LeftButton
+            ):
+                self._drag_origin = _event_global_position(event)
+                self._window_origin = self.pos()
+                event.accept()
+                return True
+            if (
+                event_type == qt_core.QEvent.Type.MouseMove
+                and self._drag_origin is not None
+                and self._window_origin is not None
+            ):
                 current = _event_global_position(event)
                 next_position = calculate_dragged_position(
                     self._window_origin.x(),
@@ -171,11 +204,11 @@ def run_live2d_desktop_window(spec: Live2DDesktopShellSpec) -> int:
                 )
                 self.move(next_position.x, next_position.y)
                 event.accept()
-                return
-            super().mouseMoveEvent(event)
-
-        def mouseReleaseEvent(self, event) -> None:  # noqa: N802
-            if event.button() == qt.MouseButton.LeftButton:
+                return True
+            if (
+                event_type == qt_core.QEvent.Type.MouseButtonRelease
+                and event.button() == qt.MouseButton.LeftButton
+            ):
                 self._drag_origin = None
                 self._window_origin = None
                 save_live2d_window_position(
@@ -183,8 +216,8 @@ def run_live2d_desktop_window(spec: Live2DDesktopShellSpec) -> int:
                     Live2DDesktopWindowPosition(x=self.x(), y=self.y()),
                 )
                 event.accept()
-                return
-            super().mouseReleaseEvent(event)
+                return True
+            return False
 
     app = q_application.instance() or q_application([])
     view = Live2DDesktopWebView()
@@ -222,8 +255,10 @@ def run_live2d_desktop_window(spec: Live2DDesktopShellSpec) -> int:
     if spec.click_through:
         view.setAttribute(qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
 
+    view.page().loadFinished.connect(lambda _ok: view.install_drag_event_filters())
     view.setUrl(q_url(spec.source_url))
     view.show()
+    view.install_drag_event_filters()
     return app.exec()
 
 
