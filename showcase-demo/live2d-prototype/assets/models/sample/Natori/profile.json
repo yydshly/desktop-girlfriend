@@ -4,7 +4,13 @@
   "desktopPlacement": {
     "scaleMultiplier": 1.08,
     "xOffsetRatio": 0,
-    "yRatio": 0.55
+    "yRatio": 0.55,
+    "pointerFollowXRatio": 0.0075,
+    "pointerFollowYRatio": 0.005,
+    "headTrackingMultiplier": 1,
+    "eyeTrackingMultiplier": 1,
+    "bodyTrackingMultiplier": 1,
+    "ambientGestureIntervalMs": 7200
   },
   "mappings": {
     "actions": {

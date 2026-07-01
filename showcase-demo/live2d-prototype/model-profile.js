@@ -64,6 +64,12 @@ export function sanitizeDesktopPlacement(placement = {}) {
   const scaleMultiplier = finiteNumber(placement.scaleMultiplier);
   const xOffsetRatio = finiteNumber(placement.xOffsetRatio);
   const yRatio = finiteNumber(placement.yRatio);
+  const pointerFollowXRatio = finiteNumber(placement.pointerFollowXRatio);
+  const pointerFollowYRatio = finiteNumber(placement.pointerFollowYRatio);
+  const headTrackingMultiplier = finiteNumber(placement.headTrackingMultiplier);
+  const eyeTrackingMultiplier = finiteNumber(placement.eyeTrackingMultiplier);
+  const bodyTrackingMultiplier = finiteNumber(placement.bodyTrackingMultiplier);
+  const ambientGestureIntervalMs = finiteNumber(placement.ambientGestureIntervalMs);
   if (scaleMultiplier !== null) {
     sanitized.scaleMultiplier = clamp(scaleMultiplier, 0.75, 1.35);
   }
@@ -72,6 +78,27 @@ export function sanitizeDesktopPlacement(placement = {}) {
   }
   if (yRatio !== null) {
     sanitized.yRatio = clamp(yRatio, 0.42, 0.68);
+  }
+  if (pointerFollowXRatio !== null) {
+    sanitized.pointerFollowXRatio = clamp(pointerFollowXRatio, 0, 0.035);
+  }
+  if (pointerFollowYRatio !== null) {
+    sanitized.pointerFollowYRatio = clamp(pointerFollowYRatio, 0, 0.025);
+  }
+  if (headTrackingMultiplier !== null) {
+    sanitized.headTrackingMultiplier = clamp(headTrackingMultiplier, 0.4, 1.6);
+  }
+  if (eyeTrackingMultiplier !== null) {
+    sanitized.eyeTrackingMultiplier = clamp(eyeTrackingMultiplier, 0.4, 1.8);
+  }
+  if (bodyTrackingMultiplier !== null) {
+    sanitized.bodyTrackingMultiplier = clamp(bodyTrackingMultiplier, 0, 1.4);
+  }
+  if (ambientGestureIntervalMs !== null) {
+    sanitized.ambientGestureIntervalMs = clamp(ambientGestureIntervalMs, 4000, 20000);
+  }
+  if (placement.pointerFollow === false) {
+    sanitized.pointerFollow = false;
   }
   return sanitized;
 }

@@ -22,7 +22,7 @@ export class Live2DRenderer {
     this.targetPointer = { x: 0, y: 0 };
     this.smoothedPointer = { x: 0, y: 0 };
     this.currentState = {};
-    this.lastCommands = mapStateToLive2DCommands();
+    this.lastCommands = mapStateToLive2DCommands({}, { x: 0, y: 0 }, this.placementProfile);
     this.lastMotionKey = "";
     this.lastExpressionKey = "";
     this.activeExpression = "";
@@ -38,7 +38,7 @@ export class Live2DRenderer {
   }
 
   start() {
-    this.lastCommands = mapStateToLive2DCommands();
+    this.lastCommands = mapStateToLive2DCommands({}, { x: 0, y: 0 }, this.placementProfile);
     this.loadLive2DModel();
   }
 
@@ -73,7 +73,7 @@ export class Live2DRenderer {
 
   applyState(nextState) {
     this.currentState = nextState;
-    this.lastCommands = mapStateToLive2DCommands(nextState, this.pointer);
+    this.lastCommands = mapStateToLive2DCommands(nextState, this.pointer, this.placementProfile);
     this.applyLive2DCommands();
     this.applyLive2DExpression();
     this.playLive2DMotion();
@@ -307,7 +307,7 @@ export class Live2DRenderer {
     }
 
     const startAt = performance.now();
-    this.nextAmbientGestureAt = startAt + AMBIENT_GESTURE_INTERVAL_MS;
+    this.nextAmbientGestureAt = startAt + getAmbientGestureIntervalMs(this.placementProfile);
 
     const frame = () => {
       const now = performance.now();
@@ -326,7 +326,7 @@ export class Live2DRenderer {
   updateSmoothedPointer() {
     this.smoothedPointer = smoothPointer(this.smoothedPointer, this.targetPointer, 0.18);
     this.pointer = this.smoothedPointer;
-    this.lastCommands = mapStateToLive2DCommands(this.currentState, this.pointer);
+    this.lastCommands = mapStateToLive2DCommands(this.currentState, this.pointer, this.placementProfile);
   }
 
   advanceIdleMotion(now) {
@@ -350,7 +350,7 @@ export class Live2DRenderer {
 
   advanceAmbientGesture(now) {
     if (!shouldAutoRotateIdleMotion(this.lastCommands)) {
-      this.nextAmbientGestureAt = now + AMBIENT_GESTURE_INTERVAL_MS;
+      this.nextAmbientGestureAt = now + getAmbientGestureIntervalMs(this.placementProfile);
       return;
     }
 
@@ -370,7 +370,7 @@ export class Live2DRenderer {
       x: gesture.x,
       y: gesture.y
     };
-    this.nextAmbientGestureAt = now + AMBIENT_GESTURE_INTERVAL_MS;
+    this.nextAmbientGestureAt = now + getAmbientGestureIntervalMs(this.placementProfile);
   }
 
   scheduleReturnToIdle(now) {
@@ -392,7 +392,7 @@ export class Live2DRenderer {
       intensity: 0.25,
       source: "visual.auto-idle"
     };
-    this.lastCommands = mapStateToLive2DCommands(this.currentState, this.pointer);
+    this.lastCommands = mapStateToLive2DCommands(this.currentState, this.pointer, this.placementProfile);
     this.applyLive2DCommands();
     this.applyLive2DExpression();
     this.playLive2DMotion({
@@ -496,6 +496,11 @@ function getLive2DModelFactory(PIXI) {
     throw new Error("PIXI Live2D Cubism 4 model loader is missing.");
   }
   return Live2DModel;
+}
+
+function getAmbientGestureIntervalMs(placementProfile = {}) {
+  const interval = Number(placementProfile.ambientGestureIntervalMs ?? AMBIENT_GESTURE_INTERVAL_MS);
+  return Number.isFinite(interval) && interval > 0 ? interval : AMBIENT_GESTURE_INTERVAL_MS;
 }
 
 function getUnscaledLive2DModelSize(model) {

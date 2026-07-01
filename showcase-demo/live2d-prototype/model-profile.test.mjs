@@ -87,7 +87,14 @@ function testNormalizeModelProfileSanitizesDesktopPlacement() {
       desktopPlacement: {
         scaleMultiplier: "1.12",
         xOffsetRatio: "-0.08",
-        yRatio: "0.57"
+        yRatio: "0.57",
+        pointerFollowXRatio: "0.01",
+        pointerFollowYRatio: "0.006",
+        headTrackingMultiplier: "1.15",
+        eyeTrackingMultiplier: "1.25",
+        bodyTrackingMultiplier: "0.8",
+        ambientGestureIntervalMs: "8500",
+        pointerFollow: false
       }
     }),
     {
@@ -101,8 +108,38 @@ function testNormalizeModelProfileSanitizesDesktopPlacement() {
       desktopPlacement: {
         scaleMultiplier: 1.12,
         xOffsetRatio: -0.08,
-        yRatio: 0.57
+        yRatio: 0.57,
+        pointerFollowXRatio: 0.01,
+        pointerFollowYRatio: 0.006,
+        headTrackingMultiplier: 1.15,
+        eyeTrackingMultiplier: 1.25,
+        bodyTrackingMultiplier: 0.8,
+        ambientGestureIntervalMs: 8500,
+        pointerFollow: false
       }
+    }
+  );
+}
+
+function testNormalizeModelProfileClampsInteractionTuning() {
+  assert.deepEqual(
+    normalizeModelProfile({
+      desktopPlacement: {
+        pointerFollowXRatio: 1,
+        pointerFollowYRatio: 1,
+        headTrackingMultiplier: 4,
+        eyeTrackingMultiplier: 4,
+        bodyTrackingMultiplier: 4,
+        ambientGestureIntervalMs: 1000
+      }
+    }).desktopPlacement,
+    {
+      pointerFollowXRatio: 0.035,
+      pointerFollowYRatio: 0.025,
+      headTrackingMultiplier: 1.6,
+      eyeTrackingMultiplier: 1.8,
+      bodyTrackingMultiplier: 1.4,
+      ambientGestureIntervalMs: 4000
     }
   );
 }
@@ -178,6 +215,7 @@ testModelJsonUrlToProfileUrlUsesSameDirectory();
 testNormalizeModelProfileSanitizesMotionBindings();
 testNormalizeModelProfileUsesContractMappings();
 testNormalizeModelProfileSanitizesDesktopPlacement();
+testNormalizeModelProfileClampsInteractionTuning();
 await testLoadModelProfileReturnsEmptyProfileWhenMissing();
 await testLoadModelProfileParsesProfileJson();
 console.log("model-profile tests passed");

@@ -872,6 +872,23 @@ function testMappedPointerPrioritizesHeadAndEyeTracking() {
   assert.equal(command.parameters.ParamEyeBallY, 0.75);
 }
 
+function testMappedPointerUsesInteractionProfileMultipliers() {
+  const command = mapStateToLive2DCommands(
+    { emotion: "neutral", intensity: 0.25 },
+    { x: 0.8, y: -0.5 },
+    {
+      headTrackingMultiplier: 0.5,
+      eyeTrackingMultiplier: 0.5,
+      bodyTrackingMultiplier: 0.25
+    }
+  );
+
+  assert.ok(command.parameters.ParamAngleX < 20);
+  assert.ok(command.parameters.ParamBodyAngleX < 4);
+  assert.equal(command.parameters.ParamEyeBallX, 0.5);
+  assert.equal(command.parameters.ParamEyeBallY, 0.375);
+}
+
 function testStrongPointerGazeDampsIdleEyeDrift() {
   const withoutPointer = calculateAnimatedLive2DParameters(
     { ParamEyeBallX: 0.8, ParamEyeBallY: -0.8 },
@@ -955,6 +972,7 @@ testPointerSmoothingMovesTowardTarget();
 testPointerSmoothingSnapsTinyDeltas();
 testMappedPointerCarriesGazeMetadata();
 testMappedPointerPrioritizesHeadAndEyeTracking();
+testMappedPointerUsesInteractionProfileMultipliers();
 testStrongPointerGazeDampsIdleEyeDrift();
 testPointerGazeClampsEyeParameters();
 testPointerReactionAddsBodyAndHeadMotion();
