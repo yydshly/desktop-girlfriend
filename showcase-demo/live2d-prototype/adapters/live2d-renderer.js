@@ -359,7 +359,8 @@ export class Live2DRenderer {
       hasLive2DModel: Boolean(this.live2dModel),
       activeMotion: this.activeMotion,
       activeExpression: this.activeExpression,
-      modelCapabilities: getModelCapabilities(this.model)
+      modelCapabilities: getModelCapabilities(this.model),
+      commandDiagnostics: getCommandDiagnostics(this.lastCommands, this.model)
     });
   }
 }
@@ -468,6 +469,32 @@ export function getModelCapabilities(model = null) {
     motionCount: Number(model?.motionCount ?? 0),
     motionGroupCounts: model?.motionGroupCounts || {}
   };
+}
+
+export function getCommandDiagnostics(command = {}, model = null) {
+  const requestedMotion = command.motion || "";
+  const requestedExpression = command.expression || "";
+  const resolvedExpression = resolveSupportedExpression(
+    requestedExpression,
+    model?.expressionNames
+  );
+  return {
+    requestedMotion,
+    requestedExpression,
+    resolvedMotion: mapCommandToModelMotion(command, model?.motionGroupCounts),
+    resolvedExpression,
+    expressionSupport: getExpressionSupport(requestedExpression, resolvedExpression, model)
+  };
+}
+
+function getExpressionSupport(requestedExpression, resolvedExpression, model = null) {
+  if (!requestedExpression) {
+    return "none";
+  }
+  if (!Array.isArray(model?.expressionNames)) {
+    return "unknown";
+  }
+  return resolvedExpression ? "available" : "missing";
 }
 
 export function calculateAnimatedLive2DParameters(parameters = {}, command = {}, now = 0) {

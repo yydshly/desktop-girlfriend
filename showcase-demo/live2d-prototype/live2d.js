@@ -100,6 +100,9 @@ function updateRendererStatus() {
       lastRendererStatus.modelCapabilities
         ? `capabilities: ${formatCapabilitySummary(lastRendererStatus.modelCapabilities)}.`
         : "",
+      lastRendererStatus.commandDiagnostics
+        ? `command: ${formatCommandDiagnostics(lastRendererStatus.commandDiagnostics)}.`
+        : "",
       lastRendererStatus.activeMotion?.group
         ? `active motion: ${lastRendererStatus.activeMotion.group}[${lastRendererStatus.activeMotion.index}].`
         : "",
@@ -124,6 +127,16 @@ function formatCapabilitySummary(capabilities = null) {
   const motionText = motionGroups || `${capabilities.motionCount || 0} motions`;
   const expressionText = expressionNames || `${capabilities.expressionCount || 0} expressions`;
   return `${motionText} / ${expressionText}`;
+}
+
+function formatCommandDiagnostics(diagnostics) {
+  const motion = diagnostics.resolvedMotion?.group
+    ? `${diagnostics.requestedMotion || "none"} -> ${diagnostics.resolvedMotion.group}[${diagnostics.resolvedMotion.index}]`
+    : `${diagnostics.requestedMotion || "none"} -> none`;
+  const expression = diagnostics.requestedExpression
+    ? `${diagnostics.requestedExpression} ${diagnostics.expressionSupport}`
+    : "no expression";
+  return `${motion}; expression ${expression}`;
 }
 
 async function updateModelPackageStatus() {

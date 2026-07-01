@@ -197,6 +197,62 @@ function testStatusReportsModelCapabilities() {
   });
 }
 
+function testStatusReportsCommandDiagnostics() {
+  const statuses = [];
+  const renderer = new Live2DRenderer(createCanvasProbe(), {
+    onStatusChange: (status) => statuses.push(status)
+  });
+  renderer.model = {
+    expressionNames: ["happy"],
+    motionGroupCounts: { Idle: 9, TapBody: 1 }
+  };
+  renderer.live2dModel = {
+    expression() {},
+    motion() {},
+    internalModel: {
+      coreModel: {
+        setParameterValueById() {}
+      }
+    }
+  };
+
+  renderer.applyState({ motion: "happy", emotion: "happy" });
+
+  assert.deepEqual(statuses.at(-1).commandDiagnostics, {
+    requestedMotion: "happy",
+    requestedExpression: "happy",
+    resolvedMotion: { group: "TapBody", index: 0, source: "happy" },
+    resolvedExpression: "happy",
+    expressionSupport: "available"
+  });
+}
+
+function testStatusReportsUnsupportedExpressionDiagnostic() {
+  const statuses = [];
+  const renderer = new Live2DRenderer(createCanvasProbe(), {
+    onStatusChange: (status) => statuses.push(status)
+  });
+  renderer.model = {
+    expressionNames: ["smile"],
+    motionGroupCounts: { Idle: 9 }
+  };
+  renderer.live2dModel = {
+    expression() {},
+    motion() {},
+    internalModel: {
+      coreModel: {
+        setParameterValueById() {}
+      }
+    }
+  };
+
+  renderer.applyState({ motion: "sad", emotion: "sad" });
+
+  assert.equal(statuses.at(-1).commandDiagnostics.requestedExpression, "sad");
+  assert.equal(statuses.at(-1).commandDiagnostics.resolvedExpression, "");
+  assert.equal(statuses.at(-1).commandDiagnostics.expressionSupport, "missing");
+}
+
 function testAbstractMotionUsesAvailableModelMotionGroups() {
   assert.deepEqual(
     mapCommandToModelMotion({ motion: "reply" }, { TapBody: 1, Idle: 3 }),
@@ -239,6 +295,8 @@ testStateAppliesLive2DExpression();
 testStateSkipsUnavailableLive2DExpression();
 testStateDoesNotRepeatSameLive2DExpression();
 testStatusReportsModelCapabilities();
+testStatusReportsCommandDiagnostics();
+testStatusReportsUnsupportedExpressionDiagnostic();
 
 function testSpeakingStateAnimatesMouthOpen() {
   const parameters = calculateAnimatedLive2DParameters(
