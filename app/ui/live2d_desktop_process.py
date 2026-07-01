@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 import subprocess
 import sys
 from collections.abc import Callable, Sequence
 from pathlib import Path
 from subprocess import Popen
+
+logger = logging.getLogger(__name__)
 
 
 class Live2DDesktopProcess:
@@ -39,10 +42,21 @@ class Live2DDesktopProcess:
 
         if self.running:
             return
+        logger.info(
+            "Starting Live2D desktop process scale=%s opacity=%s cwd=%s command=%s",
+            _format_float(self.scale),
+            _format_float(self.opacity),
+            self.cwd,
+            " ".join(self.command),
+        )
         self._process = self._popen_factory(
             self.command,
             cwd=str(self.cwd),
             creationflags=_creation_flags(),
+        )
+        logger.info(
+            "Live2D desktop process started pid=%s",
+            getattr(self._process, "pid", "unknown"),
         )
 
     def stop(self) -> None:
@@ -51,14 +65,21 @@ class Live2DDesktopProcess:
         process = self._process
         if process is None:
             return
+        process_pid = getattr(process, "pid", "unknown")
+        logger.info("Stopping Live2D desktop process pid=%s", process_pid)
         if process.poll() is None:
             process.terminate()
             try:
                 process.wait(timeout=2)
             except subprocess.TimeoutExpired:
+                logger.warning(
+                    "Live2D desktop process did not stop in time; killing pid=%s",
+                    process_pid,
+                )
                 process.kill()
                 process.wait(timeout=2)
         self._process = None
+        logger.info("Live2D desktop process stopped pid=%s", process_pid)
 
     @property
     def command(self) -> Sequence[str]:

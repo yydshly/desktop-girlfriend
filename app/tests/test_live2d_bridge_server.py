@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import socket
 import time
 
@@ -36,6 +37,34 @@ def test_bridge_server_start_stop() -> None:
 
     server.stop()
     assert server.running is False
+
+
+def test_bridge_server_logs_start_stop(caplog) -> None:
+    """Bridge server logs its bound URL and shutdown for diagnostics."""
+    caplog.set_level(logging.INFO)
+    server = Live2DBridgeServer(port=0)
+
+    server.start()
+    assert "Live2D bridge server started" in caplog.text
+    assert "ws://127.0.0.1:" in caplog.text
+
+    server.stop()
+    assert "Live2D bridge server stopped" in caplog.text
+
+
+def test_bridge_server_logs_broadcast_message_type(caplog) -> None:
+    """Bridge broadcast logs message type and connected client count."""
+    caplog.set_level(logging.INFO)
+    server = Live2DBridgeServer(port=0)
+    server.start()
+    try:
+        server.broadcast({"type": "avatar.state", "payload": {"state": "happy"}})
+    finally:
+        server.stop()
+
+    assert "Broadcasting Live2D bridge message" in caplog.text
+    assert "type=avatar.state" in caplog.text
+    assert "clients=0" in caplog.text
 
 
 def test_bridge_server_accepts_client_and_broadcasts_json() -> None:

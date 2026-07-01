@@ -6,7 +6,7 @@ from app.contracts.events import (
     VOICE_RECORDING_FINISHED,
     VOICE_RECORDING_STARTED,
 )
-from app.main import _wire_shutdown
+from app.main import _wire_shutdown, build_live2d_control_log_context
 
 
 class FakeSignal:
@@ -63,6 +63,16 @@ def test_wire_shutdown_stops_many_components() -> None:
 
     for comp in components:
         assert comp.stop_called is True
+
+
+def test_build_live2d_control_log_context() -> None:
+    """Live2D control logs include the values needed to diagnose UI actions."""
+    assert build_live2d_control_log_context(
+        action="scale_up",
+        scale=1.2,
+        opacity=0.8,
+        visible=True,
+    ) == "action=scale_up scale=1.2 opacity=0.8 visible=True"
 
 
 class TestVoiceInputControllerInjection:

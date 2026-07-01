@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import logging
 import socket
 import socketserver
 import threading
@@ -12,6 +13,7 @@ from collections.abc import Mapping
 from typing import Any
 
 _WEBSOCKET_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+logger = logging.getLogger(__name__)
 
 
 def build_websocket_accept_key(client_key: str) -> str:
@@ -133,12 +135,16 @@ class Live2DBridgeServer:
         if self.running:
             return
         self._server = _Live2DBridgeTCPServer((self.host, self.port))
+        bound_host, bound_port = self._server.server_address
+        self.host = str(bound_host)
+        self.port = int(bound_port)
         self._thread = threading.Thread(
             target=self._server.serve_forever,
             name="live2d-bridge-server",
             daemon=True,
         )
         self._thread.start()
+        logger.info("Live2D bridge server started url=%s", self.url)
 
     def stop(self) -> None:
         """Stop the background bridge server."""
@@ -146,10 +152,12 @@ class Live2DBridgeServer:
         server = self._server
         if server is None:
             return
+        logger.info("Stopping Live2D bridge server url=%s", self.url)
         server.shutdown()
         server.server_close()
         self._server = None
         self._thread = None
+        logger.info("Live2D bridge server stopped")
 
     def broadcast(self, message: Mapping[str, Any]) -> None:
         """Broadcast a JSON bridge message to connected Live2D clients."""
@@ -157,4 +165,11 @@ class Live2DBridgeServer:
         server = self._server
         if server is None:
             return
+        with server.clients_lock:
+            client_count = len(server.clients)
+        logger.info(
+            "Broadcasting Live2D bridge message type=%s clients=%s",
+            message.get("type", "unknown"),
+            client_count,
+        )
         server.broadcast_text(json.dumps(message, ensure_ascii=False))

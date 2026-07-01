@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import subprocess
 from pathlib import Path
 
@@ -77,6 +78,28 @@ def test_start_uses_popen_factory_with_workspace_cwd() -> None:
     assert calls[0][1]["cwd"] == "D:\\project" or calls[0][1]["cwd"] == "D:/project"
 
 
+def test_start_logs_command_and_controls(caplog) -> None:
+    """Process start log includes launch controls for later diagnosis."""
+    caplog.set_level(logging.INFO)
+    fake = FakeProcess()
+    fake.pid = 1234
+
+    process = Live2DDesktopProcess(
+        python_executable="python.exe",
+        cwd=Path("D:/project"),
+        scale=1.2,
+        opacity=0.8,
+        popen_factory=lambda *args, **kwargs: fake,
+    )
+
+    process.start()
+
+    assert "Starting Live2D desktop process" in caplog.text
+    assert "scale=1.2" in caplog.text
+    assert "opacity=0.8" in caplog.text
+    assert "pid=1234" in caplog.text
+
+
 def test_start_is_idempotent_while_process_is_running() -> None:
     """Repeated start calls do not launch duplicate Live2D windows."""
     calls = []
@@ -103,6 +126,21 @@ def test_stop_terminates_running_process() -> None:
 
     assert fake.terminated is True
     assert process.running is False
+
+
+def test_stop_logs_process_shutdown(caplog) -> None:
+    """Process stop log records the managed process shutdown."""
+    caplog.set_level(logging.INFO)
+    fake = FakeProcess()
+    fake.pid = 4321
+    process = Live2DDesktopProcess(popen_factory=lambda *args, **kwargs: fake)
+
+    process.start()
+    process.stop()
+
+    assert "Stopping Live2D desktop process" in caplog.text
+    assert "pid=4321" in caplog.text
+    assert "Live2D desktop process stopped" in caplog.text
 
 
 def test_stop_kills_process_when_terminate_times_out() -> None:

@@ -85,6 +85,23 @@ class _Stoppable(Protocol):
         """Stop the component."""
 
 
+def build_live2d_control_log_context(
+    *,
+    action: str,
+    scale: float,
+    opacity: float,
+    visible: bool,
+) -> str:
+    """Build a compact diagnostic context for Live2D desktop control actions."""
+
+    return (
+        f"action={action} "
+        f"scale={scale:g} "
+        f"opacity={opacity:g} "
+        f"visible={visible}"
+    )
+
+
 def _wire_shutdown(
     app: object, *components: _Stoppable
 ) -> None:
@@ -318,21 +335,57 @@ def main() -> None:
     def _on_live2d_scale_up_requested() -> None:
         nonlocal live2d_desktop_scale
         live2d_desktop_scale = min(1.35, round(live2d_desktop_scale + 0.1, 2))
+        logger.info(
+            "Live2D desktop control requested %s",
+            build_live2d_control_log_context(
+                action="scale_up",
+                scale=live2d_desktop_scale,
+                opacity=live2d_desktop_opacity,
+                visible=live2d_desktop_visible,
+            ),
+        )
         _restart_live2d_desktop()
 
     def _on_live2d_scale_down_requested() -> None:
         nonlocal live2d_desktop_scale
         live2d_desktop_scale = max(0.65, round(live2d_desktop_scale - 0.1, 2))
+        logger.info(
+            "Live2D desktop control requested %s",
+            build_live2d_control_log_context(
+                action="scale_down",
+                scale=live2d_desktop_scale,
+                opacity=live2d_desktop_opacity,
+                visible=live2d_desktop_visible,
+            ),
+        )
         _restart_live2d_desktop()
 
     def _on_live2d_opacity_down_requested() -> None:
         nonlocal live2d_desktop_opacity
         live2d_desktop_opacity = max(0.45, round(live2d_desktop_opacity - 0.1, 2))
+        logger.info(
+            "Live2D desktop control requested %s",
+            build_live2d_control_log_context(
+                action="opacity_down",
+                scale=live2d_desktop_scale,
+                opacity=live2d_desktop_opacity,
+                visible=live2d_desktop_visible,
+            ),
+        )
         _restart_live2d_desktop()
 
     def _on_live2d_opacity_up_requested() -> None:
         nonlocal live2d_desktop_opacity
         live2d_desktop_opacity = min(1.0, round(live2d_desktop_opacity + 0.1, 2))
+        logger.info(
+            "Live2D desktop control requested %s",
+            build_live2d_control_log_context(
+                action="opacity_up",
+                scale=live2d_desktop_scale,
+                opacity=live2d_desktop_opacity,
+                visible=live2d_desktop_visible,
+            ),
+        )
         _restart_live2d_desktop()
 
     def _on_live2d_visibility_toggled() -> None:
@@ -340,6 +393,15 @@ def main() -> None:
         if live2d_desktop_process is None:
             return
         live2d_desktop_visible = not live2d_desktop_visible
+        logger.info(
+            "Live2D desktop control requested %s",
+            build_live2d_control_log_context(
+                action="toggle_visibility",
+                scale=live2d_desktop_scale,
+                opacity=live2d_desktop_opacity,
+                visible=live2d_desktop_visible,
+            ),
+        )
         if live2d_desktop_visible:
             live2d_desktop_process.start()
         else:
@@ -349,6 +411,16 @@ def main() -> None:
         position_path = default_live2d_position_path()
         if position_path.exists():
             position_path.unlink()
+        logger.info(
+            "Live2D desktop control requested %s position_path=%s",
+            build_live2d_control_log_context(
+                action="reset_position",
+                scale=live2d_desktop_scale,
+                opacity=live2d_desktop_opacity,
+                visible=live2d_desktop_visible,
+            ),
+            position_path,
+        )
         _restart_live2d_desktop()
 
     window = DesktopWindow(
