@@ -95,6 +95,9 @@ cd D:\claude_code\20260628_桌面女友\desktop-girlfriend
 - 刷新模型：重新扫描模型目录。
 - 打开模型目录：打开 Live2D 模型放置位置。
 
+人物窗口的缩放、透明度和显示/隐藏状态会保存到 `.tmp/live2d-desktop-settings.json`。
+模型选择会保存到 `.tmp/live2d-model-selection.json`。
+
 默认情况下，`.env.example` 里 `LIVE2D_DESKTOP_AUTO_LAUNCH=true`，所以复制出的 `.env` 也会默认自动启动人物窗口。
 
 ## 5. 单独启动 Live2D 人物窗口

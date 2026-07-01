@@ -69,6 +69,12 @@ from app.ui.close_behavior import decide_close_behavior
 from app.ui.live2d_bridge import Live2DBridgeEventDispatcher
 from app.ui.live2d_bridge_server import Live2DBridgeServer
 from app.ui.live2d_desktop_process import Live2DDesktopProcess
+from app.ui.live2d_desktop_settings import (
+    Live2DDesktopSettings,
+    default_live2d_desktop_settings_path,
+    load_live2d_desktop_settings,
+    save_live2d_desktop_settings,
+)
 from app.ui.live2d_desktop_window import (
     default_live2d_position_path,
     reset_live2d_window_position,
@@ -380,12 +386,30 @@ def main() -> None:
             return False
         return decision.should_accept_close
 
-    live2d_desktop_scale = 1.0
-    live2d_desktop_opacity = 1.0
-    live2d_desktop_visible = live2d_desktop_process is not None
+    live2d_desktop_settings_path = default_live2d_desktop_settings_path()
+    live2d_desktop_settings = load_live2d_desktop_settings(
+        live2d_desktop_settings_path
+    )
+    live2d_desktop_scale = live2d_desktop_settings.scale
+    live2d_desktop_opacity = live2d_desktop_settings.opacity
+    live2d_desktop_visible = (
+        live2d_desktop_process is not None and live2d_desktop_settings.visible
+    )
     live2d_desktop_model_id = view_model.selected_live2d_model_id
     if live2d_desktop_process is not None:
+        live2d_desktop_process.scale = live2d_desktop_scale
+        live2d_desktop_process.opacity = live2d_desktop_opacity
         live2d_desktop_process.model_id = live2d_desktop_model_id
+
+    def _save_live2d_desktop_settings() -> None:
+        save_live2d_desktop_settings(
+            live2d_desktop_settings_path,
+            Live2DDesktopSettings(
+                scale=live2d_desktop_scale,
+                opacity=live2d_desktop_opacity,
+                visible=live2d_desktop_visible,
+            ),
+        )
 
     def _restart_live2d_desktop() -> None:
         if live2d_desktop_process is None:
@@ -409,6 +433,7 @@ def main() -> None:
                 visible=live2d_desktop_visible,
             ),
         )
+        _save_live2d_desktop_settings()
         _restart_live2d_desktop()
 
     def _on_live2d_scale_down_requested() -> None:
@@ -423,6 +448,7 @@ def main() -> None:
                 visible=live2d_desktop_visible,
             ),
         )
+        _save_live2d_desktop_settings()
         _restart_live2d_desktop()
 
     def _on_live2d_opacity_down_requested() -> None:
@@ -437,6 +463,7 @@ def main() -> None:
                 visible=live2d_desktop_visible,
             ),
         )
+        _save_live2d_desktop_settings()
         _restart_live2d_desktop()
 
     def _on_live2d_opacity_up_requested() -> None:
@@ -451,6 +478,7 @@ def main() -> None:
                 visible=live2d_desktop_visible,
             ),
         )
+        _save_live2d_desktop_settings()
         _restart_live2d_desktop()
 
     def _on_live2d_visibility_toggled() -> None:
@@ -467,6 +495,7 @@ def main() -> None:
                 visible=live2d_desktop_visible,
             ),
         )
+        _save_live2d_desktop_settings()
         if live2d_desktop_visible:
             live2d_desktop_process.start()
         else:
@@ -876,7 +905,7 @@ def main() -> None:
     state_controller.start()
     live2d_bridge_server.start()
     live2d_bridge_dispatcher.start()
-    if live2d_desktop_process is not None:
+    if live2d_desktop_process is not None and live2d_desktop_visible:
         live2d_desktop_process.start()
     tts_controller.start()
     dialogue_controller.start()
