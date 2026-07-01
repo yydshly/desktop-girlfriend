@@ -1,54 +1,106 @@
-import { planBehaviorFromEmotionState } from "./behavior-planner.js";
-import { normalizeEmotionState } from "./emotion-state.js";
-import { adaptBehaviorToModelCommands } from "./model-adapter.js";
-import { resolveAttentionState } from "./attention-system.js";
-import { resolveSpeakingState } from "./speaking-driver.js";
+import { buildCharacterRuntimeState } from "./character-runtime.js";
 
 const DEFAULT_STEP_DURATION_MS = 3200;
-const DEFAULT_EXPERIMENT_STATES = Object.freeze([
+const RUNTIME_VALIDATION_SEQUENCE_STATES = Object.freeze([
   "idle",
-  "listening",
-  "thinking",
-  "speaking",
+  "listen",
+  "think",
+  "speak",
   "happy",
   "comfort",
   "idle"
 ]);
 
 export function getDefaultModelExperimentStates() {
-  return [...DEFAULT_EXPERIMENT_STATES];
+  return getRuntimeValidationSequenceStates();
+}
+
+export function getRuntimeValidationSequenceStates() {
+  return [...RUNTIME_VALIDATION_SEQUENCE_STATES];
 }
 
 export function buildModelExperimentTimeline(profile = {}, options = {}) {
   const states = Array.isArray(options.states) && options.states.length
     ? options.states
-    : DEFAULT_EXPERIMENT_STATES;
+    : RUNTIME_VALIDATION_SEQUENCE_STATES;
   const durationMs = readDurationMs(options.durationMs);
 
   return states.map((state, index) => {
-    const emotionState = normalizeEmotionState({ state });
-    const speakingState = resolveSpeakingState({
-      emotionState,
-      now: stepNow(options.now, index, durationMs)
-    });
-    const attentionState = resolveAttentionState({
-      emotionState,
+    const runtimeState = buildCharacterRuntimeState({
+      mappedState: {
+        state,
+        source: "runtime-validation",
+        validationStep: index
+      },
       pointerState: options.pointerState || {},
-      speakingState
+      profile,
+      now: stepNow(options.now, index, durationMs),
+      updatedAt: options.updatedAt || "runtime-validation"
     });
-    const behavior = planBehaviorFromEmotionState(emotionState, attentionState, speakingState);
     return {
       index,
-      state: emotionState.state,
+      semanticState: String(state),
+      state: runtimeState.emotionState.state,
       atMs: index * durationMs,
       durationMs,
-      emotionState,
-      attentionState,
-      speakingState,
-      behavior,
-      modelCommands: adaptBehaviorToModelCommands(behavior, profile)
+      emotionState: runtimeState.emotionState,
+      attentionState: runtimeState.attentionState,
+      speakingState: runtimeState.speakingState,
+      behavior: runtimeState.behavior,
+      modelCommands: runtimeState.modelCommands,
+      activeLive2D: normalizeActiveLive2D(options.rendererStatus),
+      validation: validateRuntimeStep(runtimeState, profile, options.modelCapabilities)
     };
   });
+}
+
+function validateRuntimeStep(runtimeState = {}, profile = {}, modelCapabilities = null) {
+  const warnings = [];
+  const blockers = [];
+  const actions = profile?.mappings?.actions || {};
+  const expressions = profile?.mappings?.expressions || {};
+  const action = runtimeState.behavior?.action || "idle";
+  const expression = runtimeState.behavior?.expression || "neutral";
+  const motion = runtimeState.modelCommands?.motion || {};
+  const adapterExpression = runtimeState.modelCommands?.expression || {};
+
+  if (!actions[action]) {
+    warnings.push(`action ${action} is unmapped`);
+  }
+  if (!expressions[expression]) {
+    warnings.push(`expression ${expression} is unmapped`);
+  }
+
+  if (modelCapabilities?.motionGroupCounts && motion.group) {
+    const count = Number(modelCapabilities.motionGroupCounts[motion.group] ?? 0);
+    if (!count || Number(motion.index) >= count) {
+      blockers.push(`motion ${motion.group}[${motion.index}] unavailable`);
+    }
+  }
+  if (Array.isArray(modelCapabilities?.expressionNames) && adapterExpression.name) {
+    if (!modelCapabilities.expressionNames.includes(adapterExpression.name)) {
+      blockers.push(`expression ${adapterExpression.name} unavailable`);
+    }
+  }
+
+  return {
+    layer: blockers.length || warnings.length ? "profile/model" : "ok",
+    blockers,
+    warnings
+  };
+}
+
+function normalizeActiveLive2D(rendererStatus = null) {
+  return {
+    motion: rendererStatus?.activeMotion?.group
+      ? {
+        group: rendererStatus.activeMotion.group,
+        index: rendererStatus.activeMotion.index,
+        source: rendererStatus.activeMotion.source || ""
+      }
+      : null,
+    expression: rendererStatus?.activeExpression || ""
+  };
 }
 
 function stepNow(now, index, durationMs) {

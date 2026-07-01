@@ -79,17 +79,24 @@ async function flushAsyncWork() {
 function testRuntimeRunsModelExperimentTimeline() {
   const { runtime, elements } = createRuntimeHarness();
 
-  const timeline = runtime.runModelExperiment();
+  const timeline = runtime.runRuntimeValidationSequence();
   const readout = JSON.parse(elements["#stateReadout"].textContent);
 
+  assert.deepEqual(
+    timeline.map((step) => step.semanticState),
+    ["idle", "listen", "think", "speak", "happy", "comfort", "idle"]
+  );
   assert.deepEqual(
     timeline.map((step) => step.state),
     ["idle", "listening", "thinking", "speaking", "happy", "comfort", "idle"]
   );
-  assert.equal(readout.source, "model-experiment");
+  assert.equal(readout.source, "runtime-validation");
   assert.equal(readout.experimentStep, 6);
   assert.equal(readout.emotionState.state, "idle");
   assert.equal(readout.modelCommands.motion.group, "Idle");
+  assert.ok(timeline.every((step) => step.validation));
+  assert.ok(timeline.every((step) => step.activeLive2D));
+  assert.deepEqual(runtime.runModelExperiment().map((step) => step.semanticState), timeline.map((step) => step.semanticState));
 }
 
 async function testStartRefreshesPackageStatusAfterProfileLoads() {
@@ -299,7 +306,7 @@ async function testRuntimeUsesMotionOverridesInModelAdapterPath() {
   });
 }
 
-async function testModelExperimentUsesEffectiveProfileMotionOverrides() {
+async function testRuntimeValidationUsesEffectiveProfileMotionOverrides() {
   const { runtime } = createRuntimeHarness();
   globalThis.window = {
     location: {
@@ -341,7 +348,7 @@ async function testModelExperimentUsesEffectiveProfileMotionOverrides() {
     speak: { group: "Idle", index: 4 }
   });
 
-  const timeline = runtime.runModelExperiment();
+  const timeline = runtime.runRuntimeValidationSequence();
   const speakingStep = timeline.find((step) => step.state === "speaking");
 
   assert.deepEqual(speakingStep.modelCommands.motion, {
@@ -356,5 +363,5 @@ await testStartRefreshesPackageStatusAfterProfileLoads();
 await testRuntimeAppliesAndResetsInteractionTuning();
 await testRuntimeRestoresSavedInteractionTuningAfterProfileLoads();
 await testRuntimeUsesMotionOverridesInModelAdapterPath();
-await testModelExperimentUsesEffectiveProfileMotionOverrides();
+await testRuntimeValidationUsesEffectiveProfileMotionOverrides();
 console.log("runtime-app tests passed");

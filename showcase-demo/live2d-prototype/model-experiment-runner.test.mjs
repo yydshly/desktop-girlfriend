@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import {
   buildModelExperimentTimeline,
-  getDefaultModelExperimentStates
+  getDefaultModelExperimentStates,
+  getRuntimeValidationSequenceStates
 } from "./model-experiment-runner.js";
 
 const profile = {
@@ -27,7 +28,14 @@ const profile = {
 function testDefaultExperimentStatesMatchXiaoyunModelSpec() {
   assert.deepEqual(
     getDefaultModelExperimentStates(),
-    ["idle", "listening", "thinking", "speaking", "happy", "comfort", "idle"]
+    ["idle", "listen", "think", "speak", "happy", "comfort", "idle"]
+  );
+}
+
+function testRuntimeValidationSequenceUsesCompactSemanticInputs() {
+  assert.deepEqual(
+    getRuntimeValidationSequenceStates(),
+    ["idle", "listen", "think", "speak", "happy", "comfort", "idle"]
   );
 }
 
@@ -88,6 +96,9 @@ function testTimelineBuildsEmotionBehaviorAndAdapterCommands() {
     baseMouth: 0.65,
     rhythm: "simulated"
   });
+  assert.equal(timeline[3].semanticState, "speak");
+  assert.equal(timeline[3].validation.blockers.length, 0);
+  assert.equal(timeline[3].validation.warnings.length, 0);
 }
 
 function testTimelineUsesStableStepDurations() {
@@ -100,7 +111,37 @@ function testTimelineUsesStableStepDurations() {
   assert.equal(timeline.at(-1).durationMs, 3200);
 }
 
+function testTimelineReportsProfileAndModelCapabilityProblems() {
+  const weakProfile = {
+    mappings: {
+      actions: {
+        idle: { group: "Idle", index: 0 },
+        speak: { group: "TapBody", index: 4 }
+      },
+      expressions: {}
+    }
+  };
+  const timeline = buildModelExperimentTimeline(weakProfile, {
+    modelCapabilities: {
+      motionGroupCounts: {
+        Idle: 1,
+        TapBody: 1
+      },
+      expressionNames: []
+    }
+  });
+  const speakingStep = timeline.find((step) => step.semanticState === "speak");
+  const happyStep = timeline.find((step) => step.semanticState === "happy");
+
+  assert.match(speakingStep.validation.blockers.join("; "), /motion TapBody\[4\] unavailable/);
+  assert.match(speakingStep.validation.warnings.join("; "), /expression engaged is unmapped/);
+  assert.match(happyStep.validation.warnings.join("; "), /action happy is unmapped/);
+  assert.equal(speakingStep.validation.layer, "profile/model");
+}
+
 testDefaultExperimentStatesMatchXiaoyunModelSpec();
+testRuntimeValidationSequenceUsesCompactSemanticInputs();
 testTimelineBuildsEmotionBehaviorAndAdapterCommands();
 testTimelineUsesStableStepDurations();
+testTimelineReportsProfileAndModelCapabilityProblems();
 console.log("model-experiment-runner tests passed");

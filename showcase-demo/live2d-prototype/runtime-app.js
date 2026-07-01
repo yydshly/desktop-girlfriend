@@ -147,8 +147,11 @@ export function createLive2DRuntime({
     controller.playMotionProbe(group, index);
   }
 
-  function runModelExperiment(options = {}) {
-    const timeline = buildModelExperimentTimeline(getEffectiveModelProfile(), options);
+  function runRuntimeValidationSequence(options = {}) {
+    const timeline = buildModelExperimentTimeline(getEffectiveModelProfile(), {
+      modelCapabilities: lastRendererStatus.modelCapabilities,
+      ...options
+    });
     timeline.forEach((step) => {
       controller.applyMappedState(
         {
@@ -158,13 +161,19 @@ export function createLive2DRuntime({
           gaze: step.emotionState.gaze,
           mouth: step.emotionState.mouth,
           motion: step.behavior.action,
-          source: "model-experiment",
+          source: "runtime-validation",
           experimentStep: step.index
         },
         step.emotionState
       );
+      step.activeLive2D = formatActiveLive2D(lastRendererStatus);
+      applyRendererValidation(step, lastRendererStatus);
     });
     return timeline;
+  }
+
+  function runModelExperiment(options = {}) {
+    return runRuntimeValidationSequence(options);
   }
 
   function bindActiveMotion(state) {
@@ -351,6 +360,7 @@ export function createLive2DRuntime({
     applyState,
     playSequence,
     playMotionProbe,
+    runRuntimeValidationSequence,
     runModelExperiment,
     bindActiveMotion,
     applyMotionBindings,
@@ -373,4 +383,35 @@ export function createLive2DRuntime({
     isDesktopMode: () => isDesktopMode,
     inspectModel: () => inspectModelPackage(configuredModelUrl)
   };
+}
+
+function formatActiveLive2D(status = {}) {
+  return {
+    motion: status.activeMotion?.group
+      ? {
+        group: status.activeMotion.group,
+        index: status.activeMotion.index,
+        source: status.activeMotion.source || ""
+      }
+      : null,
+    expression: status.activeExpression || ""
+  };
+}
+
+function applyRendererValidation(step, status = {}) {
+  if (!step.validation) {
+    step.validation = { layer: "ok", blockers: [], warnings: [] };
+  }
+  const expectedMotion = step.modelCommands?.motion;
+  const activeMotion = status.activeMotion;
+  if (expectedMotion?.group && activeMotion?.group) {
+    const matches = activeMotion.group === expectedMotion.group
+      && Number(activeMotion.index) === Number(expectedMotion.index);
+    if (!matches) {
+      step.validation.warnings.push(
+        `renderer active motion ${activeMotion.group}[${activeMotion.index}] differs from adapter ${expectedMotion.group}[${expectedMotion.index}]`
+      );
+      step.validation.layer = step.validation.layer === "ok" ? "renderer" : step.validation.layer;
+    }
+  }
 }

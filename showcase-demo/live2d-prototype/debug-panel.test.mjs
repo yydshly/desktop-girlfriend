@@ -164,34 +164,44 @@ function createRuntime() {
     applyState(state) {
       this.appliedState = state;
     },
-    runModelExperiment() {
-      this.modelExperimentCalls = (this.modelExperimentCalls || 0) + 1;
+    runRuntimeValidationSequence() {
+      this.runtimeValidationCalls = (this.runtimeValidationCalls || 0) + 1;
       return [
         {
           index: 0,
+          semanticState: "idle",
           state: "idle",
           attentionState: { target: "idle-scan", source: "idle", gaze: "idle-scan" },
           speakingState: { active: false, source: "idle", mouth: 0, rhythm: "none" },
-          behavior: { action: "idle", gaze: "idle-scan" },
+          behavior: { action: "idle", expression: "neutral", gaze: "idle-scan", mouth: 0, intensity: 0.25 },
           modelCommands: {
             motion: { group: "Idle", index: 0, action: "idle" },
             expression: { name: "default", semantic: "neutral" },
             parameters: { mouth: 0, intensity: 0.25, gaze: "cursor" }
-          }
+          },
+          activeLive2D: { motion: { group: "Idle", index: 0 }, expression: "default" },
+          validation: { layer: "ok", warnings: [], blockers: [] }
         },
         {
           index: 1,
+          semanticState: "speak",
           state: "speaking",
-          attentionState: { target: "cursor", source: "speaking", gaze: "cursor" },
+          attentionState: { target: "cursor", source: "state", gaze: "cursor" },
           speakingState: { active: true, source: "state", mouth: 0.514, rhythm: "simulated" },
-          behavior: { action: "speak", gaze: "cursor" },
+          behavior: { action: "speak", expression: "engaged", gaze: "cursor", mouth: 0.514, intensity: 0.76 },
           modelCommands: {
             motion: { group: "TapBody", index: 0, action: "speak" },
             expression: { name: "smile", semantic: "engaged" },
             parameters: { mouth: 0.65, intensity: 0.76, gaze: "cursor" }
-          }
+          },
+          activeLive2D: { motion: { group: "TapBody", index: 0 }, expression: "smile" },
+          validation: { layer: "profile/model", warnings: ["expression engaged is unmapped"], blockers: [] }
         }
       ];
+    },
+    runModelExperiment() {
+      this.modelExperimentCalls = (this.modelExperimentCalls || 0) + 1;
+      return this.runRuntimeValidationSequence();
     }
   };
 }
@@ -515,13 +525,18 @@ function testShowcasePanelRunsModelExperiment() {
 
   elements["#runModelExperiment"].listeners.click();
 
-  assert.equal(runtime.modelExperimentCalls, 1);
-  assert.match(elements["#modelExperimentStatus"].textContent, /0\. idle -> Idle\[0\]/);
-  assert.match(elements["#modelExperimentStatus"].textContent, /1\. speaking -> TapBody\[0\]/);
-  assert.match(elements["#modelExperimentStatus"].textContent, /attention cursor \/ speaking/);
-  assert.match(elements["#modelExperimentStatus"].textContent, /speaking active \/ state/);
-  assert.match(elements["#modelExperimentStatus"].textContent, /behavior speak \/ gaze cursor/);
-  assert.match(elements["#modelExperimentStatus"].textContent, /mouth 0.65/);
+  assert.equal(runtime.runtimeValidationCalls, 1);
+  assert.equal(runtime.modelExperimentCalls, undefined);
+  assert.match(elements["#modelExperimentStatus"].textContent, /Runtime Validation Sequence v1/);
+  assert.match(elements["#modelExperimentStatus"].textContent, /0\. idle -> idle -> Idle\[0\]/);
+  assert.match(elements["#modelExperimentStatus"].textContent, /1\. speak -> speaking -> TapBody\[0\]/);
+  assert.match(elements["#modelExperimentStatus"].textContent, /attention cursor \/ state/);
+  assert.match(elements["#modelExperimentStatus"].textContent, /speaking active \/ state \/ simulated \/ mouth 0\.514/);
+  assert.match(elements["#modelExperimentStatus"].textContent, /behavior speak \/ engaged \/ gaze cursor/);
+  assert.match(elements["#modelExperimentStatus"].textContent, /adapter parameters mouth 0.65 \/ intensity 0.76 \/ gaze cursor/);
+  assert.match(elements["#modelExperimentStatus"].textContent, /active Live2D TapBody\[0\] \/ expression smile/);
+  assert.match(elements["#modelExperimentStatus"].textContent, /warnings expression engaged is unmapped/);
+  assert.match(elements["#modelExperimentStatus"].textContent, /blockers none/);
 }
 
 function testShowcasePanelRendersModelCandidateEvaluation() {

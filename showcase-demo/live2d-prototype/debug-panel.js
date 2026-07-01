@@ -75,7 +75,9 @@ export function mountLive2DDebugPanel({
   });
 
   elements.runModelExperiment.addEventListener("click", () => {
-    const timeline = runtime.runModelExperiment();
+    const timeline = typeof runtime.runRuntimeValidationSequence === "function"
+      ? runtime.runRuntimeValidationSequence()
+      : runtime.runModelExperiment();
     renderModelExperimentStatus(elements, timeline);
   });
 
@@ -391,7 +393,10 @@ function renderMotionBindingStatus(elements, runtime, message = "") {
 }
 
 function renderModelExperimentStatus(elements, timeline = []) {
-  elements.modelExperimentStatus.textContent = timeline.map(formatExperimentStep).join("\n");
+  elements.modelExperimentStatus.textContent = [
+    "Runtime Validation Sequence v1",
+    ...timeline.map(formatExperimentStep)
+  ].join("\n");
 }
 
 function formatExperimentStep(step) {
@@ -400,15 +405,27 @@ function formatExperimentStep(step) {
     : "none";
   const expression = step.modelCommands?.expression?.name || "none";
   const parameters = step.modelCommands?.parameters || {};
+  const activeMotion = step.activeLive2D?.motion?.group
+    ? `${step.activeLive2D.motion.group}[${step.activeLive2D.motion.index}]`
+    : "none";
+  const activeExpression = step.activeLive2D?.expression || "none";
+  const validation = step.validation || {};
+  const warnings = Array.isArray(validation.warnings) && validation.warnings.length
+    ? validation.warnings.join(" | ")
+    : "none";
+  const blockers = Array.isArray(validation.blockers) && validation.blockers.length
+    ? validation.blockers.join(" | ")
+    : "none";
   return [
-    `${step.index}. ${step.state} -> ${motion}`,
+    `${step.index}. ${step.semanticState || step.state} -> ${step.state} -> ${motion}`,
     `attention ${step.attentionState?.target || "unknown"} / ${step.attentionState?.source || "unknown"}`,
-    `speaking ${step.speakingState?.active ? "active" : "idle"} / ${step.speakingState?.source || "unknown"}`,
-    `behavior ${step.behavior?.action || "unknown"} / gaze ${step.behavior?.gaze || "unknown"}`,
-    `expression ${expression}`,
-    `mouth ${parameters.mouth ?? 0}`,
-    `intensity ${parameters.intensity ?? 0}`,
-    `gaze ${parameters.gaze || "cursor"}`
+    `speaking ${step.speakingState?.active ? "active" : "idle"} / ${step.speakingState?.source || "unknown"} / ${step.speakingState?.rhythm || "unknown"} / mouth ${formatNumber(step.speakingState?.mouth)}`,
+    `behavior ${step.behavior?.action || "unknown"} / ${step.behavior?.expression || "unknown"} / gaze ${step.behavior?.gaze || "unknown"} / mouth ${formatNumber(step.behavior?.mouth)} / intensity ${formatNumber(step.behavior?.intensity)}`,
+    `adapter expression ${expression}`,
+    `adapter parameters mouth ${parameters.mouth ?? 0} / intensity ${parameters.intensity ?? 0} / gaze ${parameters.gaze || "cursor"}`,
+    `active Live2D ${activeMotion} / expression ${activeExpression}`,
+    `warnings ${warnings}`,
+    `blockers ${blockers}`
   ].join("; ");
 }
 
