@@ -119,7 +119,18 @@ function testSpeakingStateAnimatesMouthOpen() {
   );
 
   assert.ok(parameters.ParamMouthOpenY > 0.1);
-  assert.equal(parameters.ParamAngleX, 2);
+  assert.notEqual(parameters.ParamAngleX, 2);
+}
+
+function testSpeakingStateAddsSubtleBodyMotion() {
+  const parameters = calculateAnimatedLive2DParameters(
+    { ParamMouthOpenY: 0.1, ParamAngleX: 0, ParamBodyAngleX: 0 },
+    { motion: "reply", expression: "speaking" },
+    900
+  );
+
+  assert.notEqual(parameters.ParamAngleX, 0);
+  assert.notEqual(parameters.ParamBodyAngleX, 0);
 }
 
 function testIdleStateDoesNotAnimateMouthOpen() {
@@ -133,6 +144,7 @@ function testIdleStateDoesNotAnimateMouthOpen() {
 }
 
 testSpeakingStateAnimatesMouthOpen();
+testSpeakingStateAddsSubtleBodyMotion();
 testIdleStateDoesNotAnimateMouthOpen();
 
 function testIdleMotionAutoRotates() {

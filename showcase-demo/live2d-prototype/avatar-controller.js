@@ -1,9 +1,11 @@
 import { mapAvatarSequence, mapAvatarState, mapBridgeMessage } from "./state-mapper.js";
 
 export class AvatarController {
-  constructor(renderer, readoutElement) {
+  constructor(renderer, readoutElement, bubbleElement = null) {
     this.renderer = renderer;
     this.readoutElement = readoutElement;
+    this.bubbleElement = bubbleElement;
+    this.bubbleTimer = 0;
     this.currentState = {
       emotion: "neutral",
       mouth: 0,
@@ -54,9 +56,41 @@ export class AvatarController {
     };
     this.renderer.applyState(this.currentState);
     this.renderReadout();
+    this.renderBubble();
   }
 
   renderReadout() {
     this.readoutElement.textContent = JSON.stringify(this.currentState, null, 2);
+  }
+
+  renderBubble() {
+    if (!this.bubbleElement) {
+      return;
+    }
+
+    const bubble = this.currentState.bubble;
+    if (this.bubbleTimer) {
+      globalThis.clearTimeout(this.bubbleTimer);
+      this.bubbleTimer = 0;
+    }
+    if (!bubble?.text) {
+      this.bubbleElement.textContent = "";
+      this.bubbleElement.hidden = true;
+      this.bubbleElement.className = "speech-bubble";
+      return;
+    }
+
+    this.bubbleElement.textContent = bubble.text;
+    this.bubbleElement.hidden = false;
+    this.bubbleElement.className = `speech-bubble is-visible tone-${bubble.tone || "neutral"}`;
+    if (bubble.ttlMs > 0) {
+      this.bubbleTimer = globalThis.setTimeout(() => {
+        this.bubbleElement.textContent = "";
+        this.bubbleElement.hidden = true;
+        this.bubbleElement.className = "speech-bubble";
+        this.bubbleTimer = 0;
+      }, bubble.ttlMs);
+      this.bubbleTimer.unref?.();
+    }
   }
 }

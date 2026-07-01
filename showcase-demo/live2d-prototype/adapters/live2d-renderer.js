@@ -389,6 +389,12 @@ export function calculateAnimatedLive2DParameters(parameters = {}, command = {},
   if (speaking) {
     const pulse = 0.45 + Math.sin(now / 82) * 0.28 + Math.sin(now / 37) * 0.12;
     next.ParamMouthOpenY = roundToThree(Math.max(Number(next.ParamMouthOpenY ?? 0), pulse));
+    next.ParamAngleX = roundParameter(
+      Number(next.ParamAngleX ?? 0) + Math.sin(now / 260) * 2.2
+    );
+    next.ParamBodyAngleX = roundParameter(
+      Number(next.ParamBodyAngleX ?? 0) + Math.sin(now / 320) * 1.4
+    );
   }
 
   return next;
@@ -396,6 +402,10 @@ export function calculateAnimatedLive2DParameters(parameters = {}, command = {},
 
 function roundToThree(value) {
   return Number(Math.min(1, Math.max(0, value)).toFixed(3));
+}
+
+function roundParameter(value) {
+  return Number(value.toFixed(3));
 }
 
 export function smoothPointer(current = { x: 0, y: 0 }, target = { x: 0, y: 0 }, alpha = 0.18) {

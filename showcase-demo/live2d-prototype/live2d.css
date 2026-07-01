@@ -112,6 +112,45 @@ h2 {
   aspect-ratio: 3 / 4;
 }
 
+.speech-bubble {
+  position: absolute;
+  z-index: 2;
+  top: 8%;
+  left: 50%;
+  max-width: min(360px, 78%);
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: rgba(12, 16, 20, 0.78);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.45;
+  text-align: center;
+  backdrop-filter: blur(14px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.speech-bubble.is-visible {
+  opacity: 1;
+  transform: translate(-50%, -4px);
+}
+
+.speech-bubble.tone-thinking {
+  border-color: rgba(151, 204, 255, 0.32);
+}
+
+.speech-bubble.tone-reply {
+  border-color: rgba(242, 166, 179, 0.48);
+}
+
+.speech-bubble.tone-sad {
+  border-color: rgba(170, 181, 187, 0.38);
+}
+
 html[data-mode="desktop"] .app-shell {
   display: block;
   min-height: 100vh;
@@ -141,6 +180,12 @@ html[data-mode="desktop"] #avatarCanvas {
   width: min(96vw, 72vh);
   max-width: none;
   margin-bottom: -2vh;
+}
+
+html[data-mode="desktop"] .speech-bubble {
+  top: 7vh;
+  max-width: min(340px, 82vw);
+  font-size: 15px;
 }
 
 .control-panel {

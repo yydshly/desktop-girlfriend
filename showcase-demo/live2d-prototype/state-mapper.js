@@ -14,11 +14,19 @@ const SEQUENCE_TO_STATE = {
   comfort: "comfort"
 };
 
+const STATE_BUBBLES = {
+  think: { text: "让我想想...", tone: "thinking", ttlMs: 3200 },
+  speak: { text: "我在说。", tone: "reply", ttlMs: 3600 },
+  sad: { text: "好像出了点问题。", tone: "sad", ttlMs: 4200 },
+  comfort: { text: "我在这里。", tone: "comfort", ttlMs: 3800 }
+};
+
 export function mapAvatarState(payload = {}) {
   const preset = STATE_PRESETS[payload.state] || STATE_PRESETS.idle;
   return {
     ...preset,
     ...payload,
+    bubble: STATE_BUBBLES[payload.state],
     source: "avatar.state"
   };
 }
@@ -43,6 +51,11 @@ export function mapDialogueTurn(payload = {}) {
       responseText: payload.response_text || "",
       ttsState: payload.tts_state || "none"
     },
+    bubble: {
+      text: compactBubbleText(payload.response_text || ""),
+      tone: "reply",
+      ttlMs: 5200
+    },
     source: "dialogue.turn"
   };
 }
@@ -61,4 +74,12 @@ export function mapBridgeMessage(message = {}) {
     ...STATE_PRESETS.idle,
     source: message.type || "unknown"
   };
+}
+
+function compactBubbleText(text, maxLength = 42) {
+  const compact = String(text || "").trim().replace(/\s+/g, " ");
+  if (compact.length <= maxLength) {
+    return compact;
+  }
+  return `${compact.slice(0, maxLength - 1)}…`;
 }

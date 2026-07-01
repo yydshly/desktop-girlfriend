@@ -6,6 +6,7 @@ import { createAvatarRenderer, getRendererLabel } from "./renderer-factory.js";
 let canvas = document.querySelector("#avatarCanvas");
 const stage = document.querySelector("#avatarStage");
 const readout = document.querySelector("#stateReadout");
+const avatarBubble = document.querySelector("#avatarBubble");
 const rendererMode = document.querySelector("#rendererMode");
 const rendererSelect = document.querySelector("#rendererSelect");
 const modelUrl = document.querySelector("#modelUrl");
@@ -61,7 +62,8 @@ function resetAvatarCanvas() {
 
 const controller = new AvatarController(
   createRenderer(),
-  readout
+  readout,
+  avatarBubble
 );
 
 function updateRendererStatus() {
