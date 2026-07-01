@@ -271,6 +271,12 @@ class DesktopWindow(QMainWindow):
             self._on_live2d_models_refresh_clicked
         )
         layout.addWidget(self._live2d_model_refresh_button)
+        self._live2d_model_details_label = QLabel(
+            self._view_model.live2d_model_catalog_details
+        )
+        self._live2d_model_details_label.setWordWrap(True)
+        self._live2d_model_details_label.setStyleSheet(window_style.STATUS_LABEL_STYLE)
+        layout.addWidget(self._live2d_model_details_label)
 
         # Phase 3-B: Onboarding card — shown at first run
         self._onboarding_card = QWidget()
@@ -798,6 +804,9 @@ class DesktopWindow(QMainWindow):
         self._compact_button.setText(render_compact_button_text(self._view_model.compact_mode))
         self._live2d_model_status_label.setText(
             self._view_model.live2d_model_catalog_summary
+        )
+        self._live2d_model_details_label.setText(
+            self._view_model.live2d_model_catalog_details
         )
         self._sync_live2d_model_selector()
         # Phase 2-D: Sync compact mode layout

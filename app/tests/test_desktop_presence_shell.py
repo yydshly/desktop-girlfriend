@@ -358,6 +358,24 @@ class TestWindowPresenceShell:
         )
 
     @staticmethod
+    def test_live2d_model_details_label_reflects_view_model(qapp: QApplication) -> None:
+        """Desktop window surfaces detailed Live2D model package diagnostics."""
+        vm = DesktopViewModel()
+        vm.set_live2d_model_catalog_details(
+            "Models folder: assets/models\nReady: 1, broken: 1"
+        )
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+        )
+        window.show()
+
+        assert window._live2d_model_details_label.text() == (
+            "Models folder: assets/models\nReady: 1, broken: 1"
+        )
+
+    @staticmethod
     def test_live2d_model_selector_lists_models_and_emits_selection(
         qapp: QApplication,
     ) -> None:

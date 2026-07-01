@@ -118,6 +118,35 @@ def build_live2d_model_options(
     return tuple((package.model_id, package.display_name) for package in packages)
 
 
+def render_live2d_model_catalog_details(
+    catalog_root: Path,
+    packages: tuple[Live2DModelPackage, ...],
+) -> str:
+    """Render detailed diagnostics for local Live2D model packages."""
+    ready_count = sum(
+        1 for package in packages if package.status == Live2DModelPackageStatus.READY
+    )
+    broken_count = len(packages) - ready_count
+    lines = [
+        f"Models folder: {catalog_root}",
+        f"Ready: {ready_count}, broken: {broken_count}",
+    ]
+    if not packages:
+        lines.append("Put model folders under custom/<Name>/<Name>.model3.json")
+        return "\n".join(lines)
+
+    for package in packages:
+        if package.status == Live2DModelPackageStatus.BROKEN:
+            missing = ", ".join(package.missing) if package.missing else "unknown parts"
+            lines.append(f"{package.model_id}: broken, missing {missing}")
+            continue
+        lines.append(
+            f"{package.model_id}: ready, motions {package.motion_count}, "
+            f"textures {package.texture_count}"
+        )
+    return "\n".join(lines)
+
+
 def _read_model_json(model_json: Path) -> dict[str, Any]:
     try:
         data = json.loads(model_json.read_text(encoding="utf-8"))
@@ -151,7 +180,12 @@ def _model_id(model_json: Path, catalog_root: Path) -> str:
         return model_json.parent.name or model_json.stem
 
     model_id = relative_parent.as_posix()
-    return model_id if model_id != "." else model_json.stem
+    if model_id == ".":
+        return _display_name(model_json)
+    display_name = _display_name(model_json)
+    if relative_parent.name != display_name:
+        return f"{model_id}/{display_name}"
+    return model_id
 
 
 def _display_name(model_json: Path) -> str:

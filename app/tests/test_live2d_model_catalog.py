@@ -9,6 +9,7 @@ from app.ui.live2d_model_catalog import (
     Live2DModelPackageStatus,
     build_live2d_model_options,
     inspect_live2d_model_package,
+    render_live2d_model_catalog_details,
     render_live2d_model_catalog_summary,
     scan_live2d_model_catalog,
 )
@@ -144,3 +145,19 @@ def test_build_live2d_model_options_uses_model_ids_and_display_names(
         ("custom/Xiaoyun", "Xiaoyun"),
         ("sample/Hiyori", "Hiyori"),
     )
+
+
+def test_render_live2d_model_catalog_details_reports_each_package(
+    tmp_path: Path,
+) -> None:
+    """Catalog details explain where models live and why a package is broken."""
+    _write_model(tmp_path / "sample" / "Hiyori" / "Hiyori.model3.json")
+    _write_model(tmp_path / "broken" / "Broken.model3.json", moc="", textures=[])
+    packages = scan_live2d_model_catalog(tmp_path)
+
+    details = render_live2d_model_catalog_details(tmp_path, packages)
+
+    assert f"Models folder: {tmp_path}" in details
+    assert "Ready: 1, broken: 1" in details
+    assert "broken/Broken: broken, missing Moc, Textures" in details
+    assert "sample/Hiyori: ready, motions 1, textures 1" in details
