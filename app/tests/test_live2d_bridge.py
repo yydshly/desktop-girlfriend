@@ -68,7 +68,7 @@ def test_state_changed_maps_app_state_to_avatar_state() -> None:
     assert message == {
         "type": "avatar.state",
         "payload": {
-            "state": "speak",
+            "state": "speaking",
             "request_id": "req-1",
             "source_event": STATE_CHANGED,
             "app_state": "speaking",
@@ -85,7 +85,7 @@ def test_thinking_state_includes_motion_feedback() -> None:
 
     message = mapper.map_event(_event(STATE_CHANGED, {"current_state": "thinking"}))
 
-    assert message["payload"]["state"] == "think"
+    assert message["payload"]["state"] == "thinking"
     assert message["payload"]["motion"] == "think"
     assert message["payload"]["intensity"] == 0.52
 
@@ -97,7 +97,7 @@ def test_error_event_maps_to_sad_state() -> None:
     message = mapper.map_event(_event(SYSTEM_ERROR, {"message": "boom"}))
 
     assert message["type"] == "avatar.state"
-    assert message["payload"]["state"] == "sad"
+    assert message["payload"]["state"] == "error"
     assert message["payload"]["reason"] == "system_error"
 
 
@@ -150,7 +150,7 @@ def test_dispatcher_subscribes_and_broadcasts_mapped_events() -> None:
     handler(_event(STATE_CHANGED, {"current_state": "speaking"}))
 
     assert broadcasts[-1]["type"] == "avatar.state"
-    assert broadcasts[-1]["payload"]["state"] == "speak"
+    assert broadcasts[-1]["payload"]["state"] == "speaking"
 
     dispatcher.stop()
     assert subscriptions == []

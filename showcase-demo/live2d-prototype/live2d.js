@@ -310,10 +310,10 @@ if (isDesktopMode) {
     const actionByKey = {
       "1": () => controller.applyStateName("idle"),
       "2": () => controller.applyStateName("happy"),
-      "3": () => controller.applyStateName("think"),
+      "3": () => controller.applyStateName("thinking"),
       "4": () => controller.applyStateName("sad"),
       "5": () => controller.applyStateName("comfort"),
-      "6": () => controller.applyStateName("speak"),
+      "6": () => controller.applyStateName("speaking"),
       g: () => controller.playSequence("greet"),
       l: () => controller.playSequence("listen"),
       r: () => controller.playSequence("reply"),

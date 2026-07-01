@@ -1,5 +1,8 @@
+import { normalizeAvatarState } from "./avatar-protocol.js";
+
 const STATE_PRESETS = {
   idle: {
+    state: "idle",
     emotion: "neutral",
     mouth: 0,
     gaze: "cursor",
@@ -7,15 +10,17 @@ const STATE_PRESETS = {
     intensity: 0.25,
     visualIntent: "idle"
   },
-  happy: {
-    emotion: "happy",
-    mouth: 0.28,
+  listening: {
+    state: "listening",
+    emotion: "thinking",
+    mouth: 0.03,
     gaze: "cursor",
-    motion: "happy",
-    intensity: 0.72,
-    visualIntent: "happy"
+    motion: "think",
+    intensity: 0.42,
+    visualIntent: "listening"
   },
-  think: {
+  thinking: {
+    state: "thinking",
     emotion: "thinking",
     mouth: 0.05,
     gaze: "down-left",
@@ -23,7 +28,26 @@ const STATE_PRESETS = {
     intensity: 0.48,
     visualIntent: "thinking"
   },
+  speaking: {
+    state: "speaking",
+    emotion: "engaged",
+    mouth: 0.65,
+    gaze: "cursor",
+    motion: "reply",
+    intensity: 0.76,
+    visualIntent: "speaking"
+  },
+  happy: {
+    state: "happy",
+    emotion: "happy",
+    mouth: 0.28,
+    gaze: "cursor",
+    motion: "happy",
+    intensity: 0.72,
+    visualIntent: "happy"
+  },
   sad: {
+    state: "sad",
     emotion: "sad",
     mouth: 0.08,
     gaze: "down",
@@ -32,6 +56,7 @@ const STATE_PRESETS = {
     visualIntent: "sad"
   },
   comfort: {
+    state: "comfort",
     emotion: "soft",
     mouth: 0.18,
     gaze: "cursor",
@@ -39,36 +64,41 @@ const STATE_PRESETS = {
     intensity: 0.68,
     visualIntent: "comfort"
   },
-  speak: {
-    emotion: "engaged",
-    mouth: 0.65,
-    gaze: "cursor",
-    motion: "reply",
-    intensity: 0.76,
-    visualIntent: "speaking"
+  error: {
+    state: "error",
+    emotion: "sad",
+    mouth: 0.08,
+    gaze: "down",
+    motion: "sad",
+    intensity: 0.58,
+    visualIntent: "error"
   }
 };
 
 const SEQUENCE_TO_STATE = {
   greet: "happy",
-  listen: "think",
-  reply: "speak",
+  listen: "listening",
+  reply: "speaking",
   comfort: "comfort"
 };
 
 const STATE_BUBBLES = {
-  think: { text: "让我想想...", tone: "thinking", ttlMs: 3200 },
-  speak: { text: "我在说。", tone: "reply", ttlMs: 3600 },
+  listening: { text: "我在听。", tone: "thinking", ttlMs: 2800 },
+  thinking: { text: "让我想想...", tone: "thinking", ttlMs: 3200 },
+  speaking: { text: "我在说。", tone: "reply", ttlMs: 3600 },
   sad: { text: "好像出了点问题。", tone: "sad", ttlMs: 4200 },
+  error: { text: "好像出了点问题。", tone: "sad", ttlMs: 4200 },
   comfort: { text: "我在这里。", tone: "comfort", ttlMs: 3800 }
 };
 
 export function mapAvatarState(payload = {}) {
-  const preset = STATE_PRESETS[payload.state] || STATE_PRESETS.idle;
+  const stateName = normalizeAvatarState(payload.state);
+  const preset = STATE_PRESETS[stateName] || STATE_PRESETS.idle;
   return {
     ...preset,
     ...payload,
-    bubble: STATE_BUBBLES[payload.state],
+    state: stateName,
+    bubble: STATE_BUBBLES[stateName],
     source: "avatar.state"
   };
 }
@@ -84,7 +114,7 @@ export function mapAvatarSequence(payload = {}) {
 
 export function mapDialogueTurn(payload = {}) {
   const intent = payload.intent || "reply";
-  const stateName = SEQUENCE_TO_STATE[intent] || (intent === "idle" ? "idle" : "speak");
+  const stateName = SEQUENCE_TO_STATE[intent] || normalizeAvatarState(intent, "speaking");
   return {
     ...STATE_PRESETS[stateName],
     turn: {

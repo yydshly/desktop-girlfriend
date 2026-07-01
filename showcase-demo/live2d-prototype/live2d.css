@@ -128,12 +128,15 @@ h2 {
   transform: scale(1.02);
 }
 
+.avatar-stage.is-state-listening::after,
+.avatar-stage.is-state-thinking::after,
 .avatar-stage.is-state-think::after {
   background: radial-gradient(circle, rgba(151, 204, 255, 0.28), transparent 62%);
   opacity: 0.9;
 }
 
-.avatar-stage.is-state-sad::after {
+.avatar-stage.is-state-sad::after,
+.avatar-stage.is-state-error::after {
   background: radial-gradient(circle, rgba(170, 181, 187, 0.22), transparent 64%);
   opacity: 0.8;
 }

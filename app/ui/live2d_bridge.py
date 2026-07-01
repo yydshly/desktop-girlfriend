@@ -17,10 +17,10 @@ from app.contracts.events import (
 
 _STATE_TO_AVATAR_STATE = {
     "idle": "idle",
-    "listening": "think",
-    "thinking": "think",
-    "speaking": "speak",
-    "error": "sad",
+    "listening": "listening",
+    "thinking": "thinking",
+    "speaking": "speaking",
+    "error": "error",
 }
 
 _STATE_TO_VISUAL_FEEDBACK = {
@@ -56,7 +56,7 @@ class Live2DBridgeEventMapper:
         if event.event_type == STATE_CHANGED:
             return self._map_state_changed(event)
         if event.event_type == SYSTEM_ERROR:
-            return self._avatar_state("sad", event, reason="system_error")
+            return self._avatar_state("error", event, reason="system_error")
         if event.event_type == CONVERSATION_CLEARED:
             self.last_user_text = ""
             return self._avatar_state("idle", event, reason="conversation_cleared")
