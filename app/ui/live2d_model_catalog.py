@@ -78,6 +78,13 @@ def inspect_live2d_model_package(
     missing.extend(
         _missing_referenced_files(model_json.parent, "Physics file", [physics])
     )
+    missing.extend(
+        _missing_referenced_files(
+            model_json.parent,
+            "Expression file",
+            _expression_files(expressions),
+        )
+    )
 
     return Live2DModelPackage(
         model_id=_model_id(model_json, catalog_root),

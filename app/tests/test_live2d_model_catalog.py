@@ -154,6 +154,22 @@ def test_inspect_live2d_model_package_reports_missing_referenced_files(
     )
 
 
+def test_inspect_live2d_model_package_reports_missing_expression_files(
+    tmp_path: Path,
+) -> None:
+    """Expression files referenced by model3.json are validated."""
+    model_path = tmp_path / "broken" / "Broken.model3.json"
+    _write_model(
+        model_path,
+        expressions=[{"Name": "smile", "File": "expressions/smile.exp3.json"}],
+        create_assets=False,
+    )
+
+    package = inspect_live2d_model_package(model_path, catalog_root=tmp_path)
+
+    assert "Expression file: expressions/smile.exp3.json" in package.missing
+
+
 def test_scan_live2d_model_catalog_sorts_model_packages(tmp_path: Path) -> None:
     """Catalog scanning finds model3 packages recursively in stable order."""
     _write_model(tmp_path / "sample" / "Hiyori" / "Hiyori.model3.json")
