@@ -1,4 +1,5 @@
 import { AvatarController } from "./avatar-controller.js";
+import { createBridgeStatus, renderBridgeStatus, updateBridgeStatus } from "./bridge-status.js";
 import { detectLive2DSdk, formatSdkStatus } from "./live2d-sdk-loader.js";
 import { resolveModelUrlFromRoute } from "./live2d-model-route.js";
 import { inspectModelPackage } from "./model-package-inspector.js";
@@ -23,6 +24,7 @@ const setModelUrl = document.querySelector("#setModelUrl");
 const bridgeUrl = document.querySelector("#bridgeUrl");
 const connectBridge = document.querySelector("#connectBridge");
 const disconnectBridge = document.querySelector("#disconnectBridge");
+const bridgeStatus = document.querySelector("#bridgeStatus");
 
 const routeParams = new URLSearchParams(window.location.search);
 const isDesktopMode = routeParams.get("desktop") === "1";
@@ -37,6 +39,7 @@ let socket = null;
 let bridgeReconnectTimer = null;
 let bridgeReconnectEnabled = false;
 let bridgeConnectionId = 0;
+let currentBridgeStatus = createBridgeStatus(bridgeUrl.value);
 let lastRendererStatus = {
   loadState: "idle",
   loadError: "",
@@ -52,6 +55,13 @@ function createRenderer() {
       updateRendererStatus();
     }
   });
+}
+
+function updateBridgeStatusPanel(event) {
+  currentBridgeStatus = updateBridgeStatus(currentBridgeStatus, event);
+  if (bridgeStatus) {
+    bridgeStatus.textContent = renderBridgeStatus(currentBridgeStatus);
+  }
 }
 
 function resetAvatarCanvas() {
@@ -157,6 +167,7 @@ disconnectBridge.addEventListener("click", () => {
 
 function connectBridgeSocket(url, { reconnect = false } = {}) {
   bridgeReconnectEnabled = reconnect;
+  updateBridgeStatusPanel({ kind: "connecting", url });
   const connectionId = bridgeConnectionId + 1;
   bridgeConnectionId = connectionId;
   window.clearTimeout(bridgeReconnectTimer);
@@ -164,10 +175,19 @@ function connectBridgeSocket(url, { reconnect = false } = {}) {
     socket.close();
   }
   socket = new WebSocket(url);
+  socket.addEventListener("open", () => {
+    updateBridgeStatusPanel({ kind: "open" });
+  });
   socket.addEventListener("message", (event) => {
-    controller.handleBridgeMessage(JSON.parse(event.data));
+    const message = JSON.parse(event.data);
+    updateBridgeStatusPanel({ kind: "message", message });
+    controller.handleBridgeMessage(message);
+  });
+  socket.addEventListener("error", () => {
+    updateBridgeStatusPanel({ kind: "error", error: "WebSocket error" });
   });
   socket.addEventListener("close", () => {
+    updateBridgeStatusPanel({ kind: "close" });
     if (connectionId !== bridgeConnectionId) {
       return;
     }

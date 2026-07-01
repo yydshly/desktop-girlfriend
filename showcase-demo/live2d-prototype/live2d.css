@@ -313,6 +313,11 @@ pre {
   max-height: 150px;
 }
 
+.bridge-status {
+  min-height: 112px;
+  max-height: 160px;
+}
+
 .model-preview {
   display: grid;
   grid-template-columns: 92px minmax(0, 1fr);
