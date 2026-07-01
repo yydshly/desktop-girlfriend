@@ -349,6 +349,9 @@ def main() -> None:
     live2d_desktop_scale = 1.0
     live2d_desktop_opacity = 1.0
     live2d_desktop_visible = live2d_desktop_process is not None
+    live2d_desktop_model_id = view_model.selected_live2d_model_id
+    if live2d_desktop_process is not None:
+        live2d_desktop_process.model_id = live2d_desktop_model_id
 
     def _restart_live2d_desktop() -> None:
         if live2d_desktop_process is None:
@@ -356,6 +359,7 @@ def main() -> None:
         live2d_desktop_process.stop()
         live2d_desktop_process.scale = live2d_desktop_scale
         live2d_desktop_process.opacity = live2d_desktop_opacity
+        live2d_desktop_process.model_id = live2d_desktop_model_id
         if live2d_desktop_visible:
             live2d_desktop_process.start()
 
@@ -450,6 +454,24 @@ def main() -> None:
         )
         _restart_live2d_desktop()
 
+    def _on_live2d_model_selected(model_id: str) -> None:
+        nonlocal live2d_desktop_model_id
+        if not view_model.select_live2d_model(model_id):
+            logger.warning("Ignored unknown Live2D model selection model_id=%s", model_id)
+            return
+        live2d_desktop_model_id = model_id
+        logger.info(
+            "Live2D desktop control requested %s model_id=%s",
+            build_live2d_control_log_context(
+                action="select_model",
+                scale=live2d_desktop_scale,
+                opacity=live2d_desktop_opacity,
+                visible=live2d_desktop_visible,
+            ),
+            model_id,
+        )
+        _restart_live2d_desktop()
+
     window = DesktopWindow(
         view_model,
         on_user_text_submitted=submit_user_text,
@@ -470,6 +492,7 @@ def main() -> None:
         on_live2d_opacity_up_requested=_on_live2d_opacity_up_requested,
         on_live2d_visibility_toggled=_on_live2d_visibility_toggled,
         on_live2d_position_reset_requested=_on_live2d_position_reset_requested,
+        on_live2d_model_selected=_on_live2d_model_selected,
         memory_management_enabled=config.memory_management_enabled,
     )
 

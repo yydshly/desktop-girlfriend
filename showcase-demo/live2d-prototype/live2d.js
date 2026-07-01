@@ -1,5 +1,6 @@
 import { AvatarController } from "./avatar-controller.js";
 import { detectLive2DSdk, formatSdkStatus } from "./live2d-sdk-loader.js";
+import { resolveModelUrlFromRoute } from "./live2d-model-route.js";
 import { inspectModelPackage } from "./model-package-inspector.js";
 import { createAvatarRenderer, getRendererLabel } from "./renderer-factory.js";
 
@@ -29,7 +30,8 @@ document.documentElement.dataset.mode = isDesktopMode ? "desktop" : "showcase";
 
 rendererSelect.value = "live2d";
 
-let configuredModelUrl = modelUrl.value;
+let configuredModelUrl = resolveModelUrlFromRoute(routeParams, modelUrl.value);
+modelUrl.value = configuredModelUrl;
 let activeRendererMode = rendererSelect.value;
 let socket = null;
 let bridgeReconnectTimer = null;

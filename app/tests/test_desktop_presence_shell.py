@@ -149,6 +149,21 @@ class TestLive2DDesktopShellSpec:
         assert spec.height == round(LIVE2D_DESKTOP_HEIGHT * 0.8)
         assert spec.opacity == 0.7
 
+    def test_build_shell_spec_includes_selected_model_id(self, tmp_path) -> None:
+        """Shell spec passes the selected model id to the Live2D runtime page."""
+        target = tmp_path / LIVE2D_PROTOTYPE_ROUTE
+        target.parent.mkdir(parents=True)
+        target.write_text("<!doctype html>", encoding="utf-8")
+
+        spec = build_live2d_desktop_shell_spec(
+            tmp_path,
+            model_id="custom/Xiaoyun",
+        )
+
+        assert spec.source_url.endswith(
+            "/showcase-demo/live2d-prototype/index.html?desktop=1&model=custom%2FXiaoyun"
+        )
+
     def test_shell_summary_describes_window_capabilities(self) -> None:
         """Summary makes the active desktop shell behavior visible."""
         spec = Live2DDesktopShellSpec(source_url="file:///tmp/live2d/index.html")

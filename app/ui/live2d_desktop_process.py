@@ -22,12 +22,14 @@ class Live2DDesktopProcess:
         cwd: Path | None = None,
         scale: float = 1.0,
         opacity: float = 1.0,
+        model_id: str = "",
         popen_factory: Callable[..., Popen] = subprocess.Popen,
     ) -> None:
         self.python_executable = python_executable or sys.executable
         self.cwd = cwd or Path(__file__).resolve().parents[2]
         self.scale = scale
         self.opacity = opacity
+        self.model_id = model_id
         self._popen_factory = popen_factory
         self._process: Popen | None = None
 
@@ -90,6 +92,8 @@ class Live2DDesktopProcess:
             command.extend(["--scale", _format_float(self.scale)])
         if self.opacity != 1.0:
             command.extend(["--opacity", _format_float(self.opacity)])
+        if self.model_id:
+            command.extend(["--model-id", self.model_id])
         return command
 
 

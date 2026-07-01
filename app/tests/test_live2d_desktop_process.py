@@ -56,6 +56,22 @@ def test_command_includes_live2d_desktop_controls() -> None:
     ]
 
 
+def test_command_includes_selected_live2d_model_id() -> None:
+    """Launch command carries the selected Live2D model id."""
+    process = Live2DDesktopProcess(
+        python_executable="python.exe",
+        model_id="custom/Xiaoyun",
+    )
+
+    assert process.command == [
+        "python.exe",
+        "-m",
+        "app.live2d_desktop",
+        "--model-id",
+        "custom/Xiaoyun",
+    ]
+
+
 def test_start_uses_popen_factory_with_workspace_cwd() -> None:
     """Process start delegates to Popen with a stable workspace cwd."""
     calls = []

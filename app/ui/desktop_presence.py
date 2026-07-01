@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlencode
 
 # Compact mode window dimensions (width x height)
 COMPACT_MODE_WIDTH = 340
@@ -51,11 +52,15 @@ def build_live2d_desktop_shell_spec(
     click_through: bool = False,
     scale: float = 1.0,
     opacity: float = 1.0,
+    model_id: str = "",
 ) -> Live2DDesktopShellSpec:
     """Build the desktop shell spec that points at the local Live2D runtime."""
 
     route = workspace_root / LIVE2D_PROTOTYPE_ROUTE
-    source_url = f"{route.resolve().as_uri()}?{LIVE2D_DESKTOP_QUERY}"
+    query = {"desktop": "1"}
+    if model_id:
+        query["model"] = model_id
+    source_url = f"{route.resolve().as_uri()}?{urlencode(query)}"
     return Live2DDesktopShellSpec(
         source_url=source_url,
         width=round(LIVE2D_DESKTOP_WIDTH * scale),

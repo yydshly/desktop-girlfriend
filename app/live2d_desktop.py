@@ -15,6 +15,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--scale", type=float, default=1.0)
     parser.add_argument("--opacity", type=float, default=1.0)
+    parser.add_argument("--model-id", default="")
     args = parser.parse_args(argv)
 
     workspace_root = Path(__file__).resolve().parents[1]
@@ -22,6 +23,7 @@ def main(argv: list[str] | None = None) -> int:
         workspace_root,
         scale=args.scale,
         opacity=args.opacity,
+        model_id=args.model_id,
     )
     return run_live2d_desktop_window(spec)
 
