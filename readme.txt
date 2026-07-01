@@ -116,7 +116,9 @@ cd D:\claude_code\20260628_桌面女友\desktop-girlfriend
 
 ## 6. 当前驱动链路
 
-完整链路是：
+当前项目已经从“状态直接驱动 motion”收敛到“Emotion 驱动的可替换 Live2D 角色运行系统”。
+
+最终链路是：
 
 ```text
 主窗口输入
@@ -126,8 +128,12 @@ cd D:\claude_code\20260628_桌面女友\desktop-girlfriend
   -> Live2DBridgeServer ws://127.0.0.1:8879
   -> Live2D 页面 bridge client
   -> AvatarController
+  -> Emotion State
+  -> Behavior Planner
+  -> Character Contract
+  -> Model Adapter
   -> Live2DRenderer
-  -> 模型参数 / 表情 / motion
+  -> motion / expression / parameters
 ```
 
 稳定状态协议是：
@@ -143,7 +149,21 @@ comfort
 error
 ```
 
-网页端会把这些产品状态翻译成模型参数、表情和 motion。
+关键原则：
+
+- AI 或主窗口只表达“情绪/语义行为”，不要直接指定某个模型的 motion_03。
+- Character Contract 定义统一动作语义，例如 idle / greet / happy / sad / think / speak。
+- profile.json 只负责把统一语义映射到具体模型的 motion / expression。
+- Model Adapter 负责输出模型命令。
+- Live2DRenderer 只负责执行模型命令，并写入 Cubism 参数。
+
+当前已接通的 adapter 输出：
+
+- motion：优先使用 `modelCommands.motion.group/index`。
+- expression：优先使用 `modelCommands.expression.name`。
+- parameters：优先使用 `modelCommands.parameters.mouth/intensity` 控制口型和活跃度。
+
+浏览器 showcase 的状态栏会显示 `adapter:` 诊断信息，用来确认当前语义行为被翻译成了什么模型命令。
 
 ## 7. 如何判断效果是否正常
 
@@ -153,6 +173,8 @@ error
 - Renderer 显示 Live2D 相关状态。
 - 点击“待机 / 思考 / 说话”等按钮，人物会有动作和微动。
 - Motion Probe 点击 Idle 0、Idle 1、TapBody 0 等按钮时，模型动作会变化。
+- 状态栏里能看到 `adapter:`，例如 `happy -> TapBody[0]`、`engaged -> smile`、`mouth 0.64`。
+- 如果人物动作看起来不明显，先看 `adapter:` 是否变化；如果 adapter 变了但人物没变，问题在模型能力或 profile 映射。
 
 桌面应用正常时：
 
@@ -173,6 +195,17 @@ error
 - 是否通过 http server 打开，而不是直接双击 html。
 - 页面右侧 SDK 状态是否 ready。
 - model path 是否指向 `.model3.json`。
+
+### 点击状态按钮但人物变化很弱
+
+先看 showcase 状态栏：
+
+- 如果 `adapter:` 没变化，问题在 bridge / AvatarController / Emotion Layer。
+- 如果 `adapter:` 变化了，但 active motion 没变，问题在 model profile 的 actions 映射。
+- 如果 active motion 变化了，但视觉很弱，说明当前模型本身动作幅度小，或者不适合桌面伴侣验证。
+- 如果 expression 是 `none`，说明模型没有表情文件，或 profile 的 expressions 映射为空。
+
+Hiyori 目前是 baseline 技术验证模型，不是最终“小云”角色。它能验证运行链路，但人物表现不代表最终产品效果。
 
 ### 桌面人物不跟随主窗口变化
 
@@ -197,28 +230,33 @@ LIVE2D_DESKTOP_AUTO_LAUNCH=true
 
 推荐后续按这个顺序继续：
 
-1. 优化桌面人物窗口体验
+1. 建立 Model Gallery / 模型实验页
+   - 固定 emotion timeline：idle -> happy -> think -> speak -> idle。
+   - 同一套状态序列对比多个模型。
+   - 显示 adapter 命令、active motion、expression、FPS、模型能力。
+
+2. 完善 profile.json 作为角色契约
+   - 每个模型都必须声明 actions / expressions / placement。
+   - 后续增加参数别名和参数范围。
+   - profile 只做映射，不写业务逻辑。
+
+3. 筛选更适合桌面伴侣的 Live2D 模型
+   - Hiyori 作为 baseline。
+   - 增加一个表现更丰富的商业/示例模型做对照。
+   - 重点看 idle 舒适度、微表情、长期观看疲劳、说话口型。
+
+4. 优化桌面人物窗口体验
    - 拖动稳定。
    - 位置持久化。
-   - 更自然的透明背景。
-   - 更像桌面伴侣，而不是调试窗口。
+   - 透明背景和点击穿透策略。
+   - 主窗口只负责控制，人物窗口负责呈现。
 
-2. 强化人物动作表现
-   - idle 微动。
-   - thinking / listening 微动。
-   - speaking 口型与 TTS 音量同步。
-   - 情绪动作和表情 profile 化。
+5. 接入更真实的驱动
+   - TTS 音量驱动 mouth。
+   - 对话语义驱动 emotion intensity。
+   - 主动陪伴事件驱动 idle / greet / comfort。
 
-3. 建立模型 profile
-   - 每个模型自己的 motionBindings。
-   - 每个模型自己的 expression aliases。
-   - 每个模型自己的参数范围。
-
-4. 准备自定义模型
-   - 现在的 Hiyori 是技术验证样例。
-   - 最终需要一个符合“小云”设定的自定义 Live2D 模型。
-
-5. 继续加深 Runtime / Debug 分离
-   - 当前已经完成第一阶段代码拆分。
-   - 下一步可以把桌面 runtime 的 UI 资源和 showcase 调试资源进一步拆开。
-   - 目标是最终人物窗口只加载运行时，浏览器页面保留完整调试台。
+6. 准备自定义“小云”模型
+   - 当前 Hiyori 只是技术验证样例。
+   - 最终效果取决于一个符合“小云”设定、适合桌面长期陪伴的 Live2D 模型。
+   - 自定义模型需要从 Character Contract 反推动作和表情需求。
