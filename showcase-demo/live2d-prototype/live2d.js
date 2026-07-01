@@ -1,6 +1,7 @@
 import { AvatarController } from "./avatar-controller.js";
 import { createBridgeStatus, renderBridgeStatus, updateBridgeStatus } from "./bridge-status.js";
 import { detectLive2DSdk, formatSdkStatus } from "./live2d-sdk-loader.js";
+import { loadModelProfile } from "./model-profile.js";
 import { resolveModelUrlFromRoute } from "./live2d-model-route.js";
 import { inspectModelPackage } from "./model-package-inspector.js";
 import {
@@ -44,11 +45,12 @@ document.documentElement.dataset.mode = isDesktopMode ? "desktop" : "showcase";
 
 rendererSelect.value = "live2d";
 
-const MOTION_BINDINGS_STORAGE_KEY = "desktop-girlfriend.live2d.motionBindings.v1";
+const MOTION_BINDINGS_STORAGE_KEY_PREFIX = "desktop-girlfriend.live2d.motionBindings.v1:";
 let configuredModelUrl = resolveModelUrlFromRoute(routeParams, modelUrl.value);
 modelUrl.value = configuredModelUrl;
 let activeRendererMode = rendererSelect.value;
-let motionBindings = loadMotionBindings();
+let modelProfile = { displayName: "", motionBindings: {} };
+let motionBindings = loadMotionBindingOverrides();
 let socket = null;
 let bridgeReconnectTimer = null;
 let bridgeReconnectEnabled = false;
@@ -64,7 +66,7 @@ function createRenderer() {
   return createAvatarRenderer(activeRendererMode, canvas, {
     modelUrl: configuredModelUrl,
     allowTextureFallback: !isDesktopMode,
-    motionBindings,
+    motionBindings: getEffectiveMotionBindings(),
     onStatusChange: (status) => {
       lastRendererStatus = status;
       updateRendererStatus();
@@ -172,6 +174,7 @@ controller.start();
 updateRendererStatus();
 updateModelPackageStatus();
 updateMotionBindingStatus();
+loadProfileForCurrentModel();
 
 rendererSelect.addEventListener("change", () => {
   activeRendererMode = rendererSelect.value;
@@ -210,7 +213,7 @@ bindActiveMotion.addEventListener("click", () => {
     }
   };
   saveMotionBindings(motionBindings);
-  controller.renderer.setMotionBindings?.(motionBindings);
+  controller.renderer.setMotionBindings?.(getEffectiveMotionBindings());
   updateMotionBindingStatus();
 });
 
@@ -218,7 +221,7 @@ applyMotionBindings.addEventListener("click", () => {
   try {
     motionBindings = parseMotionBindingsText(motionBindingEditor.value);
     saveMotionBindings(motionBindings);
-    controller.renderer.setMotionBindings?.(motionBindings);
+    controller.renderer.setMotionBindings?.(getEffectiveMotionBindings());
     updateMotionBindingStatus("Applied JSON bindings.");
   } catch (error) {
     updateMotionBindingStatus(`Invalid JSON: ${error.message}`);
@@ -228,7 +231,7 @@ applyMotionBindings.addEventListener("click", () => {
 clearMotionBindings.addEventListener("click", () => {
   motionBindings = {};
   saveMotionBindings(motionBindings);
-  controller.renderer.setMotionBindings?.(motionBindings);
+  controller.renderer.setMotionBindings?.(getEffectiveMotionBindings());
   updateMotionBindingStatus("Cleared bindings.");
 });
 
@@ -238,11 +241,14 @@ stage.addEventListener("pointermove", (event) => {
 
 setModelUrl.addEventListener("click", () => {
   configuredModelUrl = modelUrl.value.trim();
+  modelProfile = { displayName: "", motionBindings: {} };
+  motionBindings = loadMotionBindingOverrides();
   lastRendererStatus = { loadState: "idle", loadError: "", hasLive2DModel: false };
   resetAvatarCanvas();
   controller.setRenderer(createRenderer());
   updateRendererStatus();
   updateModelPackageStatus();
+  loadProfileForCurrentModel();
 });
 
 connectBridge.addEventListener("click", () => {
@@ -334,16 +340,16 @@ window.live2dPrototype = {
   inspectModel: () => inspectModelPackage(configuredModelUrl)
 };
 
-function loadMotionBindings() {
+function loadMotionBindingOverrides() {
   try {
-    return parseMotionBindingsText(window.localStorage.getItem(MOTION_BINDINGS_STORAGE_KEY) || "{}");
+    return parseMotionBindingsText(window.localStorage.getItem(motionBindingsStorageKey()) || "{}");
   } catch {
     return {};
   }
 }
 
 function saveMotionBindings(bindings) {
-  window.localStorage.setItem(MOTION_BINDINGS_STORAGE_KEY, serializeMotionBindings(bindings));
+  window.localStorage.setItem(motionBindingsStorageKey(), serializeMotionBindings(bindings));
 }
 
 function updateMotionBindingStatus(message = "") {
@@ -351,6 +357,26 @@ function updateMotionBindingStatus(message = "") {
     motionBindingEditor.value = serializeMotionBindings(motionBindings);
   }
   if (motionBindingStatus) {
-    motionBindingStatus.textContent = message || "Use Motion Probe, then bind the active motion to a state.";
+    const profileText = modelProfile.displayName
+      ? `Profile: ${modelProfile.displayName}.`
+      : "Profile: none.";
+    motionBindingStatus.textContent = message || `${profileText} Use Motion Probe, then bind the active motion to a state.`;
   }
+}
+
+function getEffectiveMotionBindings() {
+  return {
+    ...modelProfile.motionBindings,
+    ...motionBindings
+  };
+}
+
+async function loadProfileForCurrentModel() {
+  modelProfile = await loadModelProfile(configuredModelUrl);
+  controller.renderer.setMotionBindings?.(getEffectiveMotionBindings());
+  updateMotionBindingStatus();
+}
+
+function motionBindingsStorageKey() {
+  return `${MOTION_BINDINGS_STORAGE_KEY_PREFIX}${configuredModelUrl}`;
 }

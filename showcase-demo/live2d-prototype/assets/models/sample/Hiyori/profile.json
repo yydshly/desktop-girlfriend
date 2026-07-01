@@ -1,0 +1,14 @@
+{
+  "displayName": "Hiyori",
+  "motionBindings": {
+    "idle": { "group": "Idle", "index": 0 },
+    "happy": { "group": "TapBody", "index": 0 },
+    "think": { "group": "Idle", "index": 1 },
+    "sad": { "group": "Idle", "index": 2 },
+    "listen": { "group": "Idle", "index": 3 },
+    "reply": { "group": "TapBody", "index": 0 },
+    "comfort": { "group": "Idle", "index": 4 },
+    "speak": { "group": "TapBody", "index": 0 },
+    "greet": { "group": "TapBody", "index": 0 }
+  }
+}
