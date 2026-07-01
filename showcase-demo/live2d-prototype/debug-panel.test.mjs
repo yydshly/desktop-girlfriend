@@ -87,6 +87,35 @@ function createRuntime() {
     getLastRendererStatus() {
       return { loadState: "idle", hasLive2DModel: false };
     },
+    getCurrentRuntimeState() {
+      return this.currentRuntimeState || {
+        state: "idle",
+        emotionState: {
+          emotion: "neutral",
+          activity: "idle",
+          intensity: 0.25
+        },
+        attentionState: {
+          target: "idle-scan",
+          source: "idle",
+          gaze: "idle-scan",
+          bodyFollow: "minimal",
+          intensity: 0.22
+        },
+        behavior: {
+          action: "idle",
+          expression: "neutral",
+          gaze: "idle-scan",
+          mouth: 0,
+          intensity: 0.25
+        },
+        modelCommands: {
+          motion: { group: "Idle", index: 0, action: "idle" },
+          expression: { name: "default", semantic: "neutral" },
+          parameters: { mouth: 0, intensity: 0.25, gaze: "idle-scan" }
+        }
+      };
+    },
     getMotionBindings() {
       return {};
     },
@@ -134,6 +163,8 @@ function createRuntime() {
         {
           index: 0,
           state: "idle",
+          attentionState: { target: "idle-scan", source: "idle", gaze: "idle-scan" },
+          behavior: { action: "idle", gaze: "idle-scan" },
           modelCommands: {
             motion: { group: "Idle", index: 0, action: "idle" },
             expression: { name: "default", semantic: "neutral" },
@@ -143,6 +174,8 @@ function createRuntime() {
         {
           index: 1,
           state: "speaking",
+          attentionState: { target: "cursor", source: "speaking", gaze: "cursor" },
+          behavior: { action: "speak", gaze: "cursor" },
           modelCommands: {
             motion: { group: "TapBody", index: 0, action: "speak" },
             expression: { name: "smile", semantic: "engaged" },
@@ -164,6 +197,7 @@ function createDebugElements() {
     "#modelTexturePreview": createElement(),
     "#sdkStatus": createElement(),
     "#behaviorEventLog": createElement(),
+    "#runtimeChainStatus": createElement(),
     "#rendererMode": createElement(),
     "#summaryRenderer": createElement(),
     "#summaryModel": createElement(),
@@ -400,6 +434,57 @@ function testShowcasePanelRendersBehaviorEventLog() {
   assert.match(elements["#behaviorEventLog"].textContent, /900 motion\.play/);
 }
 
+function testShowcasePanelRendersRuntimeChain() {
+  const elements = createDebugElements();
+  const runtime = createRuntime();
+  runtime.currentRuntimeState = {
+    state: "speaking",
+    emotionState: {
+      emotion: "engaged",
+      activity: "speak",
+      intensity: 0.76
+    },
+    attentionState: {
+      target: "cursor",
+      source: "speaking",
+      gaze: "cursor",
+      bodyFollow: "soft",
+      intensity: 0.55
+    },
+    behavior: {
+      action: "speak",
+      expression: "engaged",
+      gaze: "cursor",
+      mouth: 0.65,
+      intensity: 0.76
+    },
+    modelCommands: {
+      motion: { group: "TapBody", index: 0, action: "speak" },
+      expression: { name: "smile", semantic: "engaged" },
+      parameters: { mouth: 0.65, intensity: 0.76, gaze: "cursor" }
+    }
+  };
+  runtime.getLastRendererStatus = () => ({
+    loadState: "live2d-ready",
+    hasLive2DModel: true,
+    activeMotion: { group: "TapBody", index: 0 },
+    activeExpression: "smile"
+  });
+
+  mountLive2DDebugPanel({
+    document: createDocument(elements),
+    window: { localStorage: { getItem: () => null, setItem: () => {} } },
+    runtime,
+    mode: "showcase"
+  });
+
+  assert.match(elements["#runtimeChainStatus"].textContent, /semantic state: speaking/);
+  assert.match(elements["#runtimeChainStatus"].textContent, /attention: cursor \/ source speaking/);
+  assert.match(elements["#runtimeChainStatus"].textContent, /behavior: speak \/ engaged \/ gaze cursor/);
+  assert.match(elements["#runtimeChainStatus"].textContent, /adapter motion: speak -> TapBody\[0\]/);
+  assert.match(elements["#runtimeChainStatus"].textContent, /active Live2D expression: smile/);
+}
+
 function testShowcasePanelRunsModelExperiment() {
   const elements = createDebugElements();
   const runtime = createRuntime();
@@ -416,6 +501,8 @@ function testShowcasePanelRunsModelExperiment() {
   assert.equal(runtime.modelExperimentCalls, 1);
   assert.match(elements["#modelExperimentStatus"].textContent, /0\. idle -> Idle\[0\]/);
   assert.match(elements["#modelExperimentStatus"].textContent, /1\. speaking -> TapBody\[0\]/);
+  assert.match(elements["#modelExperimentStatus"].textContent, /attention cursor \/ speaking/);
+  assert.match(elements["#modelExperimentStatus"].textContent, /behavior speak \/ gaze cursor/);
   assert.match(elements["#modelExperimentStatus"].textContent, /mouth 0.65/);
 }
 
@@ -495,6 +582,7 @@ function testDesktopPanelDoesNotWireDebugControls() {
 testShowcasePanelWiresRendererSelect();
 testShowcasePanelRendersAdapterCommands();
 testShowcasePanelRendersBehaviorEventLog();
+testShowcasePanelRendersRuntimeChain();
 testShowcasePanelRunsModelExperiment();
 testShowcasePanelRendersModelCandidateEvaluation();
 testShowcasePanelRendersMotionOverrideSummary();

@@ -368,6 +368,7 @@ export function createLive2DRuntime({
     getMotionBindings: () => motionBindings,
     getModelProfile: () => modelProfile,
     getEffectiveModelProfile,
+    getCurrentRuntimeState: () => controller.getCurrentState(),
     getBridgeStatus: () => currentBridgeStatus,
     isDesktopMode: () => isDesktopMode,
     inspectModel: () => inspectModelPackage(configuredModelUrl)

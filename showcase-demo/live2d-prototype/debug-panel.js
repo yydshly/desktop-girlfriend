@@ -106,6 +106,7 @@ function queryDebugElements(document) {
     modelTexturePreview: document.querySelector("#modelTexturePreview"),
     sdkStatus: document.querySelector("#sdkStatus"),
     behaviorEventLog: document.querySelector("#behaviorEventLog"),
+    runtimeChainStatus: document.querySelector("#runtimeChainStatus"),
     summaryRenderer: document.querySelector("#summaryRenderer"),
     summaryModel: document.querySelector("#summaryModel"),
     summaryMotion: document.querySelector("#summaryMotion"),
@@ -257,6 +258,7 @@ function renderRendererStatus(elements, runtime, window) {
   elements.summaryCapabilities.textContent = formatCapabilitySummary(status.modelCapabilities);
   elements.summarySdk.textContent = sdk.ready ? "ready" : `missing ${sdk.missing.length}`;
   renderBehaviorEventLog(elements, status.behaviorEvents);
+  renderRuntimeChainStatus(elements, runtime, status);
 
   if (runtime.getRendererMode() === "live2d") {
     elements.modelStatus.textContent = [
@@ -296,6 +298,39 @@ function renderBehaviorEventLog(elements, events = []) {
     .slice(0, 12)
     .map(formatBehaviorEvent)
     .join("\n");
+}
+
+function renderRuntimeChainStatus(elements, runtime, rendererStatus = {}) {
+  if (!elements.runtimeChainStatus) {
+    return;
+  }
+  const state = runtime.getCurrentRuntimeState?.() || {};
+  const emotion = state.emotionState || {};
+  const attention = state.attentionState || state.behavior?.attention || {};
+  const behavior = state.behavior || {};
+  const adapter = state.modelCommands || {};
+  const activeMotion = rendererStatus.activeMotion?.group
+    ? `${rendererStatus.activeMotion.group}[${rendererStatus.activeMotion.index}]`
+    : "none";
+  const adapterMotion = adapter.motion?.group
+    ? `${adapter.motion.action || "action"} -> ${adapter.motion.group}[${adapter.motion.index}]`
+    : "none";
+  const adapterExpression = adapter.expression?.name
+    ? `${adapter.expression.semantic || "expression"} -> ${adapter.expression.name}`
+    : "none";
+  const adapterParameters = adapter.parameters || {};
+
+  elements.runtimeChainStatus.textContent = [
+    `semantic state: ${state.state || "unknown"}`,
+    `emotion: ${emotion.emotion || "unknown"} / activity ${emotion.activity || "unknown"} / intensity ${formatNumber(emotion.intensity)}`,
+    `attention: ${attention.target || "unknown"} / source ${attention.source || "unknown"} / gaze ${attention.gaze || "unknown"} / body ${attention.bodyFollow || "unknown"} / intensity ${formatNumber(attention.intensity)}`,
+    `behavior: ${behavior.action || "unknown"} / ${behavior.expression || "unknown"} / gaze ${behavior.gaze || "unknown"} / mouth ${formatNumber(behavior.mouth)} / intensity ${formatNumber(behavior.intensity)}`,
+    `adapter motion: ${adapterMotion}`,
+    `adapter expression: ${adapterExpression}`,
+    `adapter parameters: gaze ${adapterParameters.gaze || "unknown"} / mouth ${formatNumber(adapterParameters.mouth)} / intensity ${formatNumber(adapterParameters.intensity)}`,
+    `active Live2D motion: ${activeMotion}`,
+    `active Live2D expression: ${rendererStatus.activeExpression || "none"}`
+  ].join("\n");
 }
 
 function formatBehaviorEvent(event = {}) {
@@ -365,6 +400,8 @@ function formatExperimentStep(step) {
   const parameters = step.modelCommands?.parameters || {};
   return [
     `${step.index}. ${step.state} -> ${motion}`,
+    `attention ${step.attentionState?.target || "unknown"} / ${step.attentionState?.source || "unknown"}`,
+    `behavior ${step.behavior?.action || "unknown"} / gaze ${step.behavior?.gaze || "unknown"}`,
     `expression ${expression}`,
     `mouth ${parameters.mouth ?? 0}`,
     `intensity ${parameters.intensity ?? 0}`,
@@ -408,6 +445,11 @@ function formatAdapterCommands(commands) {
     ? `mouth ${commands.parameters.mouth}; intensity ${commands.parameters.intensity}; gaze ${commands.parameters.gaze}`
     : "parameters none";
   return `${motion}; ${expression}; ${parameters}`;
+}
+
+function formatNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Number(number.toFixed(3)).toString() : "unknown";
 }
 
 function summarizeMotionOverrides(rawProfile = {}, effectiveProfile = {}, overrides = {}) {

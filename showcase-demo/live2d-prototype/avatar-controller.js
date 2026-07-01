@@ -58,6 +58,10 @@ export class AvatarController {
     this.renderReadout();
   }
 
+  getCurrentState() {
+    return this.currentState;
+  }
+
   handleBridgeMessage(message) {
     this.applyMappedState(
       mapBridgeMessage(message),
