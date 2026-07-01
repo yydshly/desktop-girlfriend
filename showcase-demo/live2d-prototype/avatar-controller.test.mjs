@@ -130,7 +130,14 @@ function testControllerStoresEmotionAndBehaviorForMappedState() {
     expression: "engaged",
     intensity: 0.76,
     gaze: "user",
-    mouth: 0.65,
+    mouth: 0.533,
+    speaking: {
+      active: true,
+      source: "state",
+      mouth: 0.533,
+      baseMouth: 0.65,
+      rhythm: "simulated"
+    },
     attention: {
       target: "user",
       source: "speaking",
@@ -177,8 +184,13 @@ function testControllerStoresModelCommandsWhenProfileProviderExists() {
     },
     parameters: {
       gaze: "user",
-      mouth: 0.65,
-      intensity: 0.76
+      mouth: 0.533,
+      intensity: 0.76,
+      speaking: {
+        active: true,
+        source: "state",
+        rhythm: "simulated"
+      }
     }
   });
 }

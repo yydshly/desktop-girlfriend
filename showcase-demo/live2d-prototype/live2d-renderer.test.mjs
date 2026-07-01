@@ -490,7 +490,16 @@ function testStatusReportsModelAdapterCommands() {
   assert.deepEqual(statuses.at(-1).modelAdapterCommands, {
     motion: { group: "TapBody", index: 0, action: "happy" },
     expression: { name: "smile", semantic: "engaged" },
-    parameters: { gaze: "cursor", mouth: 0.64, intensity: 0.7 }
+    parameters: {
+      gaze: "cursor",
+      mouth: 0.64,
+      intensity: 0.7,
+      speaking: {
+        active: false,
+        source: "idle",
+        rhythm: "none"
+      }
+    }
   });
 }
 

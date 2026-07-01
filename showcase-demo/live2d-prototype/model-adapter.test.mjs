@@ -44,7 +44,12 @@ function testBehaviorAdaptsToModelMotionAndExpression() {
       parameters: {
         gaze: "cursor",
         mouth: 0.65,
-        intensity: 0.76
+        intensity: 0.76,
+        speaking: {
+          active: false,
+          source: "idle",
+          rhythm: "none"
+        }
       }
     }
   );
@@ -92,9 +97,39 @@ function testEmotionStateAdaptsThroughPlanner() {
     name: "think",
     semantic: "thinking"
   });
+  assert.deepEqual(commands.parameters.speaking, {
+    active: false,
+    source: "idle",
+    rhythm: "none"
+  });
+}
+
+function testSpeakingMetadataPassesToModelParameters() {
+  const commands = adaptBehaviorToModelCommands(
+    {
+      action: "speak",
+      expression: "engaged",
+      intensity: 0.76,
+      gaze: "cursor",
+      mouth: 0.533,
+      speaking: {
+        active: true,
+        source: "tts",
+        rhythm: "simulated"
+      }
+    },
+    profile
+  );
+
+  assert.deepEqual(commands.parameters.speaking, {
+    active: true,
+    source: "tts",
+    rhythm: "simulated"
+  });
 }
 
 testBehaviorAdaptsToModelMotionAndExpression();
 testMissingProfileMappingFallsBackToIdleMotion();
 testEmotionStateAdaptsThroughPlanner();
+testSpeakingMetadataPassesToModelParameters();
 console.log("model-adapter tests passed");

@@ -102,6 +102,13 @@ function createRuntime() {
           bodyFollow: "minimal",
           intensity: 0.22
         },
+        speakingState: {
+          active: false,
+          source: "idle",
+          mouth: 0,
+          baseMouth: 0,
+          rhythm: "none"
+        },
         behavior: {
           action: "idle",
           expression: "neutral",
@@ -164,6 +171,7 @@ function createRuntime() {
           index: 0,
           state: "idle",
           attentionState: { target: "idle-scan", source: "idle", gaze: "idle-scan" },
+          speakingState: { active: false, source: "idle", mouth: 0, rhythm: "none" },
           behavior: { action: "idle", gaze: "idle-scan" },
           modelCommands: {
             motion: { group: "Idle", index: 0, action: "idle" },
@@ -175,6 +183,7 @@ function createRuntime() {
           index: 1,
           state: "speaking",
           attentionState: { target: "cursor", source: "speaking", gaze: "cursor" },
+          speakingState: { active: true, source: "state", mouth: 0.514, rhythm: "simulated" },
           behavior: { action: "speak", gaze: "cursor" },
           modelCommands: {
             motion: { group: "TapBody", index: 0, action: "speak" },
@@ -451,6 +460,13 @@ function testShowcasePanelRendersRuntimeChain() {
       bodyFollow: "soft",
       intensity: 0.55
     },
+    speakingState: {
+      active: true,
+      source: "tts",
+      mouth: 0.533,
+      baseMouth: 0.65,
+      rhythm: "simulated"
+    },
     behavior: {
       action: "speak",
       expression: "engaged",
@@ -480,6 +496,7 @@ function testShowcasePanelRendersRuntimeChain() {
 
   assert.match(elements["#runtimeChainStatus"].textContent, /semantic state: speaking/);
   assert.match(elements["#runtimeChainStatus"].textContent, /attention: cursor \/ source speaking/);
+  assert.match(elements["#runtimeChainStatus"].textContent, /speaking: active \/ source tts \/ rhythm simulated \/ mouth 0\.533/);
   assert.match(elements["#runtimeChainStatus"].textContent, /behavior: speak \/ engaged \/ gaze cursor/);
   assert.match(elements["#runtimeChainStatus"].textContent, /adapter motion: speak -> TapBody\[0\]/);
   assert.match(elements["#runtimeChainStatus"].textContent, /active Live2D expression: smile/);
@@ -502,6 +519,7 @@ function testShowcasePanelRunsModelExperiment() {
   assert.match(elements["#modelExperimentStatus"].textContent, /0\. idle -> Idle\[0\]/);
   assert.match(elements["#modelExperimentStatus"].textContent, /1\. speaking -> TapBody\[0\]/);
   assert.match(elements["#modelExperimentStatus"].textContent, /attention cursor \/ speaking/);
+  assert.match(elements["#modelExperimentStatus"].textContent, /speaking active \/ state/);
   assert.match(elements["#modelExperimentStatus"].textContent, /behavior speak \/ gaze cursor/);
   assert.match(elements["#modelExperimentStatus"].textContent, /mouth 0.65/);
 }

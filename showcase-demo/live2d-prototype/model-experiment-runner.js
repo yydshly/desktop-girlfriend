@@ -2,6 +2,7 @@ import { planBehaviorFromEmotionState } from "./behavior-planner.js";
 import { normalizeEmotionState } from "./emotion-state.js";
 import { adaptBehaviorToModelCommands } from "./model-adapter.js";
 import { resolveAttentionState } from "./attention-system.js";
+import { resolveSpeakingState } from "./speaking-driver.js";
 
 const DEFAULT_STEP_DURATION_MS = 3200;
 const DEFAULT_EXPERIMENT_STATES = Object.freeze([
@@ -30,7 +31,11 @@ export function buildModelExperimentTimeline(profile = {}, options = {}) {
       emotionState,
       pointerState: options.pointerState || {}
     });
-    const behavior = planBehaviorFromEmotionState(emotionState, attentionState);
+    const speakingState = resolveSpeakingState({
+      emotionState,
+      now: stepNow(options.now, index, durationMs)
+    });
+    const behavior = planBehaviorFromEmotionState(emotionState, attentionState, speakingState);
     return {
       index,
       state: emotionState.state,
@@ -38,10 +43,19 @@ export function buildModelExperimentTimeline(profile = {}, options = {}) {
       durationMs,
       emotionState,
       attentionState,
+      speakingState,
       behavior,
       modelCommands: adaptBehaviorToModelCommands(behavior, profile)
     };
   });
+}
+
+function stepNow(now, index, durationMs) {
+  const number = Number(now);
+  if (Number.isFinite(number)) {
+    return number + index * durationMs;
+  }
+  return index * durationMs;
 }
 
 function readDurationMs(value) {

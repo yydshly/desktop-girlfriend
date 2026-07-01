@@ -881,7 +881,12 @@ function formatAdapterParameterDiagnostic(parameters = null) {
       ? parameters.gaze.trim()
       : "cursor",
     mouth: readUnitParameter(parameters.mouth) ?? 0,
-    intensity: readUnitParameter(parameters.intensity) ?? 0
+    intensity: readUnitParameter(parameters.intensity) ?? 0,
+    speaking: {
+      active: Boolean(parameters.speaking?.active),
+      source: typeof parameters.speaking?.source === "string" ? parameters.speaking.source : "idle",
+      rhythm: typeof parameters.speaking?.rhythm === "string" ? parameters.speaking.rhythm : "none"
+    }
   };
 }
 

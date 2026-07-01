@@ -21,6 +21,7 @@ function testRuntimeStateBuildsBehaviorAndModelCommands() {
         }
       }
     },
+    now: 0,
     updatedAt: "2026-07-02T00:00:00.000Z"
   });
 
@@ -38,7 +39,14 @@ function testRuntimeStateBuildsBehaviorAndModelCommands() {
     expression: "engaged",
     intensity: 0.76,
     gaze: "cursor",
-    mouth: 0.65,
+    mouth: 0.533,
+    speaking: {
+      active: true,
+      source: "state",
+      mouth: 0.533,
+      baseMouth: 0.65,
+      rhythm: "simulated"
+    },
     attention: {
       target: "cursor",
       source: "speaking",
@@ -51,6 +59,13 @@ function testRuntimeStateBuildsBehaviorAndModelCommands() {
     group: "Talk",
     index: 2,
     action: "speak"
+  });
+  assert.deepEqual(state.speakingState, {
+    active: true,
+    source: "state",
+    mouth: 0.533,
+    baseMouth: 0.65,
+    rhythm: "simulated"
   });
   assert.equal(state.updatedAt, "2026-07-02T00:00:00.000Z");
 }
@@ -132,7 +147,41 @@ function testPointerStateOverridesRuntimeAttention() {
   assert.equal(state.behavior.gaze, "cursor");
 }
 
+function testDialogueTtsSpeakingIsRuntimeSpeakingSource() {
+  const state = buildCharacterRuntimeState({
+    mappedState: {
+      state: "speaking"
+    },
+    emotionState: {
+      state: "speaking",
+      emotion: "engaged",
+      intensity: 0.76,
+      activity: "speak",
+      gaze: "cursor",
+      mouth: 0.65,
+      turn: {
+        ttsState: "speaking"
+      },
+      source: "dialogue.turn"
+    },
+    now: 0,
+    profile: {
+      mappings: {
+        actions: {
+          speak: { group: "Talk", index: 2 }
+        }
+      }
+    },
+    updatedAt: "2026-07-02T00:00:00.000Z"
+  });
+
+  assert.equal(state.speakingState.source, "tts");
+  assert.equal(state.modelCommands.parameters.speaking.source, "tts");
+  assert.equal(state.modelCommands.parameters.speaking.active, true);
+}
+
 testRuntimeStateBuildsBehaviorAndModelCommands();
 testExplicitEmotionStateOverridesMappedStatePreset();
 testPointerStateOverridesRuntimeAttention();
+testDialogueTtsSpeakingIsRuntimeSpeakingSource();
 console.log("character-runtime tests passed");

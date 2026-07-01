@@ -307,6 +307,7 @@ function renderRuntimeChainStatus(elements, runtime, rendererStatus = {}) {
   const state = runtime.getCurrentRuntimeState?.() || {};
   const emotion = state.emotionState || {};
   const attention = state.attentionState || state.behavior?.attention || {};
+  const speaking = state.speakingState || state.behavior?.speaking || {};
   const behavior = state.behavior || {};
   const adapter = state.modelCommands || {};
   const activeMotion = rendererStatus.activeMotion?.group
@@ -324,6 +325,7 @@ function renderRuntimeChainStatus(elements, runtime, rendererStatus = {}) {
     `semantic state: ${state.state || "unknown"}`,
     `emotion: ${emotion.emotion || "unknown"} / activity ${emotion.activity || "unknown"} / intensity ${formatNumber(emotion.intensity)}`,
     `attention: ${attention.target || "unknown"} / source ${attention.source || "unknown"} / gaze ${attention.gaze || "unknown"} / body ${attention.bodyFollow || "unknown"} / intensity ${formatNumber(attention.intensity)}`,
+    `speaking: ${speaking.active ? "active" : "idle"} / source ${speaking.source || "unknown"} / rhythm ${speaking.rhythm || "unknown"} / mouth ${formatNumber(speaking.mouth)}`,
     `behavior: ${behavior.action || "unknown"} / ${behavior.expression || "unknown"} / gaze ${behavior.gaze || "unknown"} / mouth ${formatNumber(behavior.mouth)} / intensity ${formatNumber(behavior.intensity)}`,
     `adapter motion: ${adapterMotion}`,
     `adapter expression: ${adapterExpression}`,
@@ -401,6 +403,7 @@ function formatExperimentStep(step) {
   return [
     `${step.index}. ${step.state} -> ${motion}`,
     `attention ${step.attentionState?.target || "unknown"} / ${step.attentionState?.source || "unknown"}`,
+    `speaking ${step.speakingState?.active ? "active" : "idle"} / ${step.speakingState?.source || "unknown"}`,
     `behavior ${step.behavior?.action || "unknown"} / gaze ${step.behavior?.gaze || "unknown"}`,
     `expression ${expression}`,
     `mouth ${parameters.mouth ?? 0}`,

@@ -22,7 +22,11 @@ const IDLE_BEHAVIOR = Object.freeze({
 
 const RETURN_TO_IDLE_MS = 4200;
 
-export function planBehaviorFromEmotionState(emotionState = {}, attentionState = null) {
+export function planBehaviorFromEmotionState(
+  emotionState = {},
+  attentionState = null,
+  speakingState = null
+) {
   const expression = normalizeCharacterExpression(
     EXPRESSION_BY_EMOTION[emotionState.emotion] || emotionState.emotion || "neutral"
   );
@@ -32,7 +36,8 @@ export function planBehaviorFromEmotionState(emotionState = {}, attentionState =
     expression,
     intensity: clamp01(emotionState.intensity ?? IDLE_BEHAVIOR.intensity),
     gaze,
-    mouth: clamp01(emotionState.mouth ?? IDLE_BEHAVIOR.mouth),
+    mouth: clamp01(speakingState?.mouth ?? emotionState.mouth ?? IDLE_BEHAVIOR.mouth),
+    ...(speakingState ? { speaking: speakingState } : {}),
     ...(attentionState ? { attention: attentionState } : {})
   };
 }

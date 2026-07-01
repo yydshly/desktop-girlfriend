@@ -28,7 +28,8 @@ export function adaptBehaviorToModelCommands(behavior = {}, profile = {}) {
         ? behavior.gaze.trim()
         : "cursor",
       mouth: clamp01(behavior.mouth ?? 0),
-      intensity: clamp01(behavior.intensity ?? 0.25)
+      intensity: clamp01(behavior.intensity ?? 0.25),
+      speaking: normalizeSpeakingParameter(behavior.speaking)
     }
   };
 }
@@ -72,4 +73,16 @@ function clamp01(value) {
     return 0;
   }
   return Math.min(1, Math.max(0, number));
+}
+
+function normalizeSpeakingParameter(speaking = null) {
+  return {
+    active: Boolean(speaking?.active),
+    source: typeof speaking?.source === "string" && speaking.source.trim()
+      ? speaking.source.trim()
+      : "idle",
+    rhythm: typeof speaking?.rhythm === "string" && speaking.rhythm.trim()
+      ? speaking.rhythm.trim()
+      : "none"
+  };
 }

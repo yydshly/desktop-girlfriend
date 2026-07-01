@@ -44,7 +44,14 @@ function testTimelineBuildsEmotionBehaviorAndAdapterCommands() {
     expression: "engaged",
     intensity: 0.76,
     gaze: "cursor",
-    mouth: 0.65,
+    mouth: 0.514,
+    speaking: {
+      active: true,
+      source: "state",
+      mouth: 0.514,
+      baseMouth: 0.65,
+      rhythm: "simulated"
+    },
     attention: {
       target: "cursor",
       source: "speaking",
@@ -63,7 +70,23 @@ function testTimelineBuildsEmotionBehaviorAndAdapterCommands() {
   assert.deepEqual(timeline[3].modelCommands, {
     motion: { group: "TapBody", index: 0, action: "speak" },
     expression: { name: "smile", semantic: "engaged" },
-    parameters: { gaze: "cursor", mouth: 0.65, intensity: 0.76 }
+    parameters: {
+      gaze: "cursor",
+      mouth: 0.514,
+      intensity: 0.76,
+      speaking: {
+        active: true,
+        source: "state",
+        rhythm: "simulated"
+      }
+    }
+  });
+  assert.deepEqual(timeline[3].speakingState, {
+    active: true,
+    source: "state",
+    mouth: 0.514,
+    baseMouth: 0.65,
+    rhythm: "simulated"
   });
 }
 

@@ -100,6 +100,43 @@ function testPlannerUsesAttentionGazeWhenProvided() {
   );
 }
 
+function testPlannerUsesSpeakingMouthWhenProvided() {
+  assert.deepEqual(
+    planBehaviorFromEmotionState(
+      {
+        state: "speaking",
+        emotion: "engaged",
+        intensity: 0.76,
+        activity: "speak",
+        gaze: "cursor",
+        mouth: 0.65
+      },
+      null,
+      {
+        active: true,
+        source: "tts",
+        mouth: 0.533,
+        baseMouth: 0.65,
+        rhythm: "simulated"
+      }
+    ),
+    {
+      action: "speak",
+      expression: "engaged",
+      intensity: 0.76,
+      gaze: "cursor",
+      mouth: 0.533,
+      speaking: {
+        active: true,
+        source: "tts",
+        mouth: 0.533,
+        baseMouth: 0.65,
+        rhythm: "simulated"
+      }
+    }
+  );
+}
+
 function testBehaviorTimelineUsesStableDelays() {
   const timeline = planBehaviorTimeline({
     state: "comfort",
@@ -138,5 +175,6 @@ testSpeakingEmotionPlansSpeakBehavior();
 testThinkingEmotionPlansThinkBehavior();
 testPlannerNormalizesInvalidTerms();
 testPlannerUsesAttentionGazeWhenProvided();
+testPlannerUsesSpeakingMouthWhenProvided();
 testBehaviorTimelineUsesStableDelays();
 console.log("behavior-planner tests passed");
