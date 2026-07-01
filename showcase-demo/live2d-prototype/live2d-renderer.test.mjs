@@ -146,6 +146,17 @@ function testSpeakingStateAddsSubtleBodyMotion() {
   assert.notEqual(parameters.ParamBodyAngleX, 0);
 }
 
+function testVisualIntentSpeakingAnimatesMouthOpen() {
+  const parameters = calculateAnimatedLive2DParameters(
+    { ParamMouthOpenY: 0.1, ParamAngleX: 0 },
+    { motion: "customTalk", visualIntent: "speaking" },
+    100
+  );
+
+  assert.ok(parameters.ParamMouthOpenY > 0.1);
+  assert.notEqual(parameters.ParamAngleX, 0);
+}
+
 function testIdleStateDoesNotAnimateMouthOpen() {
   const parameters = calculateAnimatedLive2DParameters(
     { ParamMouthOpenY: 0.1 },
@@ -158,6 +169,7 @@ function testIdleStateDoesNotAnimateMouthOpen() {
 
 testSpeakingStateAnimatesMouthOpen();
 testSpeakingStateAddsSubtleBodyMotion();
+testVisualIntentSpeakingAnimatesMouthOpen();
 testIdleStateDoesNotAnimateMouthOpen();
 
 function testIdleMotionAutoRotates() {

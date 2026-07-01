@@ -407,7 +407,10 @@ export function getReturnToIdleDelayMs(command = {}) {
 export function calculateAnimatedLive2DParameters(parameters = {}, command = {}, now = 0) {
   const next = { ...parameters };
   const motion = command.motion || "";
-  const speaking = motion === "reply" || motion === "speak" || command.expression === "speaking";
+  const speaking = motion === "reply"
+    || motion === "speak"
+    || command.expression === "speaking"
+    || command.visualIntent === "speaking";
 
   if (speaking) {
     const pulse = 0.45 + Math.sin(now / 82) * 0.28 + Math.sin(now / 37) * 0.12;
