@@ -1,10 +1,52 @@
 const STATE_PRESETS = {
-  idle: { emotion: "neutral", mouth: 0, gaze: "cursor", motion: "idle", intensity: 0.25 },
-  happy: { emotion: "happy", mouth: 0.28, gaze: "cursor", motion: "happy", intensity: 0.72 },
-  think: { emotion: "thinking", mouth: 0.05, gaze: "down-left", motion: "think", intensity: 0.48 },
-  sad: { emotion: "sad", mouth: 0.08, gaze: "down", motion: "sad", intensity: 0.56 },
-  comfort: { emotion: "soft", mouth: 0.18, gaze: "cursor", motion: "comfort", intensity: 0.68 },
-  speak: { emotion: "engaged", mouth: 0.65, gaze: "cursor", motion: "reply", intensity: 0.76 }
+  idle: {
+    emotion: "neutral",
+    mouth: 0,
+    gaze: "cursor",
+    motion: "idle",
+    intensity: 0.25,
+    visualIntent: "idle"
+  },
+  happy: {
+    emotion: "happy",
+    mouth: 0.28,
+    gaze: "cursor",
+    motion: "happy",
+    intensity: 0.72,
+    visualIntent: "happy"
+  },
+  think: {
+    emotion: "thinking",
+    mouth: 0.05,
+    gaze: "down-left",
+    motion: "think",
+    intensity: 0.48,
+    visualIntent: "thinking"
+  },
+  sad: {
+    emotion: "sad",
+    mouth: 0.08,
+    gaze: "down",
+    motion: "sad",
+    intensity: 0.56,
+    visualIntent: "sad"
+  },
+  comfort: {
+    emotion: "soft",
+    mouth: 0.18,
+    gaze: "cursor",
+    motion: "comfort",
+    intensity: 0.68,
+    visualIntent: "comfort"
+  },
+  speak: {
+    emotion: "engaged",
+    mouth: 0.65,
+    gaze: "cursor",
+    motion: "reply",
+    intensity: 0.76,
+    visualIntent: "speaking"
+  }
 };
 
 const SEQUENCE_TO_STATE = {
@@ -56,6 +98,7 @@ export function mapDialogueTurn(payload = {}) {
       tone: "reply",
       ttlMs: 5200
     },
+    visualIntent: payload.tts_state === "speaking" ? "speaking" : stateName,
     source: "dialogue.turn"
   };
 }

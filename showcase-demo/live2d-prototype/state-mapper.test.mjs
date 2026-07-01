@@ -26,6 +26,22 @@ function testThinkingStateCreatesThinkingBubble() {
   });
 }
 
+function testStateCarriesStableVisualIntent() {
+  assert.equal(mapAvatarState({ state: "speak" }).visualIntent, "speaking");
+  assert.equal(mapAvatarState({ state: "happy" }).visualIntent, "happy");
+}
+
+function testDialogueTurnCarriesSpeakingVisualIntent() {
+  const state = mapDialogueTurn({
+    response_text: "好的，我听见了。",
+    tts_state: "speaking"
+  });
+
+  assert.equal(state.visualIntent, "speaking");
+}
+
 testDialogueTurnCreatesShortReplyBubble();
 testThinkingStateCreatesThinkingBubble();
+testStateCarriesStableVisualIntent();
+testDialogueTurnCarriesSpeakingVisualIntent();
 console.log("state-mapper tests passed");

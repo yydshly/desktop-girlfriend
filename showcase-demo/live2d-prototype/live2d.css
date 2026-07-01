@@ -121,6 +121,7 @@ h2 {
 
 .avatar-stage.is-state-happy::after,
 .avatar-stage.is-state-reply::after,
+.avatar-stage.is-state-speaking::after,
 .avatar-stage.is-state-comfort::after {
   background: radial-gradient(circle, rgba(242, 166, 179, 0.34), transparent 62%);
   opacity: 1;

@@ -101,7 +101,7 @@ export class AvatarController {
       return;
     }
 
-    const stateClass = `is-state-${this.currentState.motion || this.currentState.emotion || "idle"}`;
+    const stateClass = `is-state-${this.currentState.visualIntent || this.currentState.motion || this.currentState.emotion || "idle"}`;
     this.stageElement.className = ["avatar-stage", stateClass].join(" ");
   }
 }

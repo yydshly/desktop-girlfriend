@@ -72,7 +72,23 @@ function testControllerMarksStageWithVisualStateClass() {
   assert.equal(stage.className, "avatar-stage is-state-happy");
 }
 
+function testControllerUsesVisualIntentForStageClass() {
+  const renderer = createRendererProbe();
+  const readout = createTextElement();
+  const bubble = createTextElement();
+  const stage = createStageElement();
+  const controller = new AvatarController(renderer, readout, bubble, stage);
+
+  controller.applyMappedState({
+    motion: "reply",
+    visualIntent: "speaking"
+  });
+
+  assert.equal(stage.className, "avatar-stage is-state-speaking");
+}
+
 testControllerRendersSpeechBubbleFromDialogueTurn();
 testControllerHidesBubbleForIdleStateWithoutBubble();
 testControllerMarksStageWithVisualStateClass();
+testControllerUsesVisualIntentForStageClass();
 console.log("avatar-controller tests passed");
