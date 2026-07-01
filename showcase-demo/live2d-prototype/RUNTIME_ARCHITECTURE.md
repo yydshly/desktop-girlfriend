@@ -23,6 +23,9 @@ Done:
   - model profile.json motion binding support
   - Character Contract v1 for stable semantic states, actions, and expressions
   - profile.json schemaVersion 1 mappings for model-specific action/expression adapters
+  - renderer-neutral Emotion State module
+  - semantic Behavior Planner module
+  - profile-backed Model Adapter module
   - PySide6 desktop WebView shell
   - local WebSocket bridge from the Python app to the Live2D page
   - runtime-app.js / debug-panel.js split with a thin live2d.js entrypoint
@@ -31,7 +34,7 @@ Not done yet:
   - profile-based expression aliases and parameter ranges
   - product-facing desktop controls and packaging polish
   - custom character production
-  - dedicated Emotion State and Model Adapter modules
+  - wiring the new Emotion State / Behavior Planner / Model Adapter chain into the active renderer path
 ```
 
 ## Target Runtime Flow
@@ -39,10 +42,9 @@ Not done yet:
 ```text
 User input / voice / mouse / desktop event
   -> Dialogue layer
-  -> Intent and emotion layer
-  -> Avatar state layer
-  -> Motion planner
-  -> Renderer adapter
+  -> Emotion State layer
+  -> Behavior Planner
+  -> Model Adapter
   -> Live2D model
   -> Desktop shell
 ```
@@ -68,35 +70,86 @@ Current protocol message:
 }
 ```
 
-### Avatar State Layer
+### Emotion State Layer
 
-Converts dialogue intent into stable character state.
+Converts bridge messages and dialogue intent into stable, renderer-neutral
+emotion state.
 
-Current state fields:
+Current module:
+
+```text
+emotion-state.js
+```
+
+Current state shape:
 
 ```json
 {
+  "state": "comfort",
   "emotion": "soft",
-  "mouth": 0.18,
+  "intensity": 0.68,
+  "activity": "comfort",
   "gaze": "cursor",
-  "motion": "comfort",
-  "intensity": 0.68
+  "mouth": 0.18,
+  "turn": {
+    "turnId": "turn-001",
+    "ttsState": "speaking"
+  }
 }
 ```
 
-This layer should stay independent from Live2D, VRM, or any specific renderer.
+This layer must stay independent from Live2D, VRM, or any specific renderer.
+It must not expose motion groups, motion indexes, or model expression names.
 
-### Motion Planner
+### Behavior Planner
 
-Chooses short behavior sequences from the current avatar state.
+Chooses semantic behavior intent from the current emotion state.
 
 Examples:
 
 ```text
-greet   -> happy expression + light head movement + wave motion
-listen  -> thinking expression + low mouth value + focused gaze
-reply   -> engaged expression + speaking mouth + subtle body motion
-comfort -> soft expression + slower movement + warm gaze
+speak   -> engaged expression + speaking mouth + cursor gaze
+think   -> thinking expression + low mouth value + down-left gaze
+comfort -> soft expression + slow return to idle
+greet   -> happy expression + greet action
+```
+
+Current module:
+
+```text
+behavior-planner.js
+```
+
+### Model Adapter
+
+Translates semantic behavior through the active model profile.
+
+Current module:
+
+```text
+model-adapter.js
+```
+
+Input:
+
+```json
+{
+  "action": "speak",
+  "expression": "engaged",
+  "intensity": 0.76,
+  "gaze": "cursor",
+  "mouth": 0.65
+}
+```
+
+Output:
+
+```json
+{
+  "motion": { "group": "TapBody", "index": 0, "action": "speak" },
+  "expression": { "name": "smile", "semantic": "engaged" },
+  "parameters": { "gaze": "cursor", "mouth": 0.65, "intensity": 0.76 }
+}
 ```
 
 ### Renderer Adapter
