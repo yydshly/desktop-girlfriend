@@ -103,6 +103,7 @@ export class Live2DRenderer {
 
       const PIXI = window.PIXI;
       const Live2DModel = getLive2DModelFactory(PIXI);
+      this.model = await inspectModelPackage(this.modelUrl);
       const app = new PIXI.Application({
         view: this.canvas,
         autoStart: true,
@@ -263,8 +264,10 @@ export class Live2DRenderer {
       return;
     }
 
-    this.idleMotionIndex = (this.idleMotionIndex + 1) % HIYORI_IDLE_MOTION_COUNT;
-    this.nextIdleMotionAt = now + HIYORI_IDLE_MOTION_INTERVAL_MS;
+    this.idleMotionIndex = (
+      this.idleMotionIndex + 1
+    ) % getMotionGroupCount(this.model?.motionGroupCounts, "Idle", DEFAULT_IDLE_MOTION_COUNT);
+    this.nextIdleMotionAt = now + IDLE_MOTION_INTERVAL_MS;
     this.playLive2DMotion({
       force: true,
       override: { group: "Idle", index: this.idleMotionIndex, source: "idle-auto" }
@@ -304,11 +307,14 @@ export class Live2DRenderer {
     }
 
     const now = performance.now();
-    if (!options.force && now - this.lastMotionPlayedAt < HIYORI_MOTION_COOLDOWN_MS) {
+    if (!options.force && now - this.lastMotionPlayedAt < MOTION_COOLDOWN_MS) {
       return;
     }
 
-    const motion = options.override || mapCommandToHiyoriMotion(this.lastCommands);
+    const motion = options.override || mapCommandToModelMotion(
+      this.lastCommands,
+      this.model?.motionGroupCounts
+    );
     const motionKey = `${motion.group}:${motion.index}:${motion.source}`;
     if (!options.force && motionKey === this.lastMotionKey) {
       return;
@@ -332,9 +338,9 @@ export class Live2DRenderer {
   }
 }
 
-const HIYORI_IDLE_MOTION_COUNT = 9;
-const HIYORI_IDLE_MOTION_INTERVAL_MS = 6500;
-const HIYORI_MOTION_COOLDOWN_MS = 650;
+const DEFAULT_IDLE_MOTION_COUNT = 9;
+const IDLE_MOTION_INTERVAL_MS = 6500;
+const MOTION_COOLDOWN_MS = 650;
 const EXPRESSIVE_RETURN_TO_IDLE_MS = 4200;
 
 function getLive2DModelFactory(PIXI) {
@@ -360,14 +366,31 @@ export function calculateLive2DPlacement(canvasSize, modelSize) {
   };
 }
 
-export function mapCommandToHiyoriMotion(command = {}) {
+export function mapCommandToModelMotion(command = {}, motionGroupCounts = null) {
   const motion = command.motion || "idle";
   const expressiveMotions = new Set(["greet", "happy", "reply", "comfort", "speak"]);
   if (expressiveMotions.has(motion)) {
-    return { group: "TapBody", index: 0, source: motion };
+    return {
+      group: hasMotionGroup(motionGroupCounts, "TapBody") ? "TapBody" : "Idle",
+      index: 0,
+      source: motion
+    };
   }
 
   return { group: "Idle", index: 0, source: motion };
+}
+
+function getMotionGroupCount(motionGroupCounts = {}, group, fallback) {
+  const count = Number(motionGroupCounts[group] ?? fallback);
+  return Number.isFinite(count) && count > 0 ? Math.floor(count) : fallback;
+}
+
+function hasMotionGroup(motionGroupCounts = null, group) {
+  if (!motionGroupCounts) {
+    return group === "TapBody";
+  }
+  const count = Number(motionGroupCounts[group] ?? 0);
+  return Number.isFinite(count) && count > 0;
 }
 
 export function shouldAutoRotateIdleMotion(command = {}) {

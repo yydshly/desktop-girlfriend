@@ -13,6 +13,12 @@ export async function inspectModelPackage(modelUrl) {
   const textures = references.Textures || [];
   const motions = references.Motions || {};
   const motionCount = Object.values(motions).reduce((count, group) => count + group.length, 0);
+  const motionGroupCounts = Object.fromEntries(
+    Object.entries(motions).map(([group, entries]) => [
+      group,
+      Array.isArray(entries) ? entries.length : 0
+    ])
+  );
 
   return {
     version: model.Version || "unknown",
@@ -22,6 +28,7 @@ export async function inspectModelPackage(modelUrl) {
     physics: references.Physics || "",
     pose: references.Pose || "",
     motionGroups: Object.keys(motions),
+    motionGroupCounts,
     motionCount,
     lipSyncIds: findGroupIds(model.Groups, "LipSync"),
     eyeBlinkIds: findGroupIds(model.Groups, "EyeBlink")

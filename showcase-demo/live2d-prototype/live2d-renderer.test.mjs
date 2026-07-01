@@ -4,6 +4,7 @@ import {
   calculateLive2DPlacement,
   getReturnToIdleDelayMs,
   Live2DRenderer,
+  mapCommandToModelMotion,
   shouldAutoRotateIdleMotion,
   smoothPointer
 } from "./adapters/live2d-renderer.js";
@@ -108,7 +109,19 @@ function testIdleStateTriggersIdleMotion() {
   assert.deepEqual(calls, [{ group: "Idle", index: 0 }]);
 }
 
+function testAbstractMotionUsesAvailableModelMotionGroups() {
+  assert.deepEqual(
+    mapCommandToModelMotion({ motion: "reply" }, { TapBody: 1, Idle: 3 }),
+    { group: "TapBody", index: 0, source: "reply" }
+  );
+  assert.deepEqual(
+    mapCommandToModelMotion({ motion: "reply" }, { Idle: 3 }),
+    { group: "Idle", index: 0, source: "reply" }
+  );
+}
+
 testSequenceTriggersTapBodyMotion();
+testAbstractMotionUsesAvailableModelMotionGroups();
 testIdleStateTriggersIdleMotion();
 
 function testSpeakingStateAnimatesMouthOpen() {
@@ -167,12 +180,35 @@ function testIdleMotionAutoRotates() {
   assert.deepEqual(calls, [{ group: "Idle", index: 1 }]);
 }
 
+function testIdleMotionAutoRotateUsesModelMotionCount() {
+  const renderer = new Live2DRenderer(createCanvasProbe());
+  const calls = [];
+  renderer.live2dModel = {
+    motion(group, index) {
+      calls.push({ group, index });
+    },
+    internalModel: {
+      coreModel: {
+        setParameterValueById() {}
+      }
+    }
+  };
+  renderer.model = { motionGroupCounts: { Idle: 2 } };
+  renderer.idleMotionIndex = 1;
+  renderer.lastCommands = { motion: "idle", parameters: {} };
+
+  renderer.advanceIdleMotion(7000);
+
+  assert.deepEqual(calls, [{ group: "Idle", index: 0 }]);
+}
+
 function testReplyMotionDoesNotAutoRotateIdle() {
   assert.equal(shouldAutoRotateIdleMotion({ motion: "reply" }), false);
   assert.equal(shouldAutoRotateIdleMotion({ motion: "idle" }), true);
 }
 
 testIdleMotionAutoRotates();
+testIdleMotionAutoRotateUsesModelMotionCount();
 testReplyMotionDoesNotAutoRotateIdle();
 
 function testPointerSmoothingMovesTowardTarget() {
