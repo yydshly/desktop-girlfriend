@@ -1,7 +1,7 @@
 import { AvatarController } from "./avatar-controller.js";
 import { createBridgeClient } from "./bridge-client.js";
 import { createBridgeStatus, updateBridgeStatus } from "./bridge-status.js";
-import { loadModelProfile } from "./model-profile.js";
+import { loadModelProfile, sanitizeDesktopPlacement } from "./model-profile.js";
 import { resolveModelUrlFromRoute } from "./live2d-model-route.js";
 import { inspectModelPackage } from "./model-package-inspector.js";
 import { buildModelExperimentTimeline } from "./model-experiment-runner.js";
@@ -12,6 +12,7 @@ import {
 import { createAvatarRenderer, getRendererLabel } from "./renderer-factory.js";
 
 const MOTION_BINDINGS_STORAGE_KEY_PREFIX = "desktop-girlfriend.live2d.motionBindings.v1:";
+const INTERACTION_TUNING_STORAGE_KEY_PREFIX = "desktop-girlfriend.live2d.interactionTuning.v1:";
 
 export function createLive2DRuntime({
   document,
@@ -31,6 +32,7 @@ export function createLive2DRuntime({
   let activeRendererMode = "live2d";
   let modelProfile = { displayName: "", motionBindings: {} };
   let profileDesktopPlacement = {};
+  let interactionTuningOverride = loadInteractionTuningOverride();
   let motionBindings = loadMotionBindingOverrides();
   let currentBridgeStatus = createBridgeStatus("ws://127.0.0.1:8879");
   let lastRendererStatus = {
@@ -123,6 +125,7 @@ export function createLive2DRuntime({
     configuredModelUrl = url;
     modelProfile = { displayName: "", motionBindings: {} };
     profileDesktopPlacement = {};
+    interactionTuningOverride = loadInteractionTuningOverride();
     motionBindings = loadMotionBindingOverrides();
     restartRenderer();
     loadProfileForCurrentModel();
@@ -240,11 +243,16 @@ export function createLive2DRuntime({
   }
 
   function applyInteractionTuning(tuning = {}) {
+    interactionTuningOverride = sanitizeDesktopPlacement({
+      ...interactionTuningOverride,
+      ...tuning
+    });
+    saveInteractionTuningOverride(interactionTuningOverride);
     modelProfile = {
       ...modelProfile,
       desktopPlacement: {
-        ...(modelProfile.desktopPlacement || {}),
-        ...tuning
+        ...profileDesktopPlacement,
+        ...interactionTuningOverride
       }
     };
     controller.renderer.setPlacementProfile?.(modelProfile.desktopPlacement || {});
@@ -252,6 +260,8 @@ export function createLive2DRuntime({
   }
 
   function resetInteractionTuning() {
+    interactionTuningOverride = {};
+    clearInteractionTuningOverride();
     modelProfile = {
       ...modelProfile,
       desktopPlacement: { ...profileDesktopPlacement }
@@ -263,6 +273,14 @@ export function createLive2DRuntime({
   async function loadProfileForCurrentModel() {
     modelProfile = await loadModelProfile(configuredModelUrl);
     profileDesktopPlacement = { ...(modelProfile.desktopPlacement || {}) };
+    interactionTuningOverride = loadInteractionTuningOverride();
+    modelProfile = {
+      ...modelProfile,
+      desktopPlacement: {
+        ...profileDesktopPlacement,
+        ...interactionTuningOverride
+      }
+    };
     controller.renderer.setMotionBindings?.(getEffectiveMotionBindings());
     controller.renderer.setPlacementProfile?.(modelProfile.desktopPlacement || {});
     listeners.onMotionBindingStatus();
@@ -271,6 +289,26 @@ export function createLive2DRuntime({
 
   function motionBindingsStorageKey() {
     return `${MOTION_BINDINGS_STORAGE_KEY_PREFIX}${configuredModelUrl}`;
+  }
+
+  function interactionTuningStorageKey() {
+    return `${INTERACTION_TUNING_STORAGE_KEY_PREFIX}${configuredModelUrl}`;
+  }
+
+  function loadInteractionTuningOverride() {
+    try {
+      return sanitizeDesktopPlacement(JSON.parse(window.localStorage.getItem(interactionTuningStorageKey()) || "{}"));
+    } catch {
+      return {};
+    }
+  }
+
+  function saveInteractionTuningOverride(tuning) {
+    window.localStorage.setItem(interactionTuningStorageKey(), JSON.stringify(tuning));
+  }
+
+  function clearInteractionTuningOverride() {
+    window.localStorage.removeItem?.(interactionTuningStorageKey());
   }
 
   function wireDesktopShortcuts() {

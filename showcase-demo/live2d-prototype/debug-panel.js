@@ -160,7 +160,7 @@ function wireInteractionTuningControls(elements, runtime) {
     input?.addEventListener("input", () => {
       const tuning = readInteractionTuning(elements);
       runtime.applyInteractionTuning(tuning);
-      renderInteractionTuning(elements, runtime, "Tuning applied.");
+      renderInteractionTuning(elements, runtime, "Tuning applied and saved.");
     });
   });
 

@@ -47,6 +47,7 @@ function createDocument(elements) {
 }
 
 function createRuntimeHarness() {
+  const storage = new Map();
   const elements = {
     "#avatarCanvas": createCanvas(),
     "#avatarStage": createElement(),
@@ -58,15 +59,16 @@ function createRuntimeHarness() {
     document: createDocument(elements),
     window: {
       localStorage: {
-        getItem: () => null,
-        setItem: () => {}
+        getItem: (key) => storage.get(key) ?? null,
+        setItem: (key, value) => storage.set(key, value),
+        removeItem: (key) => storage.delete(key)
       },
       addEventListener() {}
     },
     routeParams: new URLSearchParams(),
     mode: "showcase"
   });
-  return { runtime, elements };
+  return { runtime, elements, storage };
 }
 
 async function flushAsyncWork() {
@@ -147,7 +149,7 @@ async function testStartRefreshesPackageStatusAfterProfileLoads() {
 }
 
 async function testRuntimeAppliesAndResetsInteractionTuning() {
-  const { runtime } = createRuntimeHarness();
+  const { runtime, storage } = createRuntimeHarness();
   globalThis.window = {
     location: {
       href: "http://127.0.0.1:8786/live2d-prototype/"
@@ -187,14 +189,63 @@ async function testRuntimeAppliesAndResetsInteractionTuning() {
   runtime.applyInteractionTuning({ headTrackingMultiplier: 0.6 });
   assert.equal(runtime.getInteractionTuning().headTrackingMultiplier, 0.6);
   assert.equal(runtime.getInteractionTuning().eyeTrackingMultiplier, 1.2);
+  assert.ok([...storage.keys()].some((key) => key.includes("interactionTuning")));
 
   runtime.resetInteractionTuning();
 
   assert.equal(runtime.getInteractionTuning().headTrackingMultiplier, 1.1);
   assert.equal(runtime.getInteractionTuning().pointerFollowXRatio, 0.01);
+  assert.equal([...storage.keys()].some((key) => key.includes("interactionTuning")), false);
+}
+
+async function testRuntimeRestoresSavedInteractionTuningAfterProfileLoads() {
+  const { runtime, storage } = createRuntimeHarness();
+  storage.set(
+    "desktop-girlfriend.live2d.interactionTuning.v1:./assets/models/sample/Hiyori/Hiyori.model3.json",
+    JSON.stringify({ headTrackingMultiplier: 0.7, pointerFollowXRatio: 0.02 })
+  );
+  globalThis.window = {
+    location: {
+      href: "http://127.0.0.1:8786/live2d-prototype/"
+    }
+  };
+  globalThis.requestAnimationFrame = () => 0;
+  globalThis.cancelAnimationFrame = () => {};
+  globalThis.fetch = async (url) => {
+    const requestUrl = String(url);
+    if (requestUrl.endsWith("profile.json")) {
+      return {
+        ok: true,
+        async json() {
+          return {
+            displayName: "Candidate",
+            desktopPlacement: {
+              headTrackingMultiplier: 1.1,
+              eyeTrackingMultiplier: 1.2,
+              pointerFollowXRatio: 0.01
+            }
+          };
+        }
+      };
+    }
+    return {
+      ok: false,
+      status: 404,
+      statusText: "Not Found"
+    };
+  };
+
+  runtime.setRendererMode("placeholder");
+  runtime.start();
+  await flushAsyncWork();
+
+  assert.equal(runtime.getInteractionTuning().headTrackingMultiplier, 0.7);
+  assert.equal(runtime.getInteractionTuning().eyeTrackingMultiplier, 1.2);
+  assert.equal(runtime.getInteractionTuning().pointerFollowXRatio, 0.02);
 }
 
 testRuntimeRunsModelExperimentTimeline();
 await testStartRefreshesPackageStatusAfterProfileLoads();
 await testRuntimeAppliesAndResetsInteractionTuning();
+await testRuntimeRestoresSavedInteractionTuningAfterProfileLoads();
 console.log("runtime-app tests passed");

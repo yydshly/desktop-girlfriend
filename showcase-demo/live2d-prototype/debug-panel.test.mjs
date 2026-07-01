@@ -200,7 +200,7 @@ function testShowcasePanelAppliesInteractionTuning() {
   assert.equal(runtime.appliedInteractionTuning.headTrackingMultiplier, 1.25);
   assert.equal(runtime.appliedInteractionTuning.eyeTrackingMultiplier, 1);
   assert.equal(elements["#headTrackingValue"].textContent, "1.25");
-  assert.equal(elements["#interactionTuningStatus"].textContent, "Tuning applied.");
+  assert.equal(elements["#interactionTuningStatus"].textContent, "Tuning applied and saved.");
 }
 
 function testShowcasePanelResetsInteractionTuning() {
