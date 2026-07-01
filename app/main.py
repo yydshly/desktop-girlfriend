@@ -80,6 +80,11 @@ from app.ui.live2d_model_catalog import (
     render_live2d_model_import_guide,
     scan_live2d_model_catalog,
 )
+from app.ui.live2d_model_selection import (
+    default_live2d_model_selection_path,
+    load_selected_live2d_model_id,
+    save_selected_live2d_model_id,
+)
 from app.ui.onboarding_view import build_onboarding_view, render_onboarding_text
 from app.ui.product_status_builder import build_product_status_view
 from app.ui.qt_event_bridge import QtEventBridge
@@ -168,11 +173,23 @@ def main() -> None:
         / "models"
     )
     live2d_model_packages = scan_live2d_model_catalog(live2d_model_root)
+    live2d_model_selection_path = default_live2d_model_selection_path()
+    preferred_live2d_model_id = load_selected_live2d_model_id(
+        live2d_model_selection_path
+    )
     live2d_model_details = render_live2d_model_catalog_details(
         live2d_model_root,
         live2d_model_packages,
     )
-    view_model.set_live2d_model_options(build_live2d_model_options(live2d_model_packages))
+    view_model.set_live2d_model_options(
+        build_live2d_model_options(live2d_model_packages),
+        selected_model_id=preferred_live2d_model_id,
+    )
+    if view_model.selected_live2d_model_id:
+        save_selected_live2d_model_id(
+            live2d_model_selection_path,
+            view_model.selected_live2d_model_id,
+        )
     live2d_model_summary = render_live2d_model_catalog_summary(
         live2d_model_packages,
         selected_model_id=view_model.selected_live2d_model_id,
@@ -475,6 +492,7 @@ def main() -> None:
         if not view_model.select_live2d_model(model_id):
             logger.warning("Ignored unknown Live2D model selection model_id=%s", model_id)
             return
+        save_selected_live2d_model_id(live2d_model_selection_path, model_id)
         live2d_desktop_model_id = model_id
         view_model.set_live2d_model_catalog_summary(
             render_live2d_model_catalog_summary(
@@ -518,6 +536,11 @@ def main() -> None:
             )
         )
         live2d_desktop_model_id = view_model.selected_live2d_model_id
+        if live2d_desktop_model_id:
+            save_selected_live2d_model_id(
+                live2d_model_selection_path,
+                live2d_desktop_model_id,
+            )
         logger.info(
             "Live2D model catalog refreshed root=%s packages=%d selected_model_id=%s summary=%s",
             live2d_model_root,
