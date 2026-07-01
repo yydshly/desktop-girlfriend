@@ -170,11 +170,46 @@ function testPlacementAppliesPointerFollowOffset() {
   assert.deepEqual(placement.followOffset, { x: 39.6, y: -16.8, strength: 0.943 });
 }
 
+function testPlacementUsesUnscaledModelSizeAcrossRepeatedFrames() {
+  const renderer = new Live2DRenderer(createCanvasProbe());
+  const model = {
+    naturalWidth: 300,
+    naturalHeight: 1000,
+    scaleValue: 1,
+    get width() {
+      return this.naturalWidth * this.scaleValue;
+    },
+    get height() {
+      return this.naturalHeight * this.scaleValue;
+    },
+    scale: {
+      x: 1,
+      y: 1,
+      set(value) {
+        model.scaleValue = value;
+        this.x = value;
+        this.y = value;
+      }
+    },
+    position: {
+      set() {}
+    }
+  };
+  renderer.live2dModel = model;
+
+  const first = renderer.applyLive2DPlacement();
+  const second = renderer.applyLive2DPlacement();
+
+  assert.equal(first.scale, 1.296);
+  assert.equal(second.scale, 1.296);
+}
+
 testPointerFollowOffsetMovesModelVisibly();
 testPointerFollowOffsetCanBeDisabled();
 testPointerReactionEffectCreatesClickPulse();
 testPointerReactionEffectExpires();
 testPlacementAppliesPointerFollowOffset();
+testPlacementUsesUnscaledModelSizeAcrossRepeatedFrames();
 
 function testSequenceTriggersTapBodyMotion() {
   const renderer = new Live2DRenderer(createCanvasProbe());

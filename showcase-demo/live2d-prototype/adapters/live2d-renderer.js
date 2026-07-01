@@ -173,7 +173,7 @@ export class Live2DRenderer {
     }
     const placement = calculateLive2DPlacement(
       { width: this.canvas.width, height: this.canvas.height },
-      { width: model.width, height: model.height },
+      getUnscaledLive2DModelSize(model),
       this.placementProfile
     );
     const followOffset = calculatePointerFollowOffset(
@@ -458,6 +458,28 @@ function getLive2DModelFactory(PIXI) {
     throw new Error("PIXI Live2D Cubism 4 model loader is missing.");
   }
   return Live2DModel;
+}
+
+function getUnscaledLive2DModelSize(model) {
+  const internalWidth = readPositiveNumber(model?.internalModel?.width)
+    ?? readPositiveNumber(model?.internalModel?.originalWidth);
+  const internalHeight = readPositiveNumber(model?.internalModel?.height)
+    ?? readPositiveNumber(model?.internalModel?.originalHeight);
+  if (internalWidth && internalHeight) {
+    return { width: internalWidth, height: internalHeight };
+  }
+
+  const scaleX = readPositiveNumber(model?.scale?.x) ?? 1;
+  const scaleY = readPositiveNumber(model?.scale?.y) ?? 1;
+  return {
+    width: readPositiveNumber(Number(model?.width) / scaleX) ?? readPositiveNumber(model?.width) ?? 1,
+    height: readPositiveNumber(Number(model?.height) / scaleY) ?? readPositiveNumber(model?.height) ?? 1
+  };
+}
+
+function readPositiveNumber(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
 }
 
 export function calculateLive2DPlacement(canvasSize, modelSize, placementProfile = {}) {
