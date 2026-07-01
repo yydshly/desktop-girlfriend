@@ -127,6 +127,7 @@ function testStateAppliesLive2DExpression() {
   renderer.applyState({ motion: "happy", emotion: "happy" });
 
   assert.deepEqual(expressions, ["happy"]);
+  assert.equal(renderer.activeExpression, "happy");
 }
 
 function testStateDoesNotRepeatSameLive2DExpression() {

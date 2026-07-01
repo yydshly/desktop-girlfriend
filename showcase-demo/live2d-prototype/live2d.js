@@ -19,6 +19,7 @@ const sdkStatus = document.querySelector("#sdkStatus");
 const summaryRenderer = document.querySelector("#summaryRenderer");
 const summaryModel = document.querySelector("#summaryModel");
 const summaryMotion = document.querySelector("#summaryMotion");
+const summaryExpression = document.querySelector("#summaryExpression");
 const summarySdk = document.querySelector("#summarySdk");
 const setModelUrl = document.querySelector("#setModelUrl");
 const bridgeUrl = document.querySelector("#bridgeUrl");
@@ -88,6 +89,7 @@ function updateRendererStatus() {
   summaryMotion.textContent = lastRendererStatus.activeMotion?.group
     ? `${lastRendererStatus.activeMotion.group}[${lastRendererStatus.activeMotion.index}]`
     : "none";
+  summaryExpression.textContent = lastRendererStatus.activeExpression || "none";
   summarySdk.textContent = sdk.ready ? "ready" : `missing ${sdk.missing.length}`;
   if (activeRendererMode === "live2d") {
     modelStatus.textContent = [

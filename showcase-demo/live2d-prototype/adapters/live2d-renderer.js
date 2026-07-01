@@ -22,6 +22,7 @@ export class Live2DRenderer {
     this.lastCommands = mapStateToLive2DCommands();
     this.lastMotionKey = "";
     this.lastExpressionKey = "";
+    this.activeExpression = "";
     this.activeMotion = { group: "", index: 0, source: "" };
     this.raf = 0;
     this.idleMotionIndex = 0;
@@ -343,6 +344,8 @@ export class Live2DRenderer {
 
     this.live2dModel.expression(expression);
     this.lastExpressionKey = expression;
+    this.activeExpression = expression;
+    this.emitStatus();
   }
 
   emitStatus() {
@@ -351,7 +354,8 @@ export class Live2DRenderer {
       loadError: this.loadError,
       modelUrl: this.modelUrl,
       hasLive2DModel: Boolean(this.live2dModel),
-      activeMotion: this.activeMotion
+      activeMotion: this.activeMotion,
+      activeExpression: this.activeExpression
     });
   }
 }
