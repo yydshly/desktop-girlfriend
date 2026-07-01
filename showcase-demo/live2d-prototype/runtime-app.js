@@ -4,6 +4,7 @@ import { createBridgeStatus, updateBridgeStatus } from "./bridge-status.js";
 import { loadModelProfile } from "./model-profile.js";
 import { resolveModelUrlFromRoute } from "./live2d-model-route.js";
 import { inspectModelPackage } from "./model-package-inspector.js";
+import { buildModelExperimentTimeline } from "./model-experiment-runner.js";
 import {
   parseMotionBindingsText,
   serializeMotionBindings
@@ -134,6 +135,26 @@ export function createLive2DRuntime({
     controller.playMotionProbe(group, index);
   }
 
+  function runModelExperiment(options = {}) {
+    const timeline = buildModelExperimentTimeline(modelProfile, options);
+    timeline.forEach((step) => {
+      controller.applyMappedState(
+        {
+          state: step.state,
+          emotion: step.emotionState.emotion,
+          intensity: step.emotionState.intensity,
+          gaze: step.emotionState.gaze,
+          mouth: step.emotionState.mouth,
+          motion: step.behavior.action,
+          source: "model-experiment",
+          experimentStep: step.index
+        },
+        step.emotionState
+      );
+    });
+    return timeline;
+  }
+
   function bindActiveMotion(state) {
     const motion = lastRendererStatus.activeMotion;
     if (!motion?.group) {
@@ -252,6 +273,7 @@ export function createLive2DRuntime({
     applyState,
     playSequence,
     playMotionProbe,
+    runModelExperiment,
     bindActiveMotion,
     applyMotionBindings,
     clearMotionBindings,
