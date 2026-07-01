@@ -250,7 +250,7 @@ export class Live2DRenderer {
     }
 
     const parameters = calculateAnimatedLive2DParameters(
-      this.lastCommands.parameters,
+      mergeAdapterParameters(this.lastCommands.parameters, this.currentState),
       this.lastCommands,
       performance.now()
     );
@@ -458,6 +458,34 @@ function resolveAdapterMotion(state = {}) {
 function resolveAdapterExpression(state = {}) {
   const expression = state.modelCommands?.expression?.name;
   return typeof expression === "string" ? expression.trim() : "";
+}
+
+function mergeAdapterParameters(parameters = {}, state = {}) {
+  const adapterParameters = state.modelCommands?.parameters;
+  if (!adapterParameters) {
+    return parameters;
+  }
+
+  const next = { ...parameters };
+  const mouth = readUnitParameter(adapterParameters.mouth);
+  if (mouth !== null) {
+    next.ParamMouthOpenY = roundToThree(mouth);
+  }
+
+  const intensity = readUnitParameter(adapterParameters.intensity);
+  if (intensity !== null) {
+    next.ParamBreath = roundToThree(0.5 + intensity * 0.5);
+  }
+
+  return next;
+}
+
+function readUnitParameter(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return null;
+  }
+  return Math.min(1, Math.max(0, number));
 }
 
 export function mapCommandToModelMotion(command = {}, motionGroupCounts = null, motionBindings = {}) {
