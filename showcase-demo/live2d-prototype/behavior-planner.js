@@ -22,18 +22,18 @@ const IDLE_BEHAVIOR = Object.freeze({
 
 const RETURN_TO_IDLE_MS = 4200;
 
-export function planBehaviorFromEmotionState(emotionState = {}) {
+export function planBehaviorFromEmotionState(emotionState = {}, attentionState = null) {
   const expression = normalizeCharacterExpression(
     EXPRESSION_BY_EMOTION[emotionState.emotion] || emotionState.emotion || "neutral"
   );
+  const gaze = resolveBehaviorGaze(emotionState, attentionState);
   return {
     action: normalizeCharacterAction(emotionState.activity || "idle"),
     expression,
     intensity: clamp01(emotionState.intensity ?? IDLE_BEHAVIOR.intensity),
-    gaze: typeof emotionState.gaze === "string" && emotionState.gaze.trim()
-      ? emotionState.gaze.trim()
-      : IDLE_BEHAVIOR.gaze,
-    mouth: clamp01(emotionState.mouth ?? IDLE_BEHAVIOR.mouth)
+    gaze,
+    mouth: clamp01(emotionState.mouth ?? IDLE_BEHAVIOR.mouth),
+    ...(attentionState ? { attention: attentionState } : {})
   };
 }
 
@@ -60,4 +60,14 @@ function clamp01(value) {
     return 0;
   }
   return Math.min(1, Math.max(0, number));
+}
+
+function resolveBehaviorGaze(emotionState = {}, attentionState = null) {
+  if (typeof attentionState?.gaze === "string" && attentionState.gaze.trim()) {
+    return attentionState.gaze.trim();
+  }
+  if (typeof emotionState.gaze === "string" && emotionState.gaze.trim()) {
+    return emotionState.gaze.trim();
+  }
+  return IDLE_BEHAVIOR.gaze;
 }

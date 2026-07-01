@@ -129,8 +129,15 @@ function testControllerStoresEmotionAndBehaviorForMappedState() {
     action: "speak",
     expression: "engaged",
     intensity: 0.76,
-    gaze: "cursor",
-    mouth: 0.65
+    gaze: "user",
+    mouth: 0.65,
+    attention: {
+      target: "user",
+      source: "speaking",
+      gaze: "user",
+      bodyFollow: "soft",
+      intensity: 0.55
+    }
   });
 }
 
@@ -169,7 +176,7 @@ function testControllerStoresModelCommandsWhenProfileProviderExists() {
       semantic: "engaged"
     },
     parameters: {
-      gaze: "cursor",
+      gaze: "user",
       mouth: 0.65,
       intensity: 0.76
     }
@@ -203,6 +210,29 @@ function testControllerTriggersPointerReactionFromEvent() {
   assert.deepEqual(renderer.pointerReaction, { x: 0.5, y: -0.5 });
 }
 
+function testControllerPassesPointerStateToRuntimeAttention() {
+  const renderer = createRendererProbe();
+  const readout = createTextElement();
+  const stage = createStageElement();
+  const controller = new AvatarController(renderer, readout, null, stage);
+
+  controller.setPointerFromEvent(
+    { clientX: 160, clientY: 45 },
+    stage
+  );
+  controller.applyStateName("thinking");
+
+  const applied = renderer.appliedStates.at(-1);
+  assert.deepEqual(applied.attentionState, {
+    target: "cursor",
+    source: "pointer",
+    gaze: "cursor",
+    bodyFollow: "soft",
+    intensity: 0.45
+  });
+  assert.equal(applied.behavior.gaze, "cursor");
+}
+
 testControllerRendersSpeechBubbleFromDialogueTurn();
 testControllerHidesBubbleForIdleStateWithoutBubble();
 testControllerMarksStageWithVisualStateClass();
@@ -211,4 +241,5 @@ testControllerStoresEmotionAndBehaviorForMappedState();
 testControllerStoresModelCommandsWhenProfileProviderExists();
 testControllerPlaysMotionProbe();
 testControllerTriggersPointerReactionFromEvent();
+testControllerPassesPointerStateToRuntimeAttention();
 console.log("avatar-controller tests passed");

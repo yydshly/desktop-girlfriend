@@ -38,7 +38,14 @@ function testRuntimeStateBuildsBehaviorAndModelCommands() {
     expression: "engaged",
     intensity: 0.76,
     gaze: "cursor",
-    mouth: 0.65
+    mouth: 0.65,
+    attention: {
+      target: "cursor",
+      source: "speaking",
+      gaze: "cursor",
+      bodyFollow: "soft",
+      intensity: 0.55
+    }
   });
   assert.deepEqual(state.modelCommands.motion, {
     group: "Talk",
@@ -85,8 +92,47 @@ function testExplicitEmotionStateOverridesMappedStatePreset() {
     name: "think",
     semantic: "thinking"
   });
+  assert.deepEqual(state.attentionState, {
+    target: "down-left",
+    source: "thinking",
+    gaze: "down-left",
+    bodyFollow: "minimal",
+    intensity: 0.34
+  });
+}
+
+function testPointerStateOverridesRuntimeAttention() {
+  const state = buildCharacterRuntimeState({
+    mappedState: {
+      state: "thinking"
+    },
+    pointerState: {
+      available: true,
+      active: true,
+      x: 0.4,
+      y: -0.2
+    },
+    profile: {
+      mappings: {
+        actions: {
+          think: { group: "Idle", index: 3 }
+        }
+      }
+    },
+    updatedAt: "2026-07-02T00:00:00.000Z"
+  });
+
+  assert.deepEqual(state.attentionState, {
+    target: "cursor",
+    source: "pointer",
+    gaze: "cursor",
+    bodyFollow: "soft",
+    intensity: 0.45
+  });
+  assert.equal(state.behavior.gaze, "cursor");
 }
 
 testRuntimeStateBuildsBehaviorAndModelCommands();
 testExplicitEmotionStateOverridesMappedStatePreset();
+testPointerStateOverridesRuntimeAttention();
 console.log("character-runtime tests passed");

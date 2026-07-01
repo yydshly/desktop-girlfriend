@@ -44,7 +44,21 @@ function testTimelineBuildsEmotionBehaviorAndAdapterCommands() {
     expression: "engaged",
     intensity: 0.76,
     gaze: "cursor",
-    mouth: 0.65
+    mouth: 0.65,
+    attention: {
+      target: "cursor",
+      source: "speaking",
+      gaze: "cursor",
+      bodyFollow: "soft",
+      intensity: 0.55
+    }
+  });
+  assert.deepEqual(timeline[2].attentionState, {
+    target: "down-left",
+    source: "thinking",
+    gaze: "down-left",
+    bodyFollow: "minimal",
+    intensity: 0.34
   });
   assert.deepEqual(timeline[3].modelCommands, {
     motion: { group: "TapBody", index: 0, action: "speak" },

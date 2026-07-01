@@ -1,6 +1,7 @@
 import { planBehaviorFromEmotionState } from "./behavior-planner.js";
 import { normalizeEmotionState } from "./emotion-state.js";
 import { adaptBehaviorToModelCommands } from "./model-adapter.js";
+import { resolveAttentionState } from "./attention-system.js";
 
 const DEFAULT_STEP_DURATION_MS = 3200;
 const DEFAULT_EXPERIMENT_STATES = Object.freeze([
@@ -25,13 +26,18 @@ export function buildModelExperimentTimeline(profile = {}, options = {}) {
 
   return states.map((state, index) => {
     const emotionState = normalizeEmotionState({ state });
-    const behavior = planBehaviorFromEmotionState(emotionState);
+    const attentionState = resolveAttentionState({
+      emotionState,
+      pointerState: options.pointerState || {}
+    });
+    const behavior = planBehaviorFromEmotionState(emotionState, attentionState);
     return {
       index,
       state: emotionState.state,
       atMs: index * durationMs,
       durationMs,
       emotionState,
+      attentionState,
       behavior,
       modelCommands: adaptBehaviorToModelCommands(behavior, profile)
     };

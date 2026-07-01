@@ -10,6 +10,12 @@ export class AvatarController {
     this.stageElement = stageElement;
     this.getModelProfile = options.getModelProfile || (() => ({}));
     this.bubbleTimer = 0;
+    this.pointerState = {
+      available: false,
+      active: false,
+      x: 0,
+      y: 0
+    };
     this.currentState = {
       emotion: "neutral",
       mouth: 0,
@@ -63,6 +69,12 @@ export class AvatarController {
     const rect = element.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
     const y = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
+    this.pointerState = {
+      available: true,
+      active: true,
+      x,
+      y
+    };
     this.renderer.setPointer(x, y);
   }
 
@@ -70,6 +82,12 @@ export class AvatarController {
     const rect = element.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
     const y = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
+    this.pointerState = {
+      available: true,
+      active: true,
+      x,
+      y
+    };
     this.renderer.setPointer(x, y);
     this.renderer.triggerPointerReaction?.(x, y);
   }
@@ -79,6 +97,7 @@ export class AvatarController {
       previousState: this.currentState,
       mappedState: nextState,
       emotionState,
+      pointerState: this.pointerState,
       profile: this.getModelProfile()
     });
     this.renderer.applyState(this.currentState);
