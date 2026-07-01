@@ -3,6 +3,7 @@
 ## Current Project Map
 
 - Execution plan: [PROJECT_EXECUTION_PLAN.md](./docs/PROJECT_EXECUTION_PLAN.md)
+- Character runtime boundary: [CHARACTER_RUNTIME_BOUNDARY.md](./docs/CHARACTER_RUNTIME_BOUNDARY.md)
 - Current next module: `Character Runtime Boundary convergence`
 - Live2D showcase: `http://127.0.0.1:8786/live2d-prototype/`
 - Custom model guide: [CUSTOM_MODEL_GUIDE.md](./showcase-demo/live2d-prototype/CUSTOM_MODEL_GUIDE.md)

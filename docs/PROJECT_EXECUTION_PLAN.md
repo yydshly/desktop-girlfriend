@@ -54,6 +54,9 @@ The current branch has completed or mostly completed:
 13. Model intake / candidate scoring / debug panel foundation
 14. Passive behavior scheduling for hover, ambient, tap, and suppression windows
 15. Behavior event log in the debug panel
+16. Character Runtime pipeline entrypoint in `character-runtime.js`
+17. Motion Probe overrides routed through effective profile into Model Adapter
+18. Profile-aware model candidate scoring for non-Idle / non-TapBody motion names
 ```
 
 This means the project is currently between:
@@ -373,7 +376,15 @@ Acceptance:
 5. passive / hover / ambient / idle / speaking ownership is explicit.
 ```
 
+Current boundary document:
+
+```text
+docs/CHARACTER_RUNTIME_BOUNDARY.md
+```
+
 ### P1. Fix Motion Override And Adapter Path
+
+Status: done.
 
 Goal:
 
@@ -389,6 +400,8 @@ Acceptance:
 ```
 
 ### P1. Make Model Evaluation Profile-Aware
+
+Status: done.
 
 Goal:
 
