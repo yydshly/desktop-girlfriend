@@ -897,6 +897,33 @@ function testHoverDwellDoesNotOverrideActiveTapReaction() {
   assert.deepEqual(renderer.pointerReaction, { startedAt: 1800, durationMs: 1200, x: 0.6, y: -0.4 });
 }
 
+function testTapSuppressesPassiveBehaviorBriefly() {
+  const renderer = new Live2DRenderer(createCanvasProbe());
+  renderer.lastCommands = { motion: "idle", parameters: {} };
+  renderer.pointer = { x: 0.1, y: -0.1 };
+  renderer.hasPointerInput = true;
+  renderer.triggerPointerReaction(0.1, -0.1, 1000);
+  renderer.pointerReaction = { startedAt: 0, x: 0, y: 0 };
+
+  renderer.advancePassiveBehavior(2399);
+
+  assert.equal(renderer.pointerReaction.startedAt, 0);
+  assert.equal(renderer.hoverDwellStartedAt, 0);
+}
+
+function testExpressiveStateSuppressesPassiveBehaviorUntilAfterReturn() {
+  const renderer = new Live2DRenderer(createCanvasProbe());
+  renderer.pointer = { x: 0.1, y: -0.1 };
+  renderer.hasPointerInput = true;
+
+  renderer.applyState({ motion: "happy", emotion: "happy" });
+  renderer.lastCommands = { motion: "idle", parameters: {} };
+  renderer.advancePassiveBehavior(2401);
+
+  assert.ok(renderer.passiveSuppressedUntil > 5000);
+  assert.equal(renderer.pointerReaction.startedAt, 0);
+}
+
 function testBehaviorEventsAreExposedInRendererStatus() {
   const statuses = [];
   const renderer = new Live2DRenderer(createCanvasProbe(), {
@@ -934,6 +961,8 @@ testHoverDwellIgnoresLargePointerDistance();
 testHoverDwellDoesNotStartBeforePointerInput();
 testHoverDwellDoesNotInterruptReply();
 testHoverDwellDoesNotOverrideActiveTapReaction();
+testTapSuppressesPassiveBehaviorBriefly();
+testExpressiveStateSuppressesPassiveBehaviorUntilAfterReturn();
 testBehaviorEventsAreExposedInRendererStatus();
 testBehaviorEventLogKeepsRecentEvents();
 

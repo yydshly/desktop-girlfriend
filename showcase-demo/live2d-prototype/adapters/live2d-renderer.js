@@ -45,6 +45,7 @@ export class Live2DRenderer {
     this.nextHoverReactionAt = 0;
     this.nextAmbientGestureAt = Infinity;
     this.ambientGestureIndex = 0;
+    this.passiveSuppressedUntil = 0;
     this.behaviorEvents = [];
   }
 
@@ -80,6 +81,7 @@ export class Live2DRenderer {
     this.hasPointerInput = true;
     this.hoverDwellStartedAt = 0;
     this.nextHoverReactionAt = now + HOVER_REACTION_COOLDOWN_MS;
+    this.passiveSuppressedUntil = Math.max(this.passiveSuppressedUntil, now + TAP_PASSIVE_SUPPRESSION_MS);
     this.recordBehaviorEvent("pointer.tap", {
       x: this.pointerReaction.x,
       y: this.pointerReaction.y
@@ -91,12 +93,14 @@ export class Live2DRenderer {
   }
 
   applyState(nextState) {
+    const now = performance.now();
     this.currentState = nextState;
     this.lastCommands = mapStateToLive2DCommands(nextState, this.pointer, this.placementProfile);
     this.applyLive2DCommands();
     this.applyLive2DExpression();
     this.playLive2DMotion();
-    this.scheduleReturnToIdle(performance.now());
+    this.scheduleReturnToIdle(now);
+    this.suppressPassiveBehaviorForState(now);
     this.draw();
     return this.lastCommands;
   }
@@ -359,7 +363,8 @@ export class Live2DRenderer {
       nextHoverReactionAt: this.nextHoverReactionAt,
       nextAmbientGestureAt: this.nextAmbientGestureAt,
       ambientGestureIndex: this.ambientGestureIndex,
-      ambientIntervalMs: getAmbientGestureIntervalMs(this.placementProfile)
+      ambientIntervalMs: getAmbientGestureIntervalMs(this.placementProfile),
+      passiveSuppressedUntil: this.passiveSuppressedUntil
     });
     this.hoverDwellStartedAt = schedule.hoverDwellStartedAt;
     this.nextHoverReactionAt = schedule.nextHoverReactionAt;
@@ -414,6 +419,17 @@ export class Live2DRenderer {
   scheduleReturnToIdle(now) {
     const delay = getReturnToIdleDelayMs(this.lastCommands);
     this.returnToIdleAt = delay > 0 ? now + delay : 0;
+  }
+
+  suppressPassiveBehaviorForState(now) {
+    const delay = getReturnToIdleDelayMs(this.lastCommands);
+    if (delay <= 0) {
+      return;
+    }
+    this.passiveSuppressedUntil = Math.max(
+      this.passiveSuppressedUntil,
+      now + delay + EXPRESSIVE_PASSIVE_SUPPRESSION_TAIL_MS
+    );
   }
 
   advanceReturnToIdle(now) {
@@ -545,6 +561,8 @@ const DEFAULT_IDLE_MOTION_COUNT = 9;
 const IDLE_MOTION_INTERVAL_MS = 6500;
 const MOTION_COOLDOWN_MS = 650;
 const EXPRESSIVE_RETURN_TO_IDLE_MS = 4200;
+const EXPRESSIVE_PASSIVE_SUPPRESSION_TAIL_MS = 900;
+const TAP_PASSIVE_SUPPRESSION_MS = 1400;
 const MAX_BEHAVIOR_EVENTS = 12;
 
 function getLive2DModelFactory(PIXI) {

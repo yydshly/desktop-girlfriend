@@ -193,6 +193,29 @@ function testPassiveScheduleFallsThroughToAmbient() {
   assert.equal(result.ambientGestureIndex, 1);
 }
 
+function testPassiveScheduleHonorsSuppressionWindow() {
+  const result = updatePassiveBehaviorSchedule({
+    now: 7201,
+    pointer: { x: 0.2, y: -0.1 },
+    command: { motion: "idle" },
+    hasPointerInput: true,
+    hoverDwellStartedAt: 5000,
+    nextAmbientGestureAt: 7200,
+    ambientGestureIndex: 0,
+    passiveSuppressedUntil: 8000
+  });
+
+  assert.deepEqual(result, {
+    hoverDwellStartedAt: 0,
+    nextHoverReactionAt: 0,
+    nextAmbientGestureAt: 7200,
+    ambientGestureIndex: 0,
+    reaction: null,
+    eventType: "",
+    eventDetail: null
+  });
+}
+
 testPassiveBehaviorAllowsQuietStates();
 testPassiveBehaviorBlocksExpressiveStates();
 testPointerNearAvatarCenterUsesRadius();
@@ -206,4 +229,5 @@ testAmbientGestureDoesNotOverrideActiveReaction();
 testAmbientGestureUsesDefaultIntervalFallback();
 testPassiveSchedulePrioritizesHoverOverAmbient();
 testPassiveScheduleFallsThroughToAmbient();
+testPassiveScheduleHonorsSuppressionWindow();
 console.log("passive-behavior-scheduler tests passed");

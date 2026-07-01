@@ -148,8 +148,21 @@ export function updatePassiveBehaviorSchedule({
   nextHoverReactionAt = 0,
   nextAmbientGestureAt = 0,
   ambientGestureIndex = 0,
-  ambientIntervalMs = AMBIENT_GESTURE_INTERVAL_MS
+  ambientIntervalMs = AMBIENT_GESTURE_INTERVAL_MS,
+  passiveSuppressedUntil = 0
 } = {}) {
+  if (now < passiveSuppressedUntil) {
+    return {
+      hoverDwellStartedAt: 0,
+      nextHoverReactionAt,
+      nextAmbientGestureAt,
+      ambientGestureIndex,
+      reaction: null,
+      eventType: "",
+      eventDetail: null
+    };
+  }
+
   const hover = updateHoverDwellSchedule({
     now,
     pointer,
