@@ -99,6 +99,7 @@ class DesktopWindow(QMainWindow):
         on_live2d_position_reset_requested: Callable[[], None] | None = None,
         on_live2d_model_selected: Callable[[str], None] | None = None,
         on_live2d_models_refresh_requested: Callable[[], None] | None = None,
+        on_live2d_models_folder_requested: Callable[[], None] | None = None,
         memory_management_enabled: bool = False,
     ) -> None:
         super().__init__()
@@ -123,6 +124,7 @@ class DesktopWindow(QMainWindow):
         self._on_live2d_position_reset_requested = on_live2d_position_reset_requested
         self._on_live2d_model_selected = on_live2d_model_selected
         self._on_live2d_models_refresh_requested = on_live2d_models_refresh_requested
+        self._on_live2d_models_folder_requested = on_live2d_models_folder_requested
         self._memory_management_enabled = memory_management_enabled
         self._drag_origin = None
         self._window_origin = None
@@ -271,6 +273,14 @@ class DesktopWindow(QMainWindow):
             self._on_live2d_models_refresh_clicked
         )
         layout.addWidget(self._live2d_model_refresh_button)
+        self._live2d_open_models_folder_button = QPushButton("打开模型目录")
+        self._live2d_open_models_folder_button.setStyleSheet(
+            window_style.SECONDARY_BUTTON_STYLE
+        )
+        self._live2d_open_models_folder_button.clicked.connect(
+            self._on_live2d_open_models_folder_clicked
+        )
+        layout.addWidget(self._live2d_open_models_folder_button)
         self._live2d_model_details_label = QLabel(
             self._view_model.live2d_model_catalog_details
         )
@@ -671,6 +681,10 @@ class DesktopWindow(QMainWindow):
     def _on_live2d_models_refresh_clicked(self) -> None:
         if self._on_live2d_models_refresh_requested:
             self._on_live2d_models_refresh_requested()
+
+    def _on_live2d_open_models_folder_clicked(self) -> None:
+        if self._on_live2d_models_folder_requested:
+            self._on_live2d_models_folder_requested()
 
     def _sync_live2d_model_selector(self) -> None:
         selector = self._live2d_model_selector

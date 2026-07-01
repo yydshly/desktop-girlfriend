@@ -7,7 +7,8 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Protocol
 
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QTimer, QUrl
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QApplication
 
 from app.brain.async_dialogue_controller import AsyncDialogueController
@@ -497,6 +498,17 @@ def main() -> None:
         _restart_live2d_desktop()
         window.update_from_view_model()
 
+    def _on_live2d_models_folder_requested() -> None:
+        live2d_model_root.mkdir(parents=True, exist_ok=True)
+        opened = QDesktopServices.openUrl(
+            QUrl.fromLocalFile(str(live2d_model_root))
+        )
+        logger.info(
+            "Live2D models folder open requested root=%s opened=%s",
+            live2d_model_root,
+            opened,
+        )
+
     window = DesktopWindow(
         view_model,
         on_user_text_submitted=submit_user_text,
@@ -519,6 +531,7 @@ def main() -> None:
         on_live2d_position_reset_requested=_on_live2d_position_reset_requested,
         on_live2d_model_selected=_on_live2d_model_selected,
         on_live2d_models_refresh_requested=_on_live2d_models_refresh_requested,
+        on_live2d_models_folder_requested=_on_live2d_models_folder_requested,
         memory_management_enabled=config.memory_management_enabled,
     )
 

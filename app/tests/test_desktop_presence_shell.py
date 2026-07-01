@@ -429,6 +429,26 @@ class TestWindowPresenceShell:
         assert calls == ["refresh"]
 
     @staticmethod
+    def test_live2d_open_models_folder_button_triggers_callback(
+        qapp: QApplication,
+    ) -> None:
+        """Desktop window can request opening the local Live2D models folder."""
+        calls = []
+        vm = DesktopViewModel()
+        window = DesktopWindow(
+            view_model=vm,
+            on_user_text_submitted=lambda text: None,
+            on_conversation_cleared=lambda: None,
+            on_live2d_models_folder_requested=lambda: calls.append("open"),
+        )
+        window.show()
+
+        window._live2d_open_models_folder_button.click()
+        qapp.processEvents()
+
+        assert calls == ["open"]
+
+    @staticmethod
     def test_status_button_first_click_opens_panel(qapp: QApplication) -> None:
         """First click on status button opens the panel."""
         vm = DesktopViewModel()
