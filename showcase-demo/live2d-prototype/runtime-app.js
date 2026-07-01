@@ -148,7 +148,7 @@ export function createLive2DRuntime({
   }
 
   function runModelExperiment(options = {}) {
-    const timeline = buildModelExperimentTimeline(modelProfile, options);
+    const timeline = buildModelExperimentTimeline(getEffectiveModelProfile(), options);
     timeline.forEach((step) => {
       controller.applyMappedState(
         {

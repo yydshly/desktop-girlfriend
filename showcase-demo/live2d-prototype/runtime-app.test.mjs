@@ -299,9 +299,62 @@ async function testRuntimeUsesMotionOverridesInModelAdapterPath() {
   });
 }
 
+async function testModelExperimentUsesEffectiveProfileMotionOverrides() {
+  const { runtime } = createRuntimeHarness();
+  globalThis.window = {
+    location: {
+      href: "http://127.0.0.1:8786/live2d-prototype/"
+    }
+  };
+  globalThis.requestAnimationFrame = () => 0;
+  globalThis.cancelAnimationFrame = () => {};
+  globalThis.fetch = async (url) => {
+    const requestUrl = String(url);
+    if (requestUrl.endsWith("profile.json")) {
+      return {
+        ok: true,
+        async json() {
+          return {
+            displayName: "Candidate",
+            mappings: {
+              actions: {
+                idle: { group: "Idle", index: 0 },
+                speak: { group: "TapBody", index: 0 }
+              }
+            }
+          };
+        }
+      };
+    }
+    return {
+      ok: false,
+      status: 404,
+      statusText: "Not Found"
+    };
+  };
+
+  runtime.setRendererMode("placeholder");
+  runtime.start();
+  await flushAsyncWork();
+
+  runtime.applyMotionBindings({
+    speak: { group: "Idle", index: 4 }
+  });
+
+  const timeline = runtime.runModelExperiment();
+  const speakingStep = timeline.find((step) => step.state === "speaking");
+
+  assert.deepEqual(speakingStep.modelCommands.motion, {
+    group: "Idle",
+    index: 4,
+    action: "speak"
+  });
+}
+
 testRuntimeRunsModelExperimentTimeline();
 await testStartRefreshesPackageStatusAfterProfileLoads();
 await testRuntimeAppliesAndResetsInteractionTuning();
 await testRuntimeRestoresSavedInteractionTuningAfterProfileLoads();
 await testRuntimeUsesMotionOverridesInModelAdapterPath();
+await testModelExperimentUsesEffectiveProfileMotionOverrides();
 console.log("runtime-app tests passed");

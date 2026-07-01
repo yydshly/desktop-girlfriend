@@ -341,10 +341,16 @@ function renderModelCandidateStatus(elements, runtime, packageInfo) {
 function renderMotionBindingStatus(elements, runtime, message = "") {
   elements.motionBindingEditor.value = serializeMotionBindings(runtime.getMotionBindings());
   const profile = runtime.getModelProfile();
+  const effectiveProfile = runtime.getEffectiveModelProfile?.() || profile;
+  const overrideSummary = summarizeMotionOverrides(profile, effectiveProfile, runtime.getMotionBindings());
   const profileText = profile.displayName
-    ? `Profile: ${profile.displayName}.`
+    ? `Raw profile: ${profile.displayName}.`
     : "Profile: none.";
-  elements.motionBindingStatus.textContent = message || `${profileText} Use Motion Probe, then bind the active motion to a state.`;
+  elements.motionBindingStatus.textContent = [
+    message || "Use Motion Probe, then bind the active motion to a state.",
+    profileText,
+    overrideSummary
+  ].filter(Boolean).join(" ");
 }
 
 function renderModelExperimentStatus(elements, timeline = []) {
@@ -402,4 +408,23 @@ function formatAdapterCommands(commands) {
     ? `mouth ${commands.parameters.mouth}; intensity ${commands.parameters.intensity}; gaze ${commands.parameters.gaze}`
     : "parameters none";
   return `${motion}; ${expression}; ${parameters}`;
+}
+
+function summarizeMotionOverrides(rawProfile = {}, effectiveProfile = {}, overrides = {}) {
+  const overrideEntries = Object.entries(overrides || {});
+  const rawActions = rawProfile?.mappings?.actions || {};
+  const effectiveActions = effectiveProfile?.mappings?.actions || {};
+  const changed = overrideEntries
+    .filter(([action]) => Boolean(effectiveActions[action]))
+    .map(([action, binding]) => {
+      const raw = rawActions[action];
+      const rawText = raw?.group ? `${raw.group}[${raw.index}]` : "unmapped";
+      const nextText = `${binding.group}[${binding.index}]`;
+      return `${action}: ${rawText} -> ${nextText}`;
+    });
+  const effectiveCount = Object.keys(effectiveActions).length;
+  if (!overrideEntries.length) {
+    return `Overrides: none. Effective actions: ${effectiveCount}.`;
+  }
+  return `Overrides: ${overrideEntries.length}; ${changed.join(", ")}. Effective actions: ${effectiveCount}.`;
 }

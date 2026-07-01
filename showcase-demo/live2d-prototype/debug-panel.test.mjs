@@ -31,6 +31,42 @@ function createDocument(elements, lists = {}) {
 }
 
 function createRuntime() {
+  const rawProfile = {
+    schemaVersion: 1,
+    displayName: "Candidate",
+    desktopPlacement: {
+      scaleMultiplier: 1,
+      xOffsetRatio: 0,
+      yRatio: 0.54,
+      pointerFollowXRatio: 0.0075,
+      pointerFollowYRatio: 0.005,
+      headTrackingMultiplier: 1,
+      eyeTrackingMultiplier: 1,
+      bodyTrackingMultiplier: 1,
+      ambientGestureIntervalMs: 7200
+    },
+    mappings: {
+      actions: {
+        idle: { group: "Idle", index: 0 },
+        listen: { group: "Idle", index: 1 },
+        think: { group: "Idle", index: 2 },
+        reply: { group: "TapBody", index: 0 },
+        speak: { group: "TapBody", index: 0 },
+        happy: { group: "TapBody", index: 1 },
+        comfort: { group: "Idle", index: 3 },
+        sad: { group: "Idle", index: 4 },
+        greet: { group: "TapBody", index: 2 }
+      },
+      expressions: {
+        neutral: "default",
+        happy: "smile",
+        thinking: "thinking",
+        sad: "sad",
+        soft: "soft",
+        engaged: "engaged"
+      }
+    }
+  };
   return {
     setStatusListeners(listeners) {
       this.listeners = listeners;
@@ -55,42 +91,10 @@ function createRuntime() {
       return {};
     },
     getModelProfile() {
-      return {
-        schemaVersion: 1,
-        displayName: "Candidate",
-        desktopPlacement: {
-          scaleMultiplier: 1,
-          xOffsetRatio: 0,
-          yRatio: 0.54,
-          pointerFollowXRatio: 0.0075,
-          pointerFollowYRatio: 0.005,
-          headTrackingMultiplier: 1,
-          eyeTrackingMultiplier: 1,
-          bodyTrackingMultiplier: 1,
-          ambientGestureIntervalMs: 7200
-        },
-        mappings: {
-          actions: {
-            idle: { group: "Idle", index: 0 },
-            listen: { group: "Idle", index: 1 },
-            think: { group: "Idle", index: 2 },
-            reply: { group: "TapBody", index: 0 },
-            speak: { group: "TapBody", index: 0 },
-            happy: { group: "TapBody", index: 1 },
-            comfort: { group: "Idle", index: 3 },
-            sad: { group: "Idle", index: 4 },
-            greet: { group: "TapBody", index: 2 }
-          },
-          expressions: {
-            neutral: "default",
-            happy: "smile",
-            thinking: "thinking",
-            sad: "sad",
-            soft: "soft",
-            engaged: "engaged"
-          }
-        }
-      };
+      return rawProfile;
+    },
+    getEffectiveModelProfile() {
+      return this.effectiveProfile || rawProfile;
     },
     interactionTuning: {
       headTrackingMultiplier: 1,
@@ -445,6 +449,35 @@ function testShowcasePanelRendersModelCandidateEvaluation() {
   assert.match(elements["#modelCandidateStatus"].textContent, /blockers none/);
 }
 
+function testShowcasePanelRendersMotionOverrideSummary() {
+  const elements = createDebugElements();
+  const runtime = createRuntime();
+  runtime.getMotionBindings = () => ({
+    speak: { group: "Idle", index: 4 }
+  });
+  runtime.effectiveProfile = {
+    ...runtime.getModelProfile(),
+    mappings: {
+      ...runtime.getModelProfile().mappings,
+      actions: {
+        ...runtime.getModelProfile().mappings.actions,
+        speak: { group: "Idle", index: 4 }
+      }
+    }
+  };
+
+  mountLive2DDebugPanel({
+    document: createDocument(elements),
+    window: { localStorage: { getItem: () => null, setItem: () => {} } },
+    runtime,
+    mode: "showcase"
+  });
+
+  assert.match(elements["#motionBindingStatus"].textContent, /Raw profile: Candidate/);
+  assert.match(elements["#motionBindingStatus"].textContent, /Overrides: 1/);
+  assert.match(elements["#motionBindingStatus"].textContent, /speak: TapBody\[0\] -> Idle\[4\]/);
+}
+
 function testDesktopPanelDoesNotWireDebugControls() {
   const rendererSelect = createElement("live2d");
   const runtime = createRuntime();
@@ -464,6 +497,7 @@ testShowcasePanelRendersAdapterCommands();
 testShowcasePanelRendersBehaviorEventLog();
 testShowcasePanelRunsModelExperiment();
 testShowcasePanelRendersModelCandidateEvaluation();
+testShowcasePanelRendersMotionOverrideSummary();
 testShowcasePanelAppliesInteractionTuning();
 testShowcasePanelResetsInteractionTuning();
 testShowcasePanelProbesInteractionTuning();
