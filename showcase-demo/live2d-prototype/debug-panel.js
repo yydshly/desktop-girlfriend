@@ -1,5 +1,6 @@
 import { renderBridgeStatus } from "./bridge-status.js";
 import { detectLive2DSdk, formatSdkStatus } from "./live2d-sdk-loader.js";
+import { evaluateModelCandidate } from "./model-candidate-evaluator.js";
 import {
   parseMotionBindingsText,
   serializeMotionBindings
@@ -25,7 +26,7 @@ export function mountLive2DDebugPanel({
   runtime.setStatusListeners({
     onRendererStatus: () => renderRendererStatus(elements, runtime, window),
     onBridgeStatus: (status) => renderBridgeStatusPanel(elements, status),
-    onModelPackageStatus: (packageInfo) => renderModelPackageStatus(elements, packageInfo),
+    onModelPackageStatus: (packageInfo) => renderModelPackageStatus(elements, runtime, packageInfo),
     onMotionBindingStatus: (message = "") => renderMotionBindingStatus(elements, runtime, message)
   });
 
@@ -94,6 +95,7 @@ function queryDebugElements(document) {
     modelUrl: document.querySelector("#modelUrl"),
     modelStatus: document.querySelector("#modelStatus"),
     modelPackageStatus: document.querySelector("#modelPackageStatus"),
+    modelCandidateStatus: document.querySelector("#modelCandidateStatus"),
     modelTexturePreview: document.querySelector("#modelTexturePreview"),
     sdkStatus: document.querySelector("#sdkStatus"),
     summaryRenderer: document.querySelector("#summaryRenderer"),
@@ -160,8 +162,9 @@ function renderBridgeStatusPanel(elements, status) {
   elements.bridgeStatus.textContent = renderBridgeStatus(status);
 }
 
-function renderModelPackageStatus(elements, packageInfo) {
+function renderModelPackageStatus(elements, runtime, packageInfo) {
   elements.modelPackageStatus.textContent = JSON.stringify(packageInfo, null, 2);
+  renderModelCandidateStatus(elements, runtime, packageInfo);
   if (packageInfo.firstTextureUrl) {
     elements.modelTexturePreview.src = packageInfo.firstTextureUrl;
     elements.modelTexturePreview.hidden = false;
@@ -169,6 +172,16 @@ function renderModelPackageStatus(elements, packageInfo) {
   }
   elements.modelTexturePreview.removeAttribute("src");
   elements.modelTexturePreview.hidden = true;
+}
+
+function renderModelCandidateStatus(elements, runtime, packageInfo) {
+  const evaluation = evaluateModelCandidate(packageInfo, runtime.getModelProfile());
+  const missing = evaluation.missing.length ? evaluation.missing.join("; ") : "none";
+  elements.modelCandidateStatus.textContent = [
+    `score ${evaluation.score}/100`,
+    `grade ${evaluation.grade}`,
+    `missing ${missing}`
+  ].join(". ");
 }
 
 function renderMotionBindingStatus(elements, runtime, message = "") {

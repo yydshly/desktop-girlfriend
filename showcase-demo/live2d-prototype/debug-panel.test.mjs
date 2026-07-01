@@ -55,7 +55,28 @@ function createRuntime() {
       return {};
     },
     getModelProfile() {
-      return { displayName: "" };
+      return {
+        displayName: "Candidate",
+        mappings: {
+          actions: {
+            idle: { group: "Idle", index: 0 },
+            listen: { group: "Idle", index: 1 },
+            think: { group: "Idle", index: 2 },
+            speak: { group: "TapBody", index: 0 },
+            happy: { group: "TapBody", index: 1 },
+            comfort: { group: "Idle", index: 3 },
+            greet: { group: "TapBody", index: 2 }
+          },
+          expressions: {
+            neutral: "default",
+            happy: "smile",
+            thinking: "thinking",
+            sad: "sad",
+            soft: "soft",
+            engaged: "engaged"
+          }
+        }
+      };
     },
     runModelExperiment() {
       this.modelExperimentCalls = (this.modelExperimentCalls || 0) + 1;
@@ -89,6 +110,7 @@ function createDebugElements() {
     "#modelUrl": createElement(),
     "#modelStatus": createElement(),
     "#modelPackageStatus": createElement(),
+    "#modelCandidateStatus": createElement(),
     "#modelTexturePreview": createElement(),
     "#sdkStatus": createElement(),
     "#rendererMode": createElement(),
@@ -179,6 +201,33 @@ function testShowcasePanelRunsModelExperiment() {
   assert.match(elements["#modelExperimentStatus"].textContent, /mouth 0.65/);
 }
 
+function testShowcasePanelRendersModelCandidateEvaluation() {
+  const elements = createDebugElements();
+  const runtime = createRuntime();
+
+  mountLive2DDebugPanel({
+    document: createDocument(elements),
+    window: { localStorage: { getItem: () => null, setItem: () => {} } },
+    runtime,
+    mode: "showcase"
+  });
+
+  runtime.listeners.onModelPackageStatus({
+    motionCount: 8,
+    motionGroupCounts: { Idle: 5, TapBody: 3 },
+    expressionCount: 6,
+    expressionNames: ["default", "smile", "thinking", "sad", "soft", "engaged"],
+    lipSyncIds: ["ParamMouthOpenY"],
+    eyeBlinkIds: ["ParamEyeLOpen", "ParamEyeROpen"],
+    physics: "model.physics3.json",
+    textureCount: 2
+  });
+
+  assert.match(elements["#modelCandidateStatus"].textContent, /score 100\/100/);
+  assert.match(elements["#modelCandidateStatus"].textContent, /grade strong/);
+  assert.match(elements["#modelCandidateStatus"].textContent, /missing none/);
+}
+
 function testDesktopPanelDoesNotWireDebugControls() {
   const rendererSelect = createElement("live2d");
   const runtime = createRuntime();
@@ -196,5 +245,6 @@ function testDesktopPanelDoesNotWireDebugControls() {
 testShowcasePanelWiresRendererSelect();
 testShowcasePanelRendersAdapterCommands();
 testShowcasePanelRunsModelExperiment();
+testShowcasePanelRendersModelCandidateEvaluation();
 testDesktopPanelDoesNotWireDebugControls();
 console.log("debug-panel tests passed");
