@@ -253,6 +253,29 @@ function testStatusReportsUnsupportedExpressionDiagnostic() {
   assert.equal(statuses.at(-1).commandDiagnostics.expressionSupport, "missing");
 }
 
+function testMotionProbePlaysRequestedModelMotion() {
+  const statuses = [];
+  const calls = [];
+  const renderer = new Live2DRenderer(createCanvasProbe(), {
+    onStatusChange: (status) => statuses.push(status)
+  });
+  renderer.live2dModel = {
+    motion(group, index) {
+      calls.push({ group, index });
+    }
+  };
+
+  renderer.playMotionProbe("Idle", 4);
+
+  assert.deepEqual(calls, [{ group: "Idle", index: 4 }]);
+  assert.deepEqual(renderer.activeMotion, {
+    group: "Idle",
+    index: 4,
+    source: "manual.motion-probe"
+  });
+  assert.deepEqual(statuses.at(-1).activeMotion, renderer.activeMotion);
+}
+
 function testAbstractMotionUsesAvailableModelMotionGroups() {
   assert.deepEqual(
     mapCommandToModelMotion({ motion: "reply" }, { TapBody: 1, Idle: 3 }),
@@ -297,6 +320,7 @@ testStateDoesNotRepeatSameLive2DExpression();
 testStatusReportsModelCapabilities();
 testStatusReportsCommandDiagnostics();
 testStatusReportsUnsupportedExpressionDiagnostic();
+testMotionProbePlaysRequestedModelMotion();
 
 function testSpeakingStateAnimatesMouthOpen() {
   const parameters = calculateAnimatedLive2DParameters(

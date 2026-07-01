@@ -38,6 +38,17 @@ export class AvatarController {
     this.applyMappedState(mapAvatarSequence({ name }));
   }
 
+  playMotionProbe(group, index) {
+    this.currentState = {
+      ...this.currentState,
+      motion: "probe",
+      source: "manual.motion-probe",
+      updatedAt: new Date().toISOString()
+    };
+    this.renderer.playMotionProbe?.(group, index);
+    this.renderReadout();
+  }
+
   handleBridgeMessage(message) {
     this.applyMappedState(mapBridgeMessage(message));
   }

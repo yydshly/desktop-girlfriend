@@ -176,6 +176,12 @@ document.querySelectorAll("[data-sequence]").forEach((button) => {
   button.addEventListener("click", () => controller.playSequence(button.dataset.sequence));
 });
 
+document.querySelectorAll("[data-motion-group]").forEach((button) => {
+  button.addEventListener("click", () => {
+    controller.playMotionProbe(button.dataset.motionGroup, button.dataset.motionIndex);
+  });
+});
+
 stage.addEventListener("pointermove", (event) => {
   controller.setPointerFromEvent(event, stage);
 });
@@ -269,6 +275,7 @@ if (isDesktopMode) {
 window.live2dPrototype = {
   applyState: (state) => controller.applyStateName(state),
   playSequence: (name) => controller.playSequence(name),
+  playMotionProbe: (group, index) => controller.playMotionProbe(group, index),
   handleBridgeMessage: (message) => controller.handleBridgeMessage(message),
   isDesktopMode: () => isDesktopMode,
   getModelUrl: () => configuredModelUrl,

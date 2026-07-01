@@ -332,6 +332,22 @@ export class Live2DRenderer {
     this.emitStatus();
   }
 
+  playMotionProbe(group, index) {
+    if (!this.live2dModel?.motion) {
+      return;
+    }
+    const motion = {
+      group: String(group || "Idle"),
+      index: Math.max(0, Math.floor(Number(index || 0))),
+      source: "manual.motion-probe"
+    };
+    this.live2dModel.motion(motion.group, motion.index);
+    this.lastMotionPlayedAt = performance.now();
+    this.lastMotionKey = `${motion.group}:${motion.index}:${motion.source}`;
+    this.activeMotion = motion;
+    this.emitStatus();
+  }
+
   applyLive2DExpression() {
     if (!this.live2dModel?.expression) {
       return;

@@ -23,6 +23,9 @@ function createRendererProbe() {
     applyState(state) {
       this.appliedStates.push(state);
     },
+    playMotionProbe(group, index) {
+      this.motionProbe = { group, index };
+    },
     setPointer() {}
   };
 }
@@ -87,8 +90,21 @@ function testControllerUsesVisualIntentForStageClass() {
   assert.equal(stage.className, "avatar-stage is-state-speaking");
 }
 
+function testControllerPlaysMotionProbe() {
+  const renderer = createRendererProbe();
+  const readout = createTextElement();
+  const controller = new AvatarController(renderer, readout);
+
+  controller.playMotionProbe("Idle", 3);
+
+  assert.deepEqual(renderer.motionProbe, { group: "Idle", index: 3 });
+  assert.equal(controller.currentState.motion, "probe");
+  assert.equal(controller.currentState.source, "manual.motion-probe");
+}
+
 testControllerRendersSpeechBubbleFromDialogueTurn();
 testControllerHidesBubbleForIdleStateWithoutBubble();
 testControllerMarksStageWithVisualStateClass();
 testControllerUsesVisualIntentForStageClass();
+testControllerPlaysMotionProbe();
 console.log("avatar-controller tests passed");
