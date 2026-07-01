@@ -550,6 +550,23 @@ function testVisualIntentSpeakingAnimatesMouthOpen() {
   assert.notEqual(parameters.ParamAngleX, 0);
 }
 
+function testModelAdapterSpeakActionAnimatesMouthOpen() {
+  const parameters = calculateAnimatedLive2DParameters(
+    { ParamMouthOpenY: 0.1, ParamAngleX: 0 },
+    {
+      modelCommands: {
+        motion: { action: "speak" },
+        expression: { semantic: "engaged" },
+        parameters: { mouth: 0.65 }
+      }
+    },
+    1000
+  );
+
+  assert.ok(parameters.ParamMouthOpenY > 0.1);
+  assert.notEqual(parameters.ParamAngleX, 0);
+}
+
 function testIdleStateDoesNotAnimateMouthOpen() {
   const parameters = calculateAnimatedLive2DParameters(
     { ParamMouthOpenY: 0.1 },
@@ -587,6 +604,7 @@ function testThinkingStateAddsFocusedMicroMotion() {
 testSpeakingStateAnimatesMouthOpen();
 testSpeakingStateAddsSubtleBodyMotion();
 testVisualIntentSpeakingAnimatesMouthOpen();
+testModelAdapterSpeakActionAnimatesMouthOpen();
 testIdleStateDoesNotAnimateMouthOpen();
 testIdleStateAddsBreathingMotion();
 testThinkingStateAddsFocusedMicroMotion();

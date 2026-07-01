@@ -669,10 +669,15 @@ function getExpressionSupport(requestedExpression, resolvedExpression, model = n
 export function calculateAnimatedLive2DParameters(parameters = {}, command = {}, now = 0) {
   const next = { ...parameters };
   const motion = command.motion || "";
+  const adapterAction = command.modelCommands?.motion?.action || "";
+  const adapterExpression = command.modelCommands?.expression?.semantic || "";
   const speaking = motion === "reply"
     || motion === "speak"
     || command.expression === "speaking"
-    || command.visualIntent === "speaking";
+    || command.visualIntent === "speaking"
+    || adapterAction === "speak"
+    || adapterAction === "reply"
+    || adapterExpression === "engaged";
   const thinking = motion === "think"
     || motion === "listen"
     || command.expression === "thinking"
