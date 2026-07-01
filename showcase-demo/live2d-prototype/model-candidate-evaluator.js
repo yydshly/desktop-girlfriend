@@ -1,13 +1,15 @@
 const REQUIRED_ACTIONS = Object.freeze(["idle", "listen", "think", "speak", "happy", "comfort", "greet"]);
 const REQUIRED_EXPRESSIONS = Object.freeze(["neutral", "happy", "thinking", "sad", "soft", "engaged"]);
+const IDLE_QUALITY_ACTIONS = Object.freeze(["idle", "listen", "think", "comfort"]);
+const EXPRESSIVE_ACTIONS = Object.freeze(["speak", "reply", "greet", "happy"]);
 
 export function evaluateModelCandidate(packageInfo = {}, profile = {}) {
   const checks = [
-    scoreActionMappings(profile),
+    scoreActionMappings(profile, packageInfo),
     scoreExpressionMappings(profile),
     scoreExpressionAssets(packageInfo),
-    scoreIdleMotions(packageInfo),
-    scoreSpeakMotion(packageInfo),
+    scoreIdleMotions(packageInfo, profile),
+    scoreSpeakMotion(packageInfo, profile),
     scoreLipSync(packageInfo),
     scoreEyeBlink(packageInfo),
     scorePhysics(packageInfo),
@@ -22,9 +24,9 @@ export function evaluateModelCandidate(packageInfo = {}, profile = {}) {
   };
 }
 
-function scoreActionMappings(profile) {
+function scoreActionMappings(profile, packageInfo) {
   const mappings = profile?.mappings?.actions || {};
-  const missing = REQUIRED_ACTIONS.filter((action) => !mappings[action]);
+  const missing = REQUIRED_ACTIONS.filter((action) => !hasValidActionMapping(mappings, action, packageInfo));
   return {
     key: "actionMappings",
     score: missing.length ? Math.round(18 * (1 - missing.length / REQUIRED_ACTIONS.length)) : 18,
@@ -52,18 +54,26 @@ function scoreExpressionAssets(packageInfo) {
   };
 }
 
-function scoreIdleMotions(packageInfo) {
-  const count = Number(packageInfo.motionGroupCounts?.Idle ?? 0);
-  const score = count >= 4 ? 12 : Math.round(12 * Math.min(1, count / 4));
+function scoreIdleMotions(packageInfo, profile) {
+  const mappings = profile?.mappings?.actions || {};
+  const mappedCount = IDLE_QUALITY_ACTIONS.filter((action) => (
+    hasValidActionMapping(mappings, action, packageInfo)
+  )).length;
+  const fallbackCount = mappedCount ? mappedCount : Number(packageInfo.motionGroupCounts?.Idle ?? 0);
+  const score = fallbackCount >= 4 ? 12 : Math.round(12 * Math.min(1, fallbackCount / 4));
   return {
     key: "idleMotions",
     score,
-    missing: count >= 4 ? [] : ["idle motion variety"]
+    missing: fallbackCount >= 4 ? [] : ["idle motion variety"]
   };
 }
 
-function scoreSpeakMotion(packageInfo) {
-  const count = Number(packageInfo.motionGroupCounts?.TapBody ?? 0);
+function scoreSpeakMotion(packageInfo, profile) {
+  const mappings = profile?.mappings?.actions || {};
+  const hasExpressiveMapping = EXPRESSIVE_ACTIONS.some((action) => (
+    hasValidActionMapping(mappings, action, packageInfo)
+  ));
+  const count = hasExpressiveMapping ? 1 : Number(packageInfo.motionGroupCounts?.TapBody ?? 0);
   return {
     key: "speakMotion",
     score: count > 0 ? 10 : 0,
@@ -121,4 +131,15 @@ function gradeCandidate(score) {
 
 function hasStringMapping(value) {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+function hasValidActionMapping(mappings = {}, action, packageInfo = {}) {
+  return hasMotion(packageInfo, mappings[action]);
+}
+
+function hasMotion(packageInfo = {}, binding = null) {
+  const group = String(binding?.group || "").trim();
+  const index = Math.max(0, Math.floor(Number(binding?.index ?? 0)));
+  const count = Number(packageInfo?.motionGroupCounts?.[group] ?? 0);
+  return Boolean(group) && Number.isFinite(count) && index >= 0 && index < count;
 }
