@@ -8,6 +8,7 @@ from app.ui.live2d_desktop_window import (
     Live2DDesktopWindowPosition,
     build_live2d_context_menu_actions,
     calculate_dragged_position,
+    constrain_live2d_window_position_for_drag,
     ensure_live2d_window_position_visible,
     load_live2d_window_position,
     probe_live2d_desktop_dependencies,
@@ -158,6 +159,19 @@ def test_calculate_dragged_position_uses_global_delta() -> None:
         move_global_x=40,
         move_global_y=55,
     ) == Live2DDesktopWindowPosition(x=130, y=235)
+
+
+def test_dragged_window_position_keeps_recovery_area_visible() -> None:
+    """Dragging cannot leave the desktop companion fully unreachable."""
+    assert constrain_live2d_window_position_for_drag(
+        position=Live2DDesktopWindowPosition(x=4000, y=-900),
+        window_width=520,
+        window_height=760,
+        screen_x=0,
+        screen_y=0,
+        screen_width=1920,
+        screen_height=1080,
+    ) == Live2DDesktopWindowPosition(x=1824, y=-664)
 
 
 def test_visible_window_position_is_kept() -> None:

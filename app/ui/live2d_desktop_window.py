@@ -219,6 +219,34 @@ def calculate_dragged_position(
     )
 
 
+def constrain_live2d_window_position_for_drag(
+    *,
+    position: Live2DDesktopWindowPosition,
+    window_width: int,
+    window_height: int,
+    screen_x: int,
+    screen_y: int,
+    screen_width: int,
+    screen_height: int,
+) -> Live2DDesktopWindowPosition:
+    """Clamp dragged window position so a recovery area remains visible."""
+
+    safe_window_width = max(1, window_width)
+    safe_window_height = max(1, window_height)
+    safe_screen_width = max(1, screen_width)
+    safe_screen_height = max(1, screen_height)
+    min_visible_width = min(_MIN_VISIBLE_WINDOW_AREA, safe_window_width)
+    min_visible_height = min(_MIN_VISIBLE_WINDOW_AREA, safe_window_height)
+    min_x = screen_x + min_visible_width - safe_window_width
+    max_x = screen_x + safe_screen_width - min_visible_width
+    min_y = screen_y + min_visible_height - safe_window_height
+    max_y = screen_y + safe_screen_height - min_visible_height
+    return Live2DDesktopWindowPosition(
+        x=min(max(position.x, min_x), max_x),
+        y=min(max(position.y, min_y), max_y),
+    )
+
+
 def run_live2d_desktop_window(spec: Live2DDesktopShellSpec) -> int:
     """Run a transparent always-on-top WebView hosting the Live2D runtime."""
 
@@ -305,7 +333,17 @@ def run_live2d_desktop_window(spec: Live2DDesktopShellSpec) -> int:
                     current.x(),
                     current.y(),
                 )
-                self.move(next_position.x, next_position.y)
+                available = self.screen().availableGeometry()
+                safe_position = constrain_live2d_window_position_for_drag(
+                    position=next_position,
+                    window_width=self.width(),
+                    window_height=self.height(),
+                    screen_x=available.x(),
+                    screen_y=available.y(),
+                    screen_width=available.width(),
+                    screen_height=available.height(),
+                )
+                self.move(safe_position.x, safe_position.y)
                 event.accept()
                 return True
             if (
