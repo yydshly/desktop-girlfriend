@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   calculateAnimatedLive2DParameters,
   calculateLive2DPlacement,
+  calculatePointerFollowOffset,
   getReturnToIdleDelayMs,
   Live2DRenderer,
   mapCommandToModelMotion,
@@ -89,6 +90,58 @@ function testPlacementAcceptsProfileTuning() {
 }
 
 testPlacementAcceptsProfileTuning();
+
+function testPointerFollowOffsetMovesModelVisibly() {
+  const offset = calculatePointerFollowOffset(
+    { width: 900, height: 1200 },
+    { x: 0.8, y: -0.5 }
+  );
+
+  assert.equal(offset.x, 39.6);
+  assert.equal(offset.y, -16.8);
+  assert.equal(offset.strength, 0.943);
+}
+
+function testPointerFollowOffsetCanBeDisabled() {
+  const offset = calculatePointerFollowOffset(
+    { width: 900, height: 1200 },
+    { x: 0.8, y: -0.5 },
+    { pointerFollow: false }
+  );
+
+  assert.deepEqual(offset, { x: 0, y: 0, strength: 0 });
+}
+
+function testPlacementAppliesPointerFollowOffset() {
+  const renderer = new Live2DRenderer(createCanvasProbe());
+  renderer.pointer = { x: 0.8, y: -0.5 };
+  renderer.live2dModel = {
+    width: 300,
+    height: 1000,
+    scale: {
+      value: 0,
+      set(value) {
+        this.value = value;
+      }
+    },
+    position: {
+      value: { x: 0, y: 0 },
+      set(x, y) {
+        this.value = { x, y };
+      }
+    }
+  };
+
+  const placement = renderer.applyLive2DPlacement();
+
+  assert.equal(renderer.live2dModel.position.value.x, 489.6);
+  assert.equal(renderer.live2dModel.position.value.y, 643.2);
+  assert.deepEqual(placement.followOffset, { x: 39.6, y: -16.8, strength: 0.943 });
+}
+
+testPointerFollowOffsetMovesModelVisibly();
+testPointerFollowOffsetCanBeDisabled();
+testPlacementAppliesPointerFollowOffset();
 
 function testSequenceTriggersTapBodyMotion() {
   const renderer = new Live2DRenderer(createCanvasProbe());

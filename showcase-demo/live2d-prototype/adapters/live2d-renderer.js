@@ -163,9 +163,19 @@ export class Live2DRenderer {
       { width: model.width, height: model.height },
       this.placementProfile
     );
+    const followOffset = calculatePointerFollowOffset(
+      { width: this.canvas.width, height: this.canvas.height },
+      this.pointer,
+      this.placementProfile
+    );
     model.scale.set(placement.scale);
-    model.position.set(placement.x, placement.y);
-    return placement;
+    model.position.set(placement.x + followOffset.x, placement.y + followOffset.y);
+    return {
+      ...placement,
+      x: roundTo(placement.x + followOffset.x, 3),
+      y: roundTo(placement.y + followOffset.y, 3),
+      followOffset
+    };
   }
 
   draw() {
@@ -194,12 +204,15 @@ export class Live2DRenderer {
       const scale = Math.min(maxW / this.previewImage.width, maxH / this.previewImage.height);
       const drawW = this.previewImage.width * scale;
       const drawH = this.previewImage.height * scale;
-      const offsetX = this.pointer.x * 18;
-      const offsetY = this.pointer.y * 12;
+      const followOffset = calculatePointerFollowOffset(
+        { width: w, height: h },
+        this.pointer,
+        this.placementProfile
+      );
       ctx.drawImage(
         this.previewImage,
-        (w - drawW) / 2 + offsetX,
-        (h - drawH) / 2 + offsetY,
+        (w - drawW) / 2 + followOffset.x,
+        (h - drawH) / 2 + followOffset.y,
         drawW,
         drawH
       );
@@ -267,6 +280,7 @@ export class Live2DRenderer {
 
     const frame = () => {
       this.updateSmoothedPointer();
+      this.applyLive2DPlacement();
       this.applyLive2DCommands();
       this.applyLive2DExpression();
       this.advanceReturnToIdle(performance.now());
@@ -436,6 +450,25 @@ export function calculateLive2DPlacement(canvasSize, modelSize, placementProfile
     scale: roundTo(scale, 3),
     x: roundTo(canvasSize.width / 2 + canvasSize.width * (Number.isFinite(xOffsetRatio) ? xOffsetRatio : 0), 3),
     y: roundTo(canvasSize.height * (Number.isFinite(yRatio) ? yRatio : 0.55), 3)
+  };
+}
+
+export function calculatePointerFollowOffset(canvasSize, pointer = {}, placementProfile = {}) {
+  const x = clampUnit(Number(pointer.x ?? 0));
+  const y = clampUnit(Number(pointer.y ?? 0));
+  const strength = Math.min(1, Math.hypot(x, y));
+  const xRatio = Number(placementProfile.pointerFollowXRatio ?? 0.055);
+  const yRatio = Number(placementProfile.pointerFollowYRatio ?? 0.028);
+  const enabled = placementProfile.pointerFollow !== false;
+
+  if (!enabled) {
+    return { x: 0, y: 0, strength: 0 };
+  }
+
+  return {
+    x: roundTo(canvasSize.width * x * (Number.isFinite(xRatio) ? xRatio : 0.055), 3),
+    y: roundTo(canvasSize.height * y * (Number.isFinite(yRatio) ? yRatio : 0.028), 3),
+    strength: roundTo(strength, 3)
   };
 }
 
