@@ -5,7 +5,7 @@ function testDialogueTurnCreatesShortReplyBubble() {
   const state = mapDialogueTurn({
     turn_id: "turn-1",
     user_text: "hello",
-    response_text: "  我在这里，慢慢说就好。  ",
+    response_text: "  我在这里，慢慢说就好。 ",
     tts_state: "speaking"
   });
 
