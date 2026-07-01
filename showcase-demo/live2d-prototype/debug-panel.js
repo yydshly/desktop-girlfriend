@@ -1,4 +1,5 @@
 import { renderBridgeStatus } from "./bridge-status.js";
+import { validateCustomModelIntake } from "./custom-model-intake.js";
 import { detectLive2DSdk, formatSdkStatus } from "./live2d-sdk-loader.js";
 import { evaluateModelCandidate } from "./model-candidate-evaluator.js";
 import {
@@ -321,12 +322,19 @@ function renderModelPackageStatus(elements, runtime, packageInfo) {
 }
 
 function renderModelCandidateStatus(elements, runtime, packageInfo) {
-  const evaluation = evaluateModelCandidate(packageInfo, runtime.getModelProfile());
+  const profile = runtime.getModelProfile();
+  const evaluation = evaluateModelCandidate(packageInfo, profile);
+  const intake = validateCustomModelIntake(packageInfo, profile);
   const missing = evaluation.missing.length ? evaluation.missing.join("; ") : "none";
+  const blockers = intake.blockers.length ? intake.blockers.join("; ") : "none";
+  const warnings = intake.warnings.length ? intake.warnings.join("; ") : "none";
   elements.modelCandidateStatus.textContent = [
     `score ${evaluation.score}/100`,
     `grade ${evaluation.grade}`,
-    `missing ${missing}`
+    `missing ${missing}`,
+    `intake ${intake.grade}`,
+    `blockers ${blockers}`,
+    `warnings ${warnings}`
   ].join(". ");
 }
 

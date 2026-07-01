@@ -56,15 +56,29 @@ function createRuntime() {
     },
     getModelProfile() {
       return {
+        schemaVersion: 1,
         displayName: "Candidate",
+        desktopPlacement: {
+          scaleMultiplier: 1,
+          xOffsetRatio: 0,
+          yRatio: 0.54,
+          pointerFollowXRatio: 0.0075,
+          pointerFollowYRatio: 0.005,
+          headTrackingMultiplier: 1,
+          eyeTrackingMultiplier: 1,
+          bodyTrackingMultiplier: 1,
+          ambientGestureIntervalMs: 7200
+        },
         mappings: {
           actions: {
             idle: { group: "Idle", index: 0 },
             listen: { group: "Idle", index: 1 },
             think: { group: "Idle", index: 2 },
+            reply: { group: "TapBody", index: 0 },
             speak: { group: "TapBody", index: 0 },
             happy: { group: "TapBody", index: 1 },
             comfort: { group: "Idle", index: 3 },
+            sad: { group: "Idle", index: 4 },
             greet: { group: "TapBody", index: 2 }
           },
           expressions: {
@@ -413,6 +427,7 @@ function testShowcasePanelRendersModelCandidateEvaluation() {
   });
 
   runtime.listeners.onModelPackageStatus({
+    moc: "Candidate.moc3",
     motionCount: 8,
     motionGroupCounts: { Idle: 5, TapBody: 3 },
     expressionCount: 6,
@@ -426,6 +441,8 @@ function testShowcasePanelRendersModelCandidateEvaluation() {
   assert.match(elements["#modelCandidateStatus"].textContent, /score 100\/100/);
   assert.match(elements["#modelCandidateStatus"].textContent, /grade strong/);
   assert.match(elements["#modelCandidateStatus"].textContent, /missing none/);
+  assert.match(elements["#modelCandidateStatus"].textContent, /intake ready/);
+  assert.match(elements["#modelCandidateStatus"].textContent, /blockers none/);
 }
 
 function testDesktopPanelDoesNotWireDebugControls() {
