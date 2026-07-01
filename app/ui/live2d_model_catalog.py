@@ -29,6 +29,8 @@ class Live2DModelPackage:
     texture_count: int
     motion_count: int
     motion_groups: tuple[str, ...]
+    expression_count: int = 0
+    expression_names: tuple[str, ...] = ()
     moc: str = ""
     physics: str = ""
 
@@ -53,6 +55,9 @@ def inspect_live2d_model_package(
     motions = references.get("Motions", {})
     if not isinstance(motions, dict):
         motions = {}
+    expressions = references.get("Expressions", [])
+    if not isinstance(expressions, list):
+        expressions = []
 
     missing: list[str] = []
     if not moc:
@@ -86,6 +91,8 @@ def inspect_live2d_model_package(
         texture_count=len(textures),
         motion_count=_motion_count(motions),
         motion_groups=tuple(str(group) for group in motions.keys()),
+        expression_count=len(_expression_files(expressions)),
+        expression_names=_expression_names(expressions),
         moc=moc,
         physics=physics,
     )
@@ -170,6 +177,8 @@ def render_live2d_model_catalog_details(
             continue
         lines.append(
             f"{package.model_id}: ready, motions {package.motion_count}, "
+            f"groups {_display_groups(package.motion_groups)}, "
+            f"expressions {package.expression_count}, "
             f"textures {package.texture_count}"
         )
     return "\n".join(lines)
@@ -212,6 +221,30 @@ def _motion_files(motions: dict[Any, Any]) -> tuple[str, ...]:
                 if file_name:
                     files.append(file_name)
     return tuple(files)
+
+
+def _expression_files(expressions: list[Any]) -> tuple[str, ...]:
+    files: list[str] = []
+    for entry in expressions:
+        if isinstance(entry, dict):
+            file_name = _string_value(entry.get("File"))
+            if file_name:
+                files.append(file_name)
+    return tuple(files)
+
+
+def _expression_names(expressions: list[Any]) -> tuple[str, ...]:
+    names: list[str] = []
+    for entry in expressions:
+        if isinstance(entry, dict):
+            name = _string_value(entry.get("Name"))
+            if name:
+                names.append(name)
+    return tuple(names)
+
+
+def _display_groups(groups: tuple[str, ...]) -> str:
+    return ", ".join(groups) if groups else "none"
 
 
 def _missing_referenced_files(

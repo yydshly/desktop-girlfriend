@@ -21,6 +21,7 @@ def _write_model(
     moc: str = "model.moc3",
     textures: list[str] | None = None,
     motions: dict | None = None,
+    expressions: list[dict] | None = None,
     physics: str = "model.physics3.json",
     create_assets: bool = True,
 ) -> None:
@@ -38,6 +39,7 @@ def _write_model(
                     "Textures": texture_refs,
                     "Physics": physics,
                     "Motions": motion_refs,
+                    "Expressions": expressions or [],
                 },
             },
             ensure_ascii=False,
@@ -46,7 +48,12 @@ def _write_model(
     )
     if not create_assets:
         return
-    for asset in [moc, physics, *texture_refs, *_motion_files(motion_refs)]:
+    expression_refs = [
+        item["File"]
+        for item in expressions or []
+        if isinstance(item, dict) and isinstance(item.get("File"), str)
+    ]
+    for asset in [moc, physics, *texture_refs, *_motion_files(motion_refs), *expression_refs]:
         if asset:
             asset_path = path.parent / asset
             asset_path.parent.mkdir(parents=True, exist_ok=True)
@@ -86,6 +93,29 @@ def test_inspect_live2d_model_package_reports_ready_package(tmp_path: Path) -> N
     assert package.motion_count == 2
     assert package.motion_groups == ("Idle", "TapBody")
     assert package.missing == ()
+
+
+def test_inspect_live2d_model_package_reports_visual_capabilities(
+    tmp_path: Path,
+) -> None:
+    """Model diagnostics include motion groups and expression capacity."""
+    model_path = tmp_path / "custom" / "Expressive" / "Expressive.model3.json"
+    _write_model(
+        model_path,
+        motions={
+            "Idle": [{"File": "motions/idle.motion3.json"}],
+            "TapBody": [{"File": "motions/tap.motion3.json"}],
+        },
+        expressions=[
+            {"Name": "smile", "File": "expressions/smile.exp3.json"},
+            {"Name": "sad", "File": "expressions/sad.exp3.json"},
+        ],
+    )
+
+    package = inspect_live2d_model_package(model_path, catalog_root=tmp_path)
+
+    assert package.expression_count == 2
+    assert package.expression_names == ("smile", "sad")
 
 
 def test_inspect_live2d_model_package_reports_missing_required_parts(
@@ -225,4 +255,7 @@ def test_render_live2d_model_catalog_details_reports_each_package(
     assert f"Models folder: {tmp_path}" in details
     assert "Ready: 1, broken: 1" in details
     assert "broken/Broken: broken, missing Moc, Textures" in details
-    assert "sample/Hiyori: ready, motions 1, textures 1" in details
+    assert (
+        "sample/Hiyori: ready, motions 1, groups Idle, expressions 0, textures 1"
+        in details
+    )
