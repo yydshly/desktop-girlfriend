@@ -54,6 +54,52 @@ COMPANION_VERSION = _companion_version_info.version
 COMPANION_RELEASE_STAGE = _companion_version_info.release_stage
 
 
+def render_live2d_runtime_status_summary(status: dict) -> str:
+    """Render readable Live2D runtime status text for the desktop shell."""
+
+    if not isinstance(status, dict):
+        return "Runtime: unknown"
+    status_type = status.get("type", "live2d.unknown")
+    if not isinstance(status_type, str):
+        status_type = "live2d.unknown"
+    detail = _live2d_status_detail(status)
+    if status_type == "live2d.runtime_ready":
+        return "Runtime: connected"
+    if status_type == "live2d.model_loaded":
+        model = _live2d_status_model_name(status)
+        return f"Runtime: model loaded - {model}" if model else "Runtime: model loaded"
+    if status_type == "live2d.model_error":
+        return _runtime_with_detail("Runtime: model error", detail)
+    if status_type == "live2d.bridge_error":
+        return _runtime_with_detail("Runtime: bridge error", detail)
+    if status_type == "live2d.process_error":
+        return _runtime_with_detail("Runtime: desktop process stopped", detail)
+    if status_type == "live2d.process_restarting":
+        return "Runtime: restarting desktop process"
+    if status_type in {"live2d.motion_played", "live2d.expression_applied"}:
+        return _runtime_with_detail("Runtime: active", status_type.replace("live2d.", ""))
+    return f"Runtime: {status_type.replace('live2d.', '').replace('_', ' ')}"
+
+
+def _runtime_with_detail(prefix: str, detail: str) -> str:
+    if detail and detail != prefix.replace("Runtime: ", ""):
+        return f"{prefix} - {detail}"
+    return prefix
+
+
+def _live2d_status_detail(status: dict) -> str:
+    detail = status.get("detail") or status.get("error") or ""
+    return str(detail).strip()
+
+
+def _live2d_status_model_name(status: dict) -> str:
+    model_url = status.get("modelUrl") or status.get("model") or status.get("modelId")
+    if not isinstance(model_url, str) or not model_url.strip():
+        return ""
+    normalized = model_url.replace("\\", "/").rstrip("/")
+    return normalized.rsplit("/", 1)[-1]
+
+
 class DesktopViewModel:
     """View model for desktop UI data binding."""
 
@@ -589,6 +635,11 @@ class DesktopViewModel:
 
     def set_live2d_runtime_status(self, status: dict) -> None:
         """Set compact Web-reported Live2D runtime status text."""
+
+        self.live2d_runtime_status_summary = render_live2d_runtime_status_summary(
+            status
+        )
+        return
 
         status_type = status.get("type", "live2d.unknown") if isinstance(status, dict) else "live2d.unknown"
         model_url = status.get("modelUrl", "") if isinstance(status, dict) else ""

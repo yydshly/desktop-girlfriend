@@ -346,6 +346,7 @@ class TestWindowPresenceShell:
             on_live2d_opacity_up_requested=lambda: calls.append("opacity_up"),
             on_live2d_visibility_toggled=lambda: calls.append("visibility"),
             on_live2d_position_reset_requested=lambda: calls.append("reset"),
+            on_live2d_restart_requested=lambda: calls.append("restart"),
         )
         window.show()
 
@@ -355,6 +356,7 @@ class TestWindowPresenceShell:
         window._live2d_opacity_up_button.click()
         window._live2d_toggle_button.click()
         window._live2d_reset_button.click()
+        window._live2d_restart_button.click()
 
         assert calls == [
             "scale_up",
@@ -363,6 +365,7 @@ class TestWindowPresenceShell:
             "opacity_up",
             "visibility",
             "reset",
+            "restart",
         ]
 
     @staticmethod

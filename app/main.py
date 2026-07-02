@@ -320,6 +320,7 @@ def main() -> None:
         on_live2d_opacity_up_requested=live2d_coordinator.on_opacity_up_requested,
         on_live2d_visibility_toggled=live2d_coordinator.on_visibility_toggled,
         on_live2d_position_reset_requested=live2d_coordinator.on_position_reset_requested,
+        on_live2d_restart_requested=live2d_coordinator.on_restart_requested,
         on_live2d_model_selected=live2d_coordinator.on_model_selected,
         on_live2d_models_refresh_requested=live2d_coordinator.on_models_refresh_requested,
         on_live2d_models_folder_requested=live2d_coordinator.on_models_folder_requested,

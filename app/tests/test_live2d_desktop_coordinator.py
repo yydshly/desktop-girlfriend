@@ -60,15 +60,18 @@ class FakeViewModel:
 
 
 class FakeBridgeServer:
-    def __init__(self) -> None:
+    def __init__(self, *, start_error: Exception | None = None) -> None:
         self.started = 0
         self.stopped = 0
         self.callback = None
+        self.start_error = start_error
 
     def set_runtime_status_callback(self, callback) -> None:
         self.callback = callback
 
     def start(self) -> None:
+        if self.start_error is not None:
+            raise self.start_error
         self.started += 1
 
     def stop(self) -> None:
@@ -91,12 +94,38 @@ class FakeDispatcher:
 
 
 class FakeDesktopProcess:
-    def __init__(self) -> None:
+    def __init__(self, *, running: bool = True) -> None:
         self.scale = 1.0
         self.opacity = 1.0
         self.model_id = ""
         self.started = 0
         self.stopped = 0
+        self.running = running
+
+    def start(self) -> None:
+        self.started += 1
+
+    def stop(self) -> None:
+        self.stopped += 1
+
+
+class FakeSignal:
+    def __init__(self) -> None:
+        self.callback = None
+
+    def connect(self, callback) -> None:
+        self.callback = callback
+
+
+class FakeTimer:
+    def __init__(self) -> None:
+        self.timeout = FakeSignal()
+        self.interval = 0
+        self.started = 0
+        self.stopped = 0
+
+    def setInterval(self, interval: int) -> None:  # noqa: N802
+        self.interval = interval
 
     def start(self) -> None:
         self.started += 1
@@ -144,6 +173,108 @@ def test_coordinator_starts_and_stops_lifecycle_components(tmp_path: Path) -> No
     assert process.stopped == 1
     assert dispatcher.stopped == 1
     assert bridge_server.stopped == 1
+
+
+def test_coordinator_reports_bridge_start_failure_without_starting_desktop(
+    tmp_path: Path,
+) -> None:
+    view_model = FakeViewModel()
+    bridge_server = FakeBridgeServer(start_error=OSError("address already in use"))
+    process = FakeDesktopProcess()
+    refreshes: list[str] = []
+
+    coordinator = Live2DDesktopCoordinator(
+        view_model=view_model,
+        subscribe=lambda event_type, callback: None,
+        unsubscribe=lambda event_type, callback: None,
+        auto_launch=True,
+        bridge_server=bridge_server,
+        bridge_dispatcher=FakeDispatcher(),
+        desktop_process=process,
+        model_root=tmp_path / "models",
+        model_selection_path=tmp_path / "selection.json",
+        desktop_settings_path=tmp_path / "settings.json",
+        position_path=tmp_path / "position.json",
+        schedule_ui_update=lambda callback: callback(),
+    )
+    coordinator.set_view_refresher(lambda: refreshes.append("refresh"))
+
+    coordinator.start()
+
+    assert view_model.runtime_status["type"] == "live2d.bridge_error"
+    assert "address already in use" in str(view_model.runtime_status["detail"])
+    assert process.started == 0
+    assert refreshes == ["refresh"]
+
+
+def test_coordinator_reports_stopped_desktop_process_and_can_restart(
+    tmp_path: Path,
+) -> None:
+    view_model = FakeViewModel()
+    process = FakeDesktopProcess(running=False)
+    refreshes: list[str] = []
+
+    coordinator = Live2DDesktopCoordinator(
+        view_model=view_model,
+        subscribe=lambda event_type, callback: None,
+        unsubscribe=lambda event_type, callback: None,
+        auto_launch=True,
+        bridge_server=FakeBridgeServer(),
+        bridge_dispatcher=FakeDispatcher(),
+        desktop_process=process,
+        model_root=tmp_path / "models",
+        model_selection_path=tmp_path / "selection.json",
+        desktop_settings_path=tmp_path / "settings.json",
+        position_path=tmp_path / "position.json",
+        schedule_ui_update=lambda callback: callback(),
+    )
+    coordinator.set_view_refresher(lambda: refreshes.append("refresh"))
+
+    assert coordinator.check_desktop_process_health() is False
+    assert view_model.runtime_status["type"] == "live2d.process_error"
+    assert process.started == 0
+
+    coordinator.on_restart_requested()
+
+    assert process.stopped == 1
+    assert process.started == 1
+    assert refreshes
+
+
+def test_coordinator_starts_health_timer_for_desktop_process(
+    tmp_path: Path,
+) -> None:
+    view_model = FakeViewModel()
+    process = FakeDesktopProcess(running=False)
+    timer = FakeTimer()
+
+    coordinator = Live2DDesktopCoordinator(
+        view_model=view_model,
+        subscribe=lambda event_type, callback: None,
+        unsubscribe=lambda event_type, callback: None,
+        auto_launch=True,
+        bridge_server=FakeBridgeServer(),
+        bridge_dispatcher=FakeDispatcher(),
+        desktop_process=process,
+        model_root=tmp_path / "models",
+        model_selection_path=tmp_path / "selection.json",
+        desktop_settings_path=tmp_path / "settings.json",
+        position_path=tmp_path / "position.json",
+        schedule_ui_update=lambda callback: callback(),
+        health_timer_factory=lambda: timer,
+        health_check_interval_ms=123,
+    )
+
+    coordinator.start()
+    assert timer.interval == 123
+    assert timer.started == 1
+    assert timer.timeout.callback is not None
+
+    timer.timeout.callback()
+    assert view_model.runtime_status["type"] == "live2d.process_error"
+
+    coordinator.stop()
+    assert timer.stopped == 1
 
 
 def test_runtime_status_updates_view_model_and_schedules_refresh(tmp_path: Path) -> None:

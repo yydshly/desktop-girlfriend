@@ -144,6 +144,8 @@ class Live2DDesktopCoordinator:
         position_path: Path | None = None,
         open_models_folder: Callable[[Path], bool] | None = None,
         schedule_ui_update: Callable[[Callable[[], None]], None] | None = None,
+        health_timer_factory: Callable[[], Any] | None = None,
+        health_check_interval_ms: int = 5_000,
     ) -> None:
         self.view_model = view_model
         self.model_root = model_root or default_live2d_model_root()
@@ -169,6 +171,9 @@ class Live2DDesktopCoordinator:
         )
         self._open_models_folder = open_models_folder or _open_folder_with_desktop
         self._schedule_ui_update = schedule_ui_update or _schedule_qt_ui_update
+        self._health_timer_factory = health_timer_factory or _create_qt_timer
+        self._health_check_interval_ms = health_check_interval_ms
+        self._health_timer: Any | None = None
         self._view_refresher: Callable[[], None] | None = None
 
         self._model_packages: tuple[Live2DModelPackage, ...] = ()
@@ -205,16 +210,28 @@ class Live2DDesktopCoordinator:
     def start(self) -> None:
         """Start bridge server, bridge dispatcher, and optional desktop process."""
 
-        self.bridge_server.start()
+        try:
+            self.bridge_server.start()
+        except OSError as exc:
+            logger.exception("Live2D bridge server failed to start")
+            self._set_runtime_status(
+                {
+                    "type": "live2d.bridge_error",
+                    "detail": str(exc),
+                }
+            )
+            return
         self.bridge_dispatcher.start()
         if self.desktop_process is not None and self._visible:
             self.desktop_process.start()
+            self._start_health_timer()
 
     def stop(self) -> None:
         """Stop desktop process and bridge components."""
 
         if self.desktop_process is not None:
             self.desktop_process.stop()
+        self._stop_health_timer()
         self.bridge_dispatcher.stop()
         self.bridge_server.stop()
 
@@ -261,7 +278,9 @@ class Live2DDesktopCoordinator:
         if self._visible:
             self._sync_desktop_process_settings()
             self.desktop_process.start()
+            self._start_health_timer()
             return
+        self._stop_health_timer()
         self.desktop_process.stop()
 
     def on_position_reset_requested(self) -> None:
@@ -322,6 +341,34 @@ class Live2DDesktopCoordinator:
             opened,
         )
 
+    def on_restart_requested(self) -> None:
+        """Handle UI request to manually restart the Live2D desktop companion."""
+
+        self._log_control("restart")
+        self._restart_desktop()
+        self._set_runtime_status(
+            {
+                "type": "live2d.process_restarting",
+                "detail": "desktop process restart requested",
+            }
+        )
+
+    def check_desktop_process_health(self) -> bool:
+        """Return False and report status when the visible desktop process stopped."""
+
+        if self.desktop_process is None or not self._visible:
+            return True
+        running = bool(getattr(self.desktop_process, "running", True))
+        if running:
+            return True
+        self._set_runtime_status(
+            {
+                "type": "live2d.process_error",
+                "detail": "desktop process stopped",
+            }
+        )
+        return False
+
     def refresh_model_catalog(
         self,
         *,
@@ -375,6 +422,9 @@ class Live2DDesktopCoordinator:
 
     def _on_runtime_status(self, status: dict[str, object]) -> None:
         logger.info("Live2D runtime status updated type=%s", status.get("type"))
+        self._set_runtime_status(status)
+
+    def _set_runtime_status(self, status: dict[str, object]) -> None:
         self.view_model.set_live2d_runtime_status(status)
         self._schedule_ui_update(self._refresh_view)
 
@@ -398,6 +448,7 @@ class Live2DDesktopCoordinator:
         self._sync_desktop_process_settings()
         if self._visible:
             self.desktop_process.start()
+            self._start_health_timer()
 
     def _sync_desktop_process_settings(self) -> None:
         if self.desktop_process is None:
@@ -421,6 +472,21 @@ class Live2DDesktopCoordinator:
         if self._view_refresher is not None:
             self._view_refresher()
 
+    def _start_health_timer(self) -> None:
+        if self.desktop_process is None or self._health_timer is not None:
+            return
+        timer = self._health_timer_factory()
+        timer.setInterval(self._health_check_interval_ms)
+        timer.timeout.connect(self.check_desktop_process_health)
+        timer.start()
+        self._health_timer = timer
+
+    def _stop_health_timer(self) -> None:
+        if self._health_timer is None:
+            return
+        self._health_timer.stop()
+        self._health_timer = None
+
 
 def _open_folder_with_desktop(path: Path) -> bool:
     from PySide6.QtCore import QUrl
@@ -433,3 +499,9 @@ def _schedule_qt_ui_update(callback: Callable[[], None]) -> None:
     from PySide6.QtCore import QTimer
 
     QTimer.singleShot(0, callback)
+
+
+def _create_qt_timer() -> Any:
+    from PySide6.QtCore import QTimer
+
+    return QTimer()

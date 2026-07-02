@@ -97,6 +97,7 @@ class DesktopWindow(QMainWindow):
         on_live2d_opacity_up_requested: Callable[[], None] | None = None,
         on_live2d_visibility_toggled: Callable[[], None] | None = None,
         on_live2d_position_reset_requested: Callable[[], None] | None = None,
+        on_live2d_restart_requested: Callable[[], None] | None = None,
         on_live2d_model_selected: Callable[[str], None] | None = None,
         on_live2d_models_refresh_requested: Callable[[], None] | None = None,
         on_live2d_models_folder_requested: Callable[[], None] | None = None,
@@ -122,6 +123,7 @@ class DesktopWindow(QMainWindow):
         self._on_live2d_opacity_up_requested = on_live2d_opacity_up_requested
         self._on_live2d_visibility_toggled = on_live2d_visibility_toggled
         self._on_live2d_position_reset_requested = on_live2d_position_reset_requested
+        self._on_live2d_restart_requested = on_live2d_restart_requested
         self._on_live2d_model_selected = on_live2d_model_selected
         self._on_live2d_models_refresh_requested = on_live2d_models_refresh_requested
         self._on_live2d_models_folder_requested = on_live2d_models_folder_requested
@@ -251,6 +253,10 @@ class DesktopWindow(QMainWindow):
         self._live2d_reset_button.setStyleSheet(window_style.SECONDARY_BUTTON_STYLE)
         self._live2d_reset_button.clicked.connect(self._on_live2d_reset_clicked)
         live2d_control_layout.addWidget(self._live2d_reset_button)
+        self._live2d_restart_button = QPushButton("重启人物")
+        self._live2d_restart_button.setStyleSheet(window_style.SECONDARY_BUTTON_STYLE)
+        self._live2d_restart_button.clicked.connect(self._on_live2d_restart_clicked)
+        live2d_control_layout.addWidget(self._live2d_restart_button)
         live2d_control_layout.addStretch()
         layout.addWidget(live2d_control_row)
         self._live2d_model_status_label = QLabel(
@@ -695,6 +701,10 @@ class DesktopWindow(QMainWindow):
     def _on_live2d_reset_clicked(self) -> None:
         if self._on_live2d_position_reset_requested:
             self._on_live2d_position_reset_requested()
+
+    def _on_live2d_restart_clicked(self) -> None:
+        if self._on_live2d_restart_requested:
+            self._on_live2d_restart_requested()
 
     def _on_live2d_model_selected_from_combo(self, _index: int) -> None:
         model_id = self._live2d_model_selector.currentData()

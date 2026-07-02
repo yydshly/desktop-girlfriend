@@ -861,5 +861,34 @@ def test_view_model_sets_live2d_runtime_status_summary() -> None:
         }
     )
 
-    assert "model_loaded" in vm.live2d_runtime_status_summary
+    assert "model loaded" in vm.live2d_runtime_status_summary
     assert "Hiyori.model3.json" in vm.live2d_runtime_status_summary
+
+
+def test_view_model_renders_live2d_runtime_lifecycle_statuses() -> None:
+    """Live2D runtime statuses use readable desktop presence language."""
+    vm = DesktopViewModel()
+
+    vm.set_live2d_runtime_status({"type": "live2d.runtime_ready"})
+    assert vm.live2d_runtime_status_summary == "Runtime: connected"
+
+    vm.set_live2d_runtime_status(
+        {"type": "live2d.model_error", "detail": "missing moc3"}
+    )
+    assert vm.live2d_runtime_status_summary == "Runtime: model error - missing moc3"
+
+    vm.set_live2d_runtime_status(
+        {"type": "live2d.bridge_error", "detail": "address already in use"}
+    )
+    assert (
+        vm.live2d_runtime_status_summary
+        == "Runtime: bridge error - address already in use"
+    )
+
+    vm.set_live2d_runtime_status(
+        {"type": "live2d.process_error", "detail": "desktop process stopped"}
+    )
+    assert (
+        vm.live2d_runtime_status_summary
+        == "Runtime: desktop process stopped"
+    )
