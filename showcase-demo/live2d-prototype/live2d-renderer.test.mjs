@@ -822,6 +822,107 @@ function testThinkingStateAddsFocusedMicroMotion() {
   assert.notEqual(parameters.ParamBodyAngleX, 0);
 }
 
+function testAnimatedParametersUseProfileAliasesForSpeakingMotion() {
+  const parameters = calculateAnimatedLive2DParameters(
+    { ParamCustomMouth: 0.1, ParamCustomHeadX: 0, ParamCustomBodyX: 0 },
+    {
+      modelCommands: {
+        parameters: {
+          mouth: 0.62,
+          speaking: {
+            active: true,
+            source: "tts",
+            rhythm: "simulated"
+          }
+        }
+      },
+      parameterDiagnostics: {
+        mouthOpen: { id: "ParamCustomMouth", min: 0, max: 1, scale: 1, invert: false },
+        headX: { id: "ParamCustomHeadX", min: -30, max: 30, scale: 1, invert: false },
+        bodyX: { id: "ParamCustomBodyX", min: -10, max: 10, scale: 1, invert: false }
+      }
+    },
+    1000
+  );
+
+  assert.equal(parameters.ParamCustomMouth, 0.62);
+  assert.notEqual(parameters.ParamCustomHeadX, 0);
+  assert.notEqual(parameters.ParamCustomBodyX, 0);
+  assert.equal(parameters.ParamMouthOpenY, undefined);
+  assert.equal(parameters.ParamAngleX, undefined);
+  assert.equal(parameters.ParamBodyAngleX, undefined);
+}
+
+function testAnimatedParametersUseProfileAliasesForIdleThinkingAndPointerReaction() {
+  const parameters = calculateAnimatedLive2DParameters(
+    {
+      ParamCustomBreath: 0.55,
+      ParamCustomHeadY: 0,
+      ParamCustomHeadZ: 0,
+      ParamCustomEyeX: 0,
+      ParamCustomEyeY: 0,
+      ParamCustomBodyX: 0,
+      ParamCustomBodyY: 0
+    },
+    {
+      motion: "think",
+      expression: "thinking",
+      pointerReaction: {
+        active: true,
+        envelope: 1,
+        x: 0.5,
+        y: -0.25
+      },
+      parameterDiagnostics: {
+        breath: { id: "ParamCustomBreath", min: 0, max: 1, scale: 1, invert: false },
+        headX: { id: "ParamCustomHeadX", min: -30, max: 30, scale: 1, invert: false },
+        headY: { id: "ParamCustomHeadY", min: -30, max: 30, scale: 1, invert: false },
+        headZ: { id: "ParamCustomHeadZ", min: -30, max: 30, scale: 1, invert: false },
+        eyeX: { id: "ParamCustomEyeX", min: -1, max: 1, scale: 1, invert: false },
+        eyeY: { id: "ParamCustomEyeY", min: -1, max: 1, scale: 1, invert: false },
+        bodyX: { id: "ParamCustomBodyX", min: -10, max: 10, scale: 1, invert: false },
+        bodyY: { id: "ParamCustomBodyY", min: -10, max: 10, scale: 1, invert: false }
+      }
+    },
+    1400
+  );
+
+  assert.notEqual(parameters.ParamCustomBreath, 0.55);
+  assert.notEqual(parameters.ParamCustomHeadX, 0);
+  assert.notEqual(parameters.ParamCustomHeadY, 0);
+  assert.notEqual(parameters.ParamCustomHeadZ, 0);
+  assert.notEqual(parameters.ParamCustomEyeX, 0);
+  assert.notEqual(parameters.ParamCustomEyeY, 0);
+  assert.notEqual(parameters.ParamCustomBodyX, 0);
+  assert.notEqual(parameters.ParamCustomBodyY, 0);
+  assert.equal(parameters.ParamBreath, undefined);
+  assert.equal(parameters.ParamAngleX, undefined);
+  assert.equal(parameters.ParamEyeBallY, undefined);
+  assert.equal(parameters.ParamBodyAngleX, undefined);
+}
+
+function testAnimatedParameterAliasScaleAndInvertApplyToDeltaOnly() {
+  const parameters = calculateAnimatedLive2DParameters(
+    {
+      ParamCustomHeadX: 4
+    },
+    {
+      pointerReaction: {
+        active: true,
+        envelope: 1,
+        x: 0.5,
+        y: 0
+      },
+      parameterDiagnostics: {
+        headX: { id: "ParamCustomHeadX", min: -30, max: 30, scale: 2, invert: true }
+      }
+    },
+    1000
+  );
+
+  assert.equal(parameters.ParamCustomHeadX, -1.5);
+}
+
 testSpeakingStateAnimatesMouthOpen();
 testSpeakingStateAddsSubtleBodyMotion();
 testVisualIntentSpeakingAnimatesMouthOpen();
@@ -830,6 +931,9 @@ testIdleStateDoesNotAnimateMouthOpen();
 testIdleStateAddsBreathingMotion();
 testIdleStateAddsEyeAndHeadMicroMotion();
 testThinkingStateAddsFocusedMicroMotion();
+testAnimatedParametersUseProfileAliasesForSpeakingMotion();
+testAnimatedParametersUseProfileAliasesForIdleThinkingAndPointerReaction();
+testAnimatedParameterAliasScaleAndInvertApplyToDeltaOnly();
 
 function testIdleMotionAutoRotates() {
   const renderer = new Live2DRenderer(createCanvasProbe());

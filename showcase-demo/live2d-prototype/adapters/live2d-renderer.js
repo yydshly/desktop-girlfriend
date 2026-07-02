@@ -913,6 +913,7 @@ function getExpressionSupport(requestedExpression, resolvedExpression, model = n
 
 export function calculateAnimatedLive2DParameters(parameters = {}, command = {}, now = 0) {
   const next = { ...parameters };
+  const aliases = command.parameterDiagnostics || {};
   const motion = command.motion || "";
   const adapterParameters = command.modelCommands?.parameters || {};
   const speakingParameter = adapterParameters.speaking || {};
@@ -929,75 +930,76 @@ export function calculateAnimatedLive2DParameters(parameters = {}, command = {},
 
   if (speaking) {
     if (speakingMouth !== null) {
-      next.ParamMouthOpenY = roundToThree(Math.max(Number(next.ParamMouthOpenY ?? 0), speakingMouth));
+      maxAliasedParameter(next, aliases.mouthOpen, speakingMouth, "ParamMouthOpenY");
     }
-    next.ParamAngleX = roundParameter(
-      Number(next.ParamAngleX ?? 0) + Math.sin(now / 260) * 2.2
-    );
-    next.ParamBodyAngleX = roundParameter(
-      Number(next.ParamBodyAngleX ?? 0) + Math.sin(now / 320) * 1.4
-    );
+    addAliasedParameter(next, aliases.headX, Math.sin(now / 260) * 2.2, "ParamAngleX");
+    addAliasedParameter(next, aliases.bodyX, Math.sin(now / 320) * 1.4, "ParamBodyAngleX");
   }
 
   if (!speaking) {
     const breath = 0.5 + Math.sin(now / 900) * 0.08;
-    next.ParamBreath = roundToThree(Math.max(Number(next.ParamBreath ?? 0.5), breath));
-    next.ParamAngleZ = roundParameter(
-      Number(next.ParamAngleZ ?? 0) + Math.sin(now / 1400) * 0.9 * idleHeadScale
-    );
-    next.ParamAngleY = roundParameter(
-      Number(next.ParamAngleY ?? 0) + Math.sin(now / 2100) * 1.1 * idleHeadScale
-    );
-    next.ParamEyeBallX = clampRoundedParameter(
-      Number(next.ParamEyeBallX ?? 0) + Math.sin(now / 1800) * 0.12 * idleEyeScale,
-      -1,
-      1
-    );
-    next.ParamEyeBallY = clampRoundedParameter(
-      Number(next.ParamEyeBallY ?? 0) + Math.sin(now / 2400) * 0.06 * idleEyeScale,
-      -1,
-      1
-    );
-    next.ParamBodyAngleX = roundParameter(
-      Number(next.ParamBodyAngleX ?? 0) + Math.sin(now / 1250) * 0.8 * idleHeadScale
-    );
-    next.ParamBodyAngleY = roundParameter(
-      Number(next.ParamBodyAngleY ?? 0) + Math.sin(now / 2300) * 0.5 * idleHeadScale
-    );
+    maxAliasedParameter(next, aliases.breath, breath, "ParamBreath", 0.5);
+    addAliasedParameter(next, aliases.headZ, Math.sin(now / 1400) * 0.9 * idleHeadScale, "ParamAngleZ");
+    addAliasedParameter(next, aliases.headY, Math.sin(now / 2100) * 1.1 * idleHeadScale, "ParamAngleY");
+    addAliasedParameter(next, aliases.eyeX, Math.sin(now / 1800) * 0.12 * idleEyeScale, "ParamEyeBallX", -1, 1);
+    addAliasedParameter(next, aliases.eyeY, Math.sin(now / 2400) * 0.06 * idleEyeScale, "ParamEyeBallY", -1, 1);
+    addAliasedParameter(next, aliases.bodyX, Math.sin(now / 1250) * 0.8 * idleHeadScale, "ParamBodyAngleX");
+    addAliasedParameter(next, aliases.bodyY, Math.sin(now / 2300) * 0.5 * idleHeadScale, "ParamBodyAngleY");
   }
 
   if (command.pointerReaction?.active) {
     const reaction = command.pointerReaction;
-    next.ParamAngleX = roundParameter(
-      Number(next.ParamAngleX ?? 0) + reaction.x * 5.5 * reaction.envelope
-    );
-    next.ParamAngleY = roundParameter(
-      Number(next.ParamAngleY ?? 0) + reaction.y * -4 * reaction.envelope
-    );
-    next.ParamAngleZ = roundParameter(
-      Number(next.ParamAngleZ ?? 0) + reaction.x * -3.5 * reaction.envelope
-    );
-    next.ParamBodyAngleX = roundParameter(
-      Number(next.ParamBodyAngleX ?? 0) + reaction.x * 3.5 * reaction.envelope
-    );
-    next.ParamBodyAngleY = roundParameter(
-      Number(next.ParamBodyAngleY ?? 0) + reaction.y * -2.8 * reaction.envelope
-    );
+    addAliasedParameter(next, aliases.headX, reaction.x * 5.5 * reaction.envelope, "ParamAngleX");
+    addAliasedParameter(next, aliases.headY, reaction.y * -4 * reaction.envelope, "ParamAngleY");
+    addAliasedParameter(next, aliases.headZ, reaction.x * -3.5 * reaction.envelope, "ParamAngleZ");
+    addAliasedParameter(next, aliases.bodyX, reaction.x * 3.5 * reaction.envelope, "ParamBodyAngleX");
+    addAliasedParameter(next, aliases.bodyY, reaction.y * -2.8 * reaction.envelope, "ParamBodyAngleY");
   }
 
   if (thinking) {
-    next.ParamAngleY = roundParameter(
-      Number(next.ParamAngleY ?? 0) + 1.1 + Math.sin(now / 760) * 0.7
-    );
-    next.ParamEyeBallY = roundParameter(
-      Number(next.ParamEyeBallY ?? 0) - 0.08 + Math.sin(now / 980) * 0.04
-    );
-    next.ParamBodyAngleX = roundParameter(
-      Number(next.ParamBodyAngleX ?? 0) + Math.sin(now / 680) * 0.9
-    );
+    addAliasedParameter(next, aliases.headY, 1.1 + Math.sin(now / 760) * 0.7, "ParamAngleY");
+    addAliasedParameter(next, aliases.eyeY, -0.08 + Math.sin(now / 980) * 0.04, "ParamEyeBallY");
+    addAliasedParameter(next, aliases.bodyX, Math.sin(now / 680) * 0.9, "ParamBodyAngleX");
   }
 
   return next;
+}
+
+function addAliasedParameter(parameters, alias = null, delta, fallbackId, fallbackMin = null, fallbackMax = null) {
+  const id = resolveAliasId(alias, fallbackId);
+  const next = readParameterValue(parameters, id) + transformAliasValue(delta, alias);
+  parameters[id] = clampAliasParameter(next, alias, fallbackMin, fallbackMax);
+}
+
+function maxAliasedParameter(parameters, alias = null, value, fallbackId, fallbackBase = 0) {
+  const id = resolveAliasId(alias, fallbackId);
+  const current = readParameterValue(parameters, id, fallbackBase);
+  parameters[id] = clampAliasParameter(Math.max(current, transformAliasValue(value, alias)), alias);
+}
+
+function readParameterValue(parameters, id, fallback = 0) {
+  const value = Number(parameters[id]);
+  return Number.isFinite(value) ? value : fallback;
+}
+
+function resolveAliasId(alias = null, fallbackId) {
+  return typeof alias?.id === "string" && alias.id.trim() ? alias.id.trim() : fallbackId;
+}
+
+function clampAliasParameter(value, alias = null, fallbackMin = null, fallbackMax = null) {
+  const min = Number.isFinite(Number(alias?.min)) ? Number(alias.min) : fallbackMin;
+  const max = Number.isFinite(Number(alias?.max)) ? Number(alias.max) : fallbackMax;
+  const next = Number(value);
+  if (Number.isFinite(min) && Number.isFinite(max)) {
+    return roundParameter(Math.min(max, Math.max(min, next)));
+  }
+  return roundParameter(next);
+}
+
+function transformAliasValue(value, alias = null) {
+  const scale = Number.isFinite(Number(alias?.scale)) ? Number(alias.scale) : 1;
+  const scaled = Number(value) * scale;
+  return alias?.invert ? -scaled : scaled;
 }
 
 function roundToThree(value) {
