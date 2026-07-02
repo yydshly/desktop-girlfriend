@@ -3,22 +3,29 @@ export function resolveSpeakingState({
   now = 0
 } = {}) {
   const ttsState = normalizeTtsState(emotionState.turn?.ttsState);
+  const fallbackExpired = isDialogueFallbackExpired(emotionState.turn, ttsState, now);
+  const effectiveTtsState = fallbackExpired ? "ended" : ttsState;
   const activity = String(emotionState.activity || "").trim();
   const state = String(emotionState.state || "").trim();
-  const hasTtsPresence = ttsState !== "none";
-  const activeTts = ttsState === "started" || ttsState === "playing" || ttsState === "speaking";
-  const endedTts = ttsState === "ended" || ttsState === "interrupted" || ttsState === "error";
-  const active = activeTts || (!endedTts && (activity === "speak" || state === "speaking"));
+  const hasTtsPresence = effectiveTtsState !== "none";
+  const pending = effectiveTtsState === "started";
+  const closing = effectiveTtsState === "ended" || effectiveTtsState === "interrupted" || effectiveTtsState === "error";
+  const activeTts = effectiveTtsState === "playing" || effectiveTtsState === "speaking";
+  const endedTts = closing;
+  const active = activeTts || (!hasTtsPresence && (activity === "speak" || state === "speaking"));
   const source = hasTtsPresence ? "tts" : (active ? "state" : "idle");
   const baseMouth = active ? clamp01(emotionState.mouth ?? 0.65) : clamp01(emotionState.mouth ?? 0);
-  const mouth = active ? calculateMouthEnvelope(baseMouth, now) : 0;
+  const mouth = active ? calculateMouthEnvelope(baseMouth, now) : (pending ? 0.04 : 0);
   return {
     active,
+    pending,
+    closing,
+    fallbackExpired,
     source,
     mouth,
     baseMouth,
-    rhythm: active ? "simulated" : "none",
-    ttsState,
+    rhythm: active ? "simulated" : (pending ? "pending" : "none"),
+    ttsState: effectiveTtsState,
     ttsSource: readTtsSource(emotionState.turn?.source),
     mouthForm: active ? calculateMouthForm(now, mouth) : 0
   };
@@ -71,4 +78,21 @@ function normalizeTtsState(value) {
 function readTtsSource(value) {
   const source = String(value || "").trim();
   return source || "unknown";
+}
+
+function isDialogueFallbackExpired(turn = {}, ttsState = "none", now = 0) {
+  if (ttsState !== "speaking") {
+    return false;
+  }
+  if (String(turn.source || "").trim() === "tts_controller") {
+    return false;
+  }
+  const receivedAt = Number(turn.receivedAt);
+  if (!Number.isFinite(receivedAt)) {
+    return false;
+  }
+  const timeoutMs = Number.isFinite(Number(turn.fallbackTimeoutMs))
+    ? Number(turn.fallbackTimeoutMs)
+    : 5200;
+  return Number(now) - receivedAt >= timeoutMs;
 }

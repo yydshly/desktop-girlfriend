@@ -106,6 +106,50 @@ h2 {
   transition: background 220ms ease;
 }
 
+.avatar-stage.is-state-idle {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0)),
+    radial-gradient(circle at 50% 72%, rgba(205, 215, 224, 0.1), transparent 36%);
+}
+
+.avatar-stage.is-state-preparing {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0)),
+    radial-gradient(circle at 50% 66%, rgba(242, 166, 179, 0.14), transparent 34%),
+    radial-gradient(circle at 52% 42%, rgba(151, 204, 255, 0.1), transparent 28%);
+}
+
+.avatar-stage.is-state-speaking {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0)),
+    radial-gradient(circle at 50% 64%, rgba(242, 166, 179, 0.22), transparent 36%),
+    radial-gradient(circle at 48% 38%, rgba(255, 225, 232, 0.12), transparent 28%);
+}
+
+.avatar-stage.is-state-thinking,
+.avatar-stage.is-state-listening,
+.avatar-stage.is-state-think {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0)),
+    radial-gradient(circle at 48% 68%, rgba(151, 204, 255, 0.18), transparent 36%);
+}
+
+.avatar-stage.is-state-comfort,
+.avatar-stage.is-state-happy {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0)),
+    radial-gradient(circle at 50% 66%, rgba(255, 218, 179, 0.14), transparent 34%),
+    radial-gradient(circle at 48% 42%, rgba(242, 166, 179, 0.16), transparent 30%);
+}
+
+.avatar-stage.is-state-error,
+.avatar-stage.is-state-sad {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)),
+    radial-gradient(circle at 48% 70%, rgba(170, 181, 187, 0.14), transparent 36%),
+    radial-gradient(circle at 52% 36%, rgba(255, 120, 120, 0.08), transparent 28%);
+}
+
 .avatar-stage::after {
   position: absolute;
   inset: 12%;
@@ -126,6 +170,12 @@ h2 {
   background: radial-gradient(circle, rgba(242, 166, 179, 0.34), transparent 62%);
   opacity: 1;
   transform: scale(1.02);
+}
+
+.avatar-stage.is-state-preparing::after {
+  background: radial-gradient(circle, rgba(242, 166, 179, 0.2), transparent 62%);
+  opacity: 0.72;
+  transform: scale(0.98);
 }
 
 .avatar-stage.is-state-listening::after,
@@ -166,6 +216,18 @@ h2 {
   transform: translateY(0);
 }
 
+.voice-visualizer.state-pending {
+  border-color: rgba(151, 204, 255, 0.22);
+  box-shadow: 0 10px 24px rgba(151, 204, 255, 0.1);
+  opacity: 0.58;
+  transform: translateY(4px);
+}
+
+.voice-visualizer.state-fading {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
 .voice-bar {
   display: block;
   width: 4px;
@@ -176,6 +238,12 @@ h2 {
   transform: scaleY(0.12);
   transform-origin: 50% 100%;
   transition: transform 80ms linear, opacity 120ms ease;
+}
+
+.voice-visualizer.state-pending .voice-bar {
+  background: linear-gradient(180deg, #dcefff, #97ccff);
+  box-shadow: 0 0 10px rgba(151, 204, 255, 0.28);
+  transition-duration: 160ms;
 }
 
 #avatarCanvas {

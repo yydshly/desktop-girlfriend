@@ -48,6 +48,9 @@ function testBehaviorAdaptsToModelMotionAndExpression() {
         intensity: 0.76,
         speaking: {
           active: false,
+          pending: false,
+          closing: false,
+          fallbackExpired: false,
           source: "idle",
           rhythm: "none",
           ttsState: "none",
@@ -105,6 +108,9 @@ function testEmotionStateAdaptsThroughPlanner() {
   });
   assert.deepEqual(commands.parameters.speaking, {
     active: false,
+    pending: false,
+    closing: false,
+    fallbackExpired: false,
     source: "idle",
     rhythm: "none",
     ttsState: "none",
@@ -126,6 +132,9 @@ function testSpeakingMetadataPassesToModelParameters() {
       mouthForm: 0.18,
       speaking: {
         active: true,
+        pending: true,
+        closing: false,
+        fallbackExpired: false,
         source: "tts",
         rhythm: "simulated",
         ttsState: "playing",
@@ -140,6 +149,9 @@ function testSpeakingMetadataPassesToModelParameters() {
 
   assert.deepEqual(commands.parameters.speaking, {
     active: true,
+    pending: true,
+    closing: false,
+    fallbackExpired: false,
     source: "tts",
     rhythm: "simulated",
     ttsState: "playing",

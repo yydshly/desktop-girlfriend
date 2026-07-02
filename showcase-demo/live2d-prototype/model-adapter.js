@@ -79,6 +79,9 @@ function clamp01(value) {
 function normalizeSpeakingParameter(speaking = null) {
   return {
     active: Boolean(speaking?.active),
+    pending: Boolean(speaking?.pending),
+    closing: Boolean(speaking?.closing),
+    fallbackExpired: Boolean(speaking?.fallbackExpired),
     source: typeof speaking?.source === "string" && speaking.source.trim()
       ? speaking.source.trim()
       : "idle",

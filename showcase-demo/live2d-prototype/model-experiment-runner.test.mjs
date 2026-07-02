@@ -56,6 +56,9 @@ function testTimelineBuildsEmotionBehaviorAndAdapterCommands() {
     mouthForm: -0.187,
     speaking: {
       active: true,
+      pending: false,
+      closing: false,
+      fallbackExpired: false,
       source: "state",
       mouth: 0.514,
       baseMouth: 0.65,
@@ -89,6 +92,9 @@ function testTimelineBuildsEmotionBehaviorAndAdapterCommands() {
       intensity: 0.76,
       speaking: {
         active: true,
+        pending: false,
+        closing: false,
+        fallbackExpired: false,
         source: "state",
         rhythm: "simulated",
         ttsState: "none",
@@ -101,6 +107,9 @@ function testTimelineBuildsEmotionBehaviorAndAdapterCommands() {
   });
   assert.deepEqual(timeline[3].speakingState, {
     active: true,
+    pending: false,
+    closing: false,
+    fallbackExpired: false,
     source: "state",
     mouth: 0.514,
     baseMouth: 0.65,

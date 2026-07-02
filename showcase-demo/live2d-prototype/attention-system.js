@@ -36,6 +36,17 @@ export function resolveAttentionState({
     };
   }
 
+  if (speakingState.pending) {
+    const target = pointerState.available === false ? "user" : "cursor";
+    return {
+      target,
+      source: String(speakingState.source || "speaking"),
+      gaze: target,
+      bodyFollow: "soft",
+      intensity: 0.38
+    };
+  }
+
   if (state === "thinking" || activity === "think" || emotion === "thinking") {
     return {
       target: "down-left",

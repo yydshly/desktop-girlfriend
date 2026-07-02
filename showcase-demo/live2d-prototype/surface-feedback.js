@@ -4,21 +4,50 @@ export function resolveEmotionalSurfaceState({
   now = 0
 } = {}) {
   const visualizer = resolveVoiceVisualizerState({ speakingState, now });
+  const visualIntent = resolveSurfaceIntent(emotionState, speakingState, visualizer);
   return {
-    visualIntent: visualizer.visible ? "speaking" : resolveVisualIntent(emotionState),
+    visualIntent,
     visualizer
   };
 }
 
 export function resolveVoiceVisualizerState({ speakingState = {}, now = 0 } = {}) {
-  const visible = Boolean(speakingState.active);
-  const intensity = visible ? clamp01((speakingState.mouth ?? 0) * 1.2 + 0.16) : 0;
+  const active = Boolean(speakingState.active);
+  const pending = Boolean(speakingState.pending);
+  const closing = Boolean(speakingState.closing);
+  const visible = active || pending || closing;
+  const state = active ? "playing" : (pending ? "pending" : (closing ? "fading" : "hidden"));
+  const intensity = active
+    ? clamp01((speakingState.mouth ?? 0) * 1.2 + 0.16)
+    : (pending ? 0.18 : 0);
   return {
     visible,
-    state: visible ? "playing" : "hidden",
+    active,
+    state,
     intensity: roundToThree(intensity),
-    bars: visible ? buildBars(now, intensity) : []
+    bars: visible ? buildBars(now, intensity, state) : []
   };
+}
+
+function resolveSurfaceIntent(emotionState = {}, speakingState = {}, visualizer = {}) {
+  if (speakingState.pending) {
+    return "preparing";
+  }
+  if (speakingState.active || visualizer.state === "playing") {
+    return "speaking";
+  }
+  if (speakingState.fallbackExpired || speakingState.closing) {
+    return speakingState.ttsState === "error" ? "error" : resolvePostSpeakingIntent(emotionState);
+  }
+  return resolveVisualIntent(emotionState);
+}
+
+function resolvePostSpeakingIntent(emotionState = {}) {
+  const state = String(emotionState.state || "").trim().toLowerCase();
+  if (state === "error") {
+    return "error";
+  }
+  return "idle";
 }
 
 function resolveVisualIntent(emotionState = {}) {
@@ -40,11 +69,12 @@ function resolveVisualIntent(emotionState = {}) {
   return "idle";
 }
 
-function buildBars(now = 0, intensity = 0) {
+function buildBars(now = 0, intensity = 0, state = "playing") {
   return Array.from({ length: 5 }, (_, index) => {
     const phase = Number(now) / 120 + index * 0.82;
     const wave = 0.5 + Math.sin(phase) * 0.5;
-    return roundToThree(Math.max(0.12, Math.min(1, 0.16 + intensity * (0.38 + wave * 0.62))));
+    const floor = state === "fading" ? 0 : 0.12;
+    return roundToThree(Math.max(floor, Math.min(1, 0.16 + intensity * (0.38 + wave * 0.62))));
   });
 }
 

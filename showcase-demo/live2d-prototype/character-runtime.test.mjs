@@ -43,6 +43,9 @@ function testRuntimeStateBuildsBehaviorAndModelCommands() {
     mouthForm: 0.096,
     speaking: {
       active: true,
+      pending: false,
+      closing: false,
+      fallbackExpired: false,
       source: "state",
       mouth: 0.533,
       baseMouth: 0.65,
@@ -66,6 +69,9 @@ function testRuntimeStateBuildsBehaviorAndModelCommands() {
   });
   assert.deepEqual(state.speakingState, {
     active: true,
+    pending: false,
+    closing: false,
+    fallbackExpired: false,
     source: "state",
     mouth: 0.533,
     baseMouth: 0.65,
@@ -227,7 +233,7 @@ function testTtsPlayingRuntimeCarriesSurfaceAndMouthForm() {
   assert.equal(first.modelCommands.parameters.speaking.mouthForm, first.speakingState.mouthForm);
 }
 
-function testTtsEndedRuntimeClosesMouthAndHidesVisualizer() {
+function testTtsEndedRuntimeClosesMouthAndFadesVisualizer() {
   const state = buildCharacterRuntimeState({
     emotionState: {
       state: "speaking",
@@ -246,7 +252,10 @@ function testTtsEndedRuntimeClosesMouthAndHidesVisualizer() {
   assert.equal(state.speakingState.ttsState, "ended");
   assert.equal(state.modelCommands.parameters.mouth, 0);
   assert.equal(state.modelCommands.parameters.mouthForm, 0);
-  assert.equal(state.surface.visualizer.visible, false);
+  assert.equal(state.surface.visualizer.visible, true);
+  assert.equal(state.surface.visualizer.active, false);
+  assert.equal(state.surface.visualizer.state, "fading");
+  assert.equal(state.visualIntent, "idle");
 }
 
 testRuntimeStateBuildsBehaviorAndModelCommands();
@@ -254,5 +263,5 @@ testExplicitEmotionStateOverridesMappedStatePreset();
 testPointerStateOverridesRuntimeAttention();
 testDialogueTtsSpeakingIsRuntimeSpeakingSource();
 testTtsPlayingRuntimeCarriesSurfaceAndMouthForm();
-testTtsEndedRuntimeClosesMouthAndHidesVisualizer();
+testTtsEndedRuntimeClosesMouthAndFadesVisualizer();
 console.log("character-runtime tests passed");

@@ -90,6 +90,54 @@ function testTtsPlayingKeepsSpeakingActiveAndVariesMouthForm() {
   assert.notEqual(first.mouthForm, second.mouthForm);
 }
 
+function testTtsStartedIsPendingWithoutObviousMouthMotion() {
+  const state = resolveSpeakingState({
+    emotionState: {
+      state: "speaking",
+      activity: "speak",
+      mouth: 0.65,
+      turn: { ttsState: "started", source: "tts_controller" }
+    },
+    now: 120
+  });
+
+  assert.equal(state.active, false);
+  assert.equal(state.pending, true);
+  assert.equal(state.source, "tts");
+  assert.equal(state.ttsSource, "tts_controller");
+  assert.equal(state.ttsState, "started");
+  assert.equal(state.rhythm, "pending");
+  assert.equal(state.mouth, 0.04);
+  assert.equal(state.mouthForm, 0);
+}
+
+function testDialogueFallbackExpiresWithoutRealTtsPlayback() {
+  const state = resolveSpeakingState({
+    emotionState: {
+      state: "speaking",
+      activity: "speak",
+      mouth: 0.65,
+      turn: {
+        ttsState: "speaking",
+        source: "dialogue.turn",
+        receivedAt: 0,
+        fallbackTimeoutMs: 1000
+      }
+    },
+    now: 1400
+  });
+
+  assert.equal(state.active, false);
+  assert.equal(state.pending, false);
+  assert.equal(state.closing, true);
+  assert.equal(state.fallbackExpired, true);
+  assert.equal(state.source, "tts");
+  assert.equal(state.ttsState, "ended");
+  assert.equal(state.rhythm, "none");
+  assert.equal(state.mouth, 0);
+  assert.equal(state.mouthForm, 0);
+}
+
 function testTtsEndedAndInterruptedCloseMouth() {
   for (const ttsState of ["ended", "interrupted"]) {
     const state = resolveSpeakingState({
@@ -103,6 +151,7 @@ function testTtsEndedAndInterruptedCloseMouth() {
     });
 
     assert.equal(state.active, false);
+    assert.equal(state.closing, true);
     assert.equal(state.source, "tts");
     assert.equal(state.ttsState, ttsState);
     assert.equal(state.mouth, 0);
@@ -138,6 +187,8 @@ testTtsSpeakingActivatesSpeakingDriver();
 testStateSpeakingActivatesWithoutTts();
 testIdleSpeakingDriverKeepsMouthStable();
 testTtsPlayingKeepsSpeakingActiveAndVariesMouthForm();
+testTtsStartedIsPendingWithoutObviousMouthMotion();
+testDialogueFallbackExpiresWithoutRealTtsPlayback();
 testTtsEndedAndInterruptedCloseMouth();
 testTtsErrorClosesMouthButKeepsTtsSource();
 testMouthEnvelopeStaysInRange();

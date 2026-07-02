@@ -38,9 +38,16 @@ export function buildCharacterRuntimeState({
     attentionState,
     speakingState,
     surface,
-    visualIntent: mappedState.visualIntent || surface.visualIntent,
+    visualIntent: resolveRuntimeVisualIntent(mappedState, surface, speakingState),
     behavior,
     modelCommands,
     updatedAt
   };
+}
+
+function resolveRuntimeVisualIntent(mappedState = {}, surface = {}, speakingState = {}) {
+  if (speakingState.active || speakingState.pending || speakingState.closing || speakingState.fallbackExpired) {
+    return surface.visualIntent;
+  }
+  return mappedState.visualIntent || surface.visualIntent;
 }

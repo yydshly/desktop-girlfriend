@@ -26,6 +26,7 @@ function testVoiceVisualizerFadesOutAfterTtsEnded() {
   const visualizer = resolveVoiceVisualizerState({
     speakingState: {
       active: false,
+      closing: true,
       source: "tts",
       ttsState: "ended",
       mouth: 0
@@ -33,9 +34,30 @@ function testVoiceVisualizerFadesOutAfterTtsEnded() {
     now: 180
   });
 
-  assert.equal(visualizer.visible, false);
-  assert.equal(visualizer.state, "hidden");
+  assert.equal(visualizer.visible, true);
+  assert.equal(visualizer.active, false);
+  assert.equal(visualizer.state, "fading");
   assert.equal(visualizer.intensity, 0);
+}
+
+function testVoiceVisualizerShowsPendingBeforeTtsPlaying() {
+  const visualizer = resolveVoiceVisualizerState({
+    speakingState: {
+      active: false,
+      pending: true,
+      source: "tts",
+      ttsState: "started",
+      mouth: 0.04
+    },
+    now: 180
+  });
+
+  assert.equal(visualizer.visible, true);
+  assert.equal(visualizer.active, false);
+  assert.equal(visualizer.state, "pending");
+  assert.ok(visualizer.intensity > 0);
+  assert.ok(visualizer.intensity < 0.3);
+  assert.equal(visualizer.bars.length, 5);
 }
 
 function testEmotionalSurfaceStatesAreDistinct() {
@@ -45,6 +67,26 @@ function testEmotionalSurfaceStatesAreDistinct() {
   assert.equal(resolveEmotionalSurfaceState({ emotionState: { state: "happy" } }).visualIntent, "happy");
   assert.equal(resolveEmotionalSurfaceState({ emotionState: { state: "error" } }).visualIntent, "error");
   assert.equal(resolveEmotionalSurfaceState({ emotionState: { state: "idle" } }).visualIntent, "idle");
+}
+
+function testPendingSurfaceUsesPreparingIntent() {
+  const surface = resolveEmotionalSurfaceState({
+    emotionState: {
+      state: "speaking"
+    },
+    speakingState: {
+      active: false,
+      pending: true,
+      source: "tts",
+      ttsState: "started",
+      mouth: 0.04
+    },
+    now: 80
+  });
+
+  assert.equal(surface.visualIntent, "preparing");
+  assert.equal(surface.visualizer.visible, true);
+  assert.equal(surface.visualizer.state, "pending");
 }
 
 function testSpeakingSurfaceOverridesGenericState() {
@@ -67,6 +109,8 @@ function testSpeakingSurfaceOverridesGenericState() {
 
 testVoiceVisualizerActivatesForTtsPlaying();
 testVoiceVisualizerFadesOutAfterTtsEnded();
+testVoiceVisualizerShowsPendingBeforeTtsPlaying();
 testEmotionalSurfaceStatesAreDistinct();
+testPendingSurfaceUsesPreparingIntent();
 testSpeakingSurfaceOverridesGenericState();
 console.log("surface-feedback tests passed");

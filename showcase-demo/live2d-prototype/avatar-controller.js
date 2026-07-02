@@ -2,6 +2,8 @@ import { mapAvatarSequence, mapAvatarState, mapBridgeMessage } from "./state-map
 import { mapBridgeMessageToEmotionState } from "./emotion-state.js";
 import { buildCharacterRuntimeState } from "./character-runtime.js";
 
+const DIALOGUE_FALLBACK_TIMEOUT_MS = 5200;
+
 export class AvatarController {
   constructor(renderer, readoutElement, bubbleElement = null, stageElement = null, options = {}) {
     this.renderer = renderer;
@@ -102,13 +104,14 @@ export class AvatarController {
   }
 
   applyMappedState(nextState, emotionState = null) {
+    const now = this.getNow();
     this.currentState = buildCharacterRuntimeState({
       previousState: this.currentState,
       mappedState: nextState,
-      emotionState,
+      emotionState: this.prepareEmotionStateForRuntime(emotionState, now),
       pointerState: this.pointerState,
       profile: this.getModelProfile(),
-      now: this.getNow()
+      now
     });
     this.renderer.applyState(this.currentState);
     this.renderReadout();
@@ -141,8 +144,26 @@ export class AvatarController {
   shouldRefreshSurface() {
     return Boolean(
       this.currentState.speakingState?.active
-      || this.currentState.surface?.visualizer?.visible
+      || this.currentState.speakingState?.pending
     );
+  }
+
+  prepareEmotionStateForRuntime(emotionState = null, now = this.getNow()) {
+    if (!emotionState?.turn?.ttsState) {
+      return emotionState;
+    }
+    return {
+      ...emotionState,
+      turn: {
+        ...emotionState.turn,
+        receivedAt: Number.isFinite(Number(emotionState.turn.receivedAt))
+          ? Number(emotionState.turn.receivedAt)
+          : now,
+        fallbackTimeoutMs: Number.isFinite(Number(emotionState.turn.fallbackTimeoutMs))
+          ? Number(emotionState.turn.fallbackTimeoutMs)
+          : DIALOGUE_FALLBACK_TIMEOUT_MS
+      }
+    };
   }
 
   renderReadout() {
@@ -204,7 +225,7 @@ export class AvatarController {
     this.voiceVisualizerElement.hidden = !visualizer.visible;
     this.voiceVisualizerElement.className = [
       "voice-visualizer",
-      visualizer.visible ? "is-visible" : "",
+      visualizer.active ? "is-visible" : "",
       `state-${visualizer.state || "hidden"}`
     ].filter(Boolean).join(" ");
     this.voiceVisualizerElement.dataset.state = visualizer.state || "hidden";

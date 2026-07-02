@@ -153,6 +153,9 @@ function testControllerStoresEmotionAndBehaviorForMappedState() {
     mouthForm: 0.096,
     speaking: {
       active: true,
+      pending: false,
+      closing: false,
+      fallbackExpired: false,
       source: "state",
       mouth: 0.533,
       baseMouth: 0.65,
@@ -225,6 +228,9 @@ function testControllerStoresModelCommandsWhenProfileProviderExists() {
       intensity: 0.76,
       speaking: {
         active: true,
+        pending: false,
+        closing: false,
+        fallbackExpired: false,
         source: "state",
         rhythm: "simulated",
         ttsState: "none",
@@ -366,11 +372,92 @@ function testControllerConsumesRealTtsPlaybackEnded() {
 
   const applied = renderer.appliedStates.at(-1);
   assert.equal(applied.speakingState.active, false);
+  assert.equal(applied.speakingState.closing, true);
   assert.equal(applied.speakingState.source, "tts");
   assert.equal(applied.speakingState.ttsState, "ended");
   assert.equal(applied.modelCommands.parameters.mouth, 0);
   assert.equal(applied.modelCommands.parameters.mouthForm, 0);
-  assert.equal(visualizer.hidden, true);
+  assert.equal(visualizer.hidden, false);
+  assert.equal(visualizer.className, "voice-visualizer state-fading");
+}
+
+function testControllerTreatsTtsStartedAsPreparingNotPlaying() {
+  const renderer = createRendererProbe();
+  const readout = createTextElement();
+  const stage = createStageElement();
+  const visualizer = createVisualizerElement();
+  const controller = new AvatarController(renderer, readout, null, stage, {
+    getNow: () => 120,
+    voiceVisualizerElement: visualizer
+  });
+
+  controller.handleBridgeMessage({
+    type: "tts.playback",
+    payload: {
+      request_id: "req-1",
+      tts_state: "started",
+      source: "tts_controller"
+    }
+  });
+
+  const applied = renderer.appliedStates.at(-1);
+  assert.equal(applied.speakingState.active, false);
+  assert.equal(applied.speakingState.pending, true);
+  assert.equal(applied.modelCommands.parameters.mouth, 0.04);
+  assert.equal(applied.modelCommands.parameters.mouthForm, 0);
+  assert.equal(stage.className, "avatar-stage is-state-preparing is-voice-active");
+  assert.equal(visualizer.className, "voice-visualizer state-pending");
+}
+
+function testControllerExpiresDialogueTurnSpeakingFallback() {
+  const renderer = createRendererProbe();
+  const readout = createTextElement();
+  const stage = createStageElement();
+  const visualizer = createVisualizerElement();
+  let now = 0;
+  const controller = new AvatarController(renderer, readout, null, stage, {
+    getNow: () => now,
+    voiceVisualizerElement: visualizer
+  });
+
+  controller.handleBridgeMessage({
+    type: "dialogue.turn",
+    payload: {
+      response_text: "hello",
+      tts_state: "speaking"
+    }
+  });
+  assert.equal(renderer.appliedStates.at(-1).speakingState.active, true);
+
+  now = 6200;
+  controller.tick();
+
+  const applied = renderer.appliedStates.at(-1);
+  assert.equal(applied.speakingState.active, false);
+  assert.equal(applied.speakingState.fallbackExpired, true);
+  assert.equal(applied.modelCommands.parameters.mouth, 0);
+  assert.equal(applied.modelCommands.parameters.mouthForm, 0);
+  assert.equal(stage.className, "avatar-stage is-state-idle is-voice-active");
+  assert.equal(visualizer.className, "voice-visualizer state-fading");
+}
+
+function testControllerUsesSameTimestampForRuntimeAndFallbackStart() {
+  const renderer = createRendererProbe();
+  const readout = createTextElement();
+  const times = [100, 999];
+  const controller = new AvatarController(renderer, readout, null, null, {
+    getNow: () => times.shift() ?? 999
+  });
+
+  controller.handleBridgeMessage({
+    type: "dialogue.turn",
+    payload: {
+      response_text: "hello",
+      tts_state: "speaking"
+    }
+  });
+
+  assert.equal(renderer.appliedStates.at(-1).emotionState.turn.receivedAt, 100);
 }
 
 testControllerRendersSpeechBubbleFromDialogueTurn();
@@ -386,4 +473,7 @@ testControllerPassesPointerStateToRuntimeAttention();
 testControllerRendersVoiceVisualizerForTtsPlaying();
 testControllerTickRefreshesSpeakingMouthFromRuntime();
 testControllerConsumesRealTtsPlaybackEnded();
+testControllerTreatsTtsStartedAsPreparingNotPlaying();
+testControllerExpiresDialogueTurnSpeakingFallback();
+testControllerUsesSameTimestampForRuntimeAndFallbackStart();
 console.log("avatar-controller tests passed");
