@@ -7,8 +7,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Protocol
 
-from PySide6.QtCore import QTimer, QUrl
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication
 
 from app.brain.async_dialogue_controller import AsyncDialogueController
@@ -66,30 +65,9 @@ from app.input.asr.controller import VoiceInputController
 from app.input.asr.providers import ASRProviderError, create_asr_provider
 from app.input.audio import MicrophoneRecorder, MicrophoneRecorderLike
 from app.ui.close_behavior import decide_close_behavior
-from app.ui.live2d_bridge import Live2DBridgeEventDispatcher
-from app.ui.live2d_bridge_server import Live2DBridgeServer
-from app.ui.live2d_desktop_process import Live2DDesktopProcess
-from app.ui.live2d_desktop_settings import (
-    Live2DDesktopSettings,
-    default_live2d_desktop_settings_path,
-    load_live2d_desktop_settings,
-    save_live2d_desktop_settings,
-)
-from app.ui.live2d_desktop_window import (
-    default_live2d_position_path,
-    reset_live2d_window_position,
-)
-from app.ui.live2d_model_catalog import (
-    build_live2d_model_options,
-    render_live2d_model_catalog_details,
-    render_live2d_model_catalog_summary,
-    render_live2d_model_import_guide,
-    scan_live2d_model_catalog,
-)
-from app.ui.live2d_model_selection import (
-    default_live2d_model_selection_path,
-    load_selected_live2d_model_id,
-    save_selected_live2d_model_id,
+from app.ui.live2d_desktop_coordinator import (
+    Live2DDesktopCoordinator,
+    build_live2d_control_log_context,
 )
 from app.ui.onboarding_view import build_onboarding_view, render_onboarding_text
 from app.ui.product_status_builder import build_product_status_view
@@ -106,23 +84,6 @@ logger = logging.getLogger(__name__)
 class _Stoppable(Protocol):
     def stop(self) -> None:
         """Stop the component."""
-
-
-def build_live2d_control_log_context(
-    *,
-    action: str,
-    scale: float,
-    opacity: float,
-    visible: bool,
-) -> str:
-    """Build a compact diagnostic context for Live2D desktop control actions."""
-
-    return (
-        f"action={action} "
-        f"scale={scale:g} "
-        f"opacity={opacity:g} "
-        f"visible={visible}"
-    )
 
 
 def _wire_shutdown(
@@ -159,72 +120,14 @@ def main() -> None:
     # Initialize Core components
     event_bus = EventBus()
     state_machine = StateMachine()
-    live2d_bridge_server = Live2DBridgeServer()
-    live2d_bridge_dispatcher = Live2DBridgeEventDispatcher(
-        subscribe=event_bus.subscribe,
-        unsubscribe=event_bus.unsubscribe,
-        broadcast=live2d_bridge_server.broadcast,
-    )
-    live2d_desktop_process = (
-        Live2DDesktopProcess() if config.live2d_desktop_auto_launch else None
-    )
 
     # Initialize UI components
     view_model = DesktopViewModel()
-
-    def _on_live2d_runtime_status(status: dict[str, object]) -> None:
-        logger.info("Live2D runtime status updated type=%s", status.get("type"))
-        view_model.set_live2d_runtime_status(status)
-        try:
-            QTimer.singleShot(0, window.update_from_view_model)
-        except NameError:
-            pass
-
-    live2d_bridge_server.set_runtime_status_callback(_on_live2d_runtime_status)
-
-    live2d_model_root = (
-        Path(__file__).resolve().parents[1]
-        / "showcase-demo"
-        / "live2d-prototype"
-        / "assets"
-        / "models"
-    )
-    live2d_model_packages = scan_live2d_model_catalog(live2d_model_root)
-    live2d_model_selection_path = default_live2d_model_selection_path()
-    preferred_live2d_model_id = load_selected_live2d_model_id(
-        live2d_model_selection_path
-    )
-    live2d_model_details = render_live2d_model_catalog_details(
-        live2d_model_root,
-        live2d_model_packages,
-    )
-    view_model.set_live2d_model_options(
-        build_live2d_model_options(live2d_model_packages),
-        selected_model_id=preferred_live2d_model_id,
-    )
-    if view_model.selected_live2d_model_id:
-        save_selected_live2d_model_id(
-            live2d_model_selection_path,
-            view_model.selected_live2d_model_id,
-        )
-    live2d_model_summary = render_live2d_model_catalog_summary(
-        live2d_model_packages,
-        selected_model_id=view_model.selected_live2d_model_id,
-    )
-    view_model.set_live2d_model_catalog_summary(live2d_model_summary)
-    view_model.set_live2d_model_catalog_details(live2d_model_details)
-    view_model.set_live2d_model_import_guide(
-        render_live2d_model_import_guide(
-            live2d_model_root,
-            live2d_model_packages,
-            selected_model_id=view_model.selected_live2d_model_id,
-        )
-    )
-    logger.info(
-        "Live2D model catalog scanned root=%s packages=%d summary=%s",
-        live2d_model_root,
-        len(live2d_model_packages),
-        live2d_model_summary,
+    live2d_coordinator = Live2DDesktopCoordinator(
+        view_model=view_model,
+        subscribe=event_bus.subscribe,
+        unsubscribe=event_bus.unsubscribe,
+        auto_launch=config.live2d_desktop_auto_launch,
     )
     # V11-C: Set diagnostics text for display in status panel
     view_model.set_startup_diagnostics_text(
@@ -397,214 +300,6 @@ def main() -> None:
             return False
         return decision.should_accept_close
 
-    live2d_desktop_settings_path = default_live2d_desktop_settings_path()
-    live2d_desktop_settings = load_live2d_desktop_settings(
-        live2d_desktop_settings_path
-    )
-    live2d_desktop_scale = live2d_desktop_settings.scale
-    live2d_desktop_opacity = live2d_desktop_settings.opacity
-    live2d_desktop_visible = (
-        live2d_desktop_process is not None and live2d_desktop_settings.visible
-    )
-    live2d_desktop_model_id = view_model.selected_live2d_model_id
-    if live2d_desktop_process is not None:
-        live2d_desktop_process.scale = live2d_desktop_scale
-        live2d_desktop_process.opacity = live2d_desktop_opacity
-        live2d_desktop_process.model_id = live2d_desktop_model_id
-
-    def _save_live2d_desktop_settings() -> None:
-        save_live2d_desktop_settings(
-            live2d_desktop_settings_path,
-            Live2DDesktopSettings(
-                scale=live2d_desktop_scale,
-                opacity=live2d_desktop_opacity,
-                visible=live2d_desktop_visible,
-                always_on_top=load_live2d_desktop_settings(
-                    live2d_desktop_settings_path
-                ).always_on_top,
-            ),
-        )
-
-    def _restart_live2d_desktop() -> None:
-        if live2d_desktop_process is None:
-            return
-        live2d_desktop_process.stop()
-        live2d_desktop_process.scale = live2d_desktop_scale
-        live2d_desktop_process.opacity = live2d_desktop_opacity
-        live2d_desktop_process.model_id = live2d_desktop_model_id
-        if live2d_desktop_visible:
-            live2d_desktop_process.start()
-
-    def _on_live2d_scale_up_requested() -> None:
-        nonlocal live2d_desktop_scale
-        live2d_desktop_scale = min(1.35, round(live2d_desktop_scale + 0.1, 2))
-        logger.info(
-            "Live2D desktop control requested %s",
-            build_live2d_control_log_context(
-                action="scale_up",
-                scale=live2d_desktop_scale,
-                opacity=live2d_desktop_opacity,
-                visible=live2d_desktop_visible,
-            ),
-        )
-        _save_live2d_desktop_settings()
-        _restart_live2d_desktop()
-
-    def _on_live2d_scale_down_requested() -> None:
-        nonlocal live2d_desktop_scale
-        live2d_desktop_scale = max(0.65, round(live2d_desktop_scale - 0.1, 2))
-        logger.info(
-            "Live2D desktop control requested %s",
-            build_live2d_control_log_context(
-                action="scale_down",
-                scale=live2d_desktop_scale,
-                opacity=live2d_desktop_opacity,
-                visible=live2d_desktop_visible,
-            ),
-        )
-        _save_live2d_desktop_settings()
-        _restart_live2d_desktop()
-
-    def _on_live2d_opacity_down_requested() -> None:
-        nonlocal live2d_desktop_opacity
-        live2d_desktop_opacity = max(0.45, round(live2d_desktop_opacity - 0.1, 2))
-        logger.info(
-            "Live2D desktop control requested %s",
-            build_live2d_control_log_context(
-                action="opacity_down",
-                scale=live2d_desktop_scale,
-                opacity=live2d_desktop_opacity,
-                visible=live2d_desktop_visible,
-            ),
-        )
-        _save_live2d_desktop_settings()
-        _restart_live2d_desktop()
-
-    def _on_live2d_opacity_up_requested() -> None:
-        nonlocal live2d_desktop_opacity
-        live2d_desktop_opacity = min(1.0, round(live2d_desktop_opacity + 0.1, 2))
-        logger.info(
-            "Live2D desktop control requested %s",
-            build_live2d_control_log_context(
-                action="opacity_up",
-                scale=live2d_desktop_scale,
-                opacity=live2d_desktop_opacity,
-                visible=live2d_desktop_visible,
-            ),
-        )
-        _save_live2d_desktop_settings()
-        _restart_live2d_desktop()
-
-    def _on_live2d_visibility_toggled() -> None:
-        nonlocal live2d_desktop_visible
-        if live2d_desktop_process is None:
-            return
-        live2d_desktop_visible = not live2d_desktop_visible
-        logger.info(
-            "Live2D desktop control requested %s",
-            build_live2d_control_log_context(
-                action="toggle_visibility",
-                scale=live2d_desktop_scale,
-                opacity=live2d_desktop_opacity,
-                visible=live2d_desktop_visible,
-            ),
-        )
-        _save_live2d_desktop_settings()
-        if live2d_desktop_visible:
-            live2d_desktop_process.start()
-        else:
-            live2d_desktop_process.stop()
-
-    def _on_live2d_position_reset_requested() -> None:
-        position_path = default_live2d_position_path()
-        reset_live2d_window_position(position_path)
-        logger.info(
-            "Live2D desktop control requested %s position_path=%s",
-            build_live2d_control_log_context(
-                action="reset_position",
-                scale=live2d_desktop_scale,
-                opacity=live2d_desktop_opacity,
-                visible=live2d_desktop_visible,
-            ),
-            position_path,
-        )
-        _restart_live2d_desktop()
-
-    def _on_live2d_model_selected(model_id: str) -> None:
-        nonlocal live2d_desktop_model_id
-        if not view_model.select_live2d_model(model_id):
-            logger.warning("Ignored unknown Live2D model selection model_id=%s", model_id)
-            return
-        save_selected_live2d_model_id(live2d_model_selection_path, model_id)
-        live2d_desktop_model_id = model_id
-        view_model.set_live2d_model_catalog_summary(
-            render_live2d_model_catalog_summary(
-                live2d_model_packages,
-                selected_model_id=model_id,
-            )
-        )
-        logger.info(
-            "Live2D desktop control requested %s model_id=%s",
-            build_live2d_control_log_context(
-                action="select_model",
-                scale=live2d_desktop_scale,
-                opacity=live2d_desktop_opacity,
-                visible=live2d_desktop_visible,
-            ),
-            model_id,
-        )
-        _restart_live2d_desktop()
-
-    def _on_live2d_models_refresh_requested() -> None:
-        nonlocal live2d_desktop_model_id, live2d_model_packages
-        preferred_model_id = view_model.selected_live2d_model_id
-        packages = scan_live2d_model_catalog(live2d_model_root)
-        live2d_model_packages = packages
-        details = render_live2d_model_catalog_details(live2d_model_root, packages)
-        view_model.set_live2d_model_catalog_details(details)
-        view_model.set_live2d_model_options(
-            build_live2d_model_options(packages),
-            selected_model_id=preferred_model_id,
-        )
-        summary = render_live2d_model_catalog_summary(
-            packages,
-            selected_model_id=view_model.selected_live2d_model_id,
-        )
-        view_model.set_live2d_model_catalog_summary(summary)
-        view_model.set_live2d_model_import_guide(
-            render_live2d_model_import_guide(
-                live2d_model_root,
-                packages,
-                selected_model_id=view_model.selected_live2d_model_id,
-            )
-        )
-        live2d_desktop_model_id = view_model.selected_live2d_model_id
-        if live2d_desktop_model_id:
-            save_selected_live2d_model_id(
-                live2d_model_selection_path,
-                live2d_desktop_model_id,
-            )
-        logger.info(
-            "Live2D model catalog refreshed root=%s packages=%d selected_model_id=%s summary=%s",
-            live2d_model_root,
-            len(packages),
-            live2d_desktop_model_id,
-            summary,
-        )
-        _restart_live2d_desktop()
-        window.update_from_view_model()
-
-    def _on_live2d_models_folder_requested() -> None:
-        live2d_model_root.mkdir(parents=True, exist_ok=True)
-        opened = QDesktopServices.openUrl(
-            QUrl.fromLocalFile(str(live2d_model_root))
-        )
-        logger.info(
-            "Live2D models folder open requested root=%s opened=%s",
-            live2d_model_root,
-            opened,
-        )
-
     window = DesktopWindow(
         view_model,
         on_user_text_submitted=submit_user_text,
@@ -619,17 +314,18 @@ def main() -> None:
         on_product_status_requested=_on_product_status_requested,
         on_hide_requested=_on_hide_requested,
         on_close_requested=_handle_close_requested,
-        on_live2d_scale_up_requested=_on_live2d_scale_up_requested,
-        on_live2d_scale_down_requested=_on_live2d_scale_down_requested,
-        on_live2d_opacity_down_requested=_on_live2d_opacity_down_requested,
-        on_live2d_opacity_up_requested=_on_live2d_opacity_up_requested,
-        on_live2d_visibility_toggled=_on_live2d_visibility_toggled,
-        on_live2d_position_reset_requested=_on_live2d_position_reset_requested,
-        on_live2d_model_selected=_on_live2d_model_selected,
-        on_live2d_models_refresh_requested=_on_live2d_models_refresh_requested,
-        on_live2d_models_folder_requested=_on_live2d_models_folder_requested,
+        on_live2d_scale_up_requested=live2d_coordinator.on_scale_up_requested,
+        on_live2d_scale_down_requested=live2d_coordinator.on_scale_down_requested,
+        on_live2d_opacity_down_requested=live2d_coordinator.on_opacity_down_requested,
+        on_live2d_opacity_up_requested=live2d_coordinator.on_opacity_up_requested,
+        on_live2d_visibility_toggled=live2d_coordinator.on_visibility_toggled,
+        on_live2d_position_reset_requested=live2d_coordinator.on_position_reset_requested,
+        on_live2d_model_selected=live2d_coordinator.on_model_selected,
+        on_live2d_models_refresh_requested=live2d_coordinator.on_models_refresh_requested,
+        on_live2d_models_folder_requested=live2d_coordinator.on_models_folder_requested,
         memory_management_enabled=config.memory_management_enabled,
     )
+    live2d_coordinator.set_view_refresher(window.update_from_view_model)
 
     # Create tray controller after window exists
     tray_controller = DesktopSystemTrayController(
@@ -917,10 +613,7 @@ def main() -> None:
     # DialogueController (producer) so it is ready to transition to SPEAKING
     # before DialogueController would send IDLE.
     state_controller.start()
-    live2d_bridge_server.start()
-    live2d_bridge_dispatcher.start()
-    if live2d_desktop_process is not None and live2d_desktop_visible:
-        live2d_desktop_process.start()
+    live2d_coordinator.start()
     tts_controller.start()
     dialogue_controller.start()
     voice_input_controller.start()
@@ -949,15 +642,12 @@ def main() -> None:
         tts_controller,
         dialogue_controller,
         state_controller,
-        live2d_bridge_dispatcher,
-        live2d_bridge_server,
+        live2d_coordinator,
     ]
     if memory_suggestion_controller is not None:
         shutdown_components.append(memory_suggestion_controller)
     if proactive_controller is not None:
         shutdown_components.append(proactive_controller)
-    if live2d_desktop_process is not None:
-        shutdown_components.append(live2d_desktop_process)
     _wire_shutdown(app, *shutdown_components)  # type: ignore[arg-type]
 
     window.show()

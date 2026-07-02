@@ -379,9 +379,9 @@ class TestWindowPresenceShell:
         )
         window.show()
 
-        assert window._live2d_model_status_label.text() == (
-            "Model: Hiyori · ready · motions 10 · textures 2"
-        )
+        status_text = window._live2d_model_status_label.text()
+        assert "Model: Hiyori · ready · motions 10 · textures 2" in status_text
+        assert "Runtime:" in status_text
 
     @staticmethod
     def test_live2d_model_details_label_reflects_view_model(qapp: QApplication) -> None:
