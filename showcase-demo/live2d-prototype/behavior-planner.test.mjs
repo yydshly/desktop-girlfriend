@@ -19,7 +19,8 @@ function testSpeakingEmotionPlansSpeakBehavior() {
       expression: "engaged",
       intensity: 0.76,
       gaze: "cursor",
-      mouth: 0.65
+      mouth: 0.65,
+      mouthForm: 0
     }
   );
 }
@@ -39,7 +40,8 @@ function testThinkingEmotionPlansThinkBehavior() {
       expression: "thinking",
       intensity: 0.48,
       gaze: "down-left",
-      mouth: 0.05
+      mouth: 0.05,
+      mouthForm: 0
     }
   );
 }
@@ -59,7 +61,8 @@ function testPlannerNormalizesInvalidTerms() {
       expression: "engaged",
       intensity: 1,
       gaze: "cursor",
-      mouth: 0
+      mouth: 0,
+      mouthForm: 0
     }
   );
 }
@@ -89,6 +92,7 @@ function testPlannerUsesAttentionGazeWhenProvided() {
       intensity: 0.48,
       gaze: "cursor",
       mouth: 0.05,
+      mouthForm: 0,
       attention: {
         target: "cursor",
         source: "pointer",
@@ -117,7 +121,8 @@ function testPlannerUsesSpeakingMouthWhenProvided() {
         source: "tts",
         mouth: 0.533,
         baseMouth: 0.65,
-        rhythm: "simulated"
+        rhythm: "simulated",
+        mouthForm: 0.22
       }
     ),
     {
@@ -126,12 +131,14 @@ function testPlannerUsesSpeakingMouthWhenProvided() {
       intensity: 0.76,
       gaze: "cursor",
       mouth: 0.533,
+      mouthForm: 0.22,
       speaking: {
         active: true,
         source: "tts",
         mouth: 0.533,
         baseMouth: 0.65,
-        rhythm: "simulated"
+        rhythm: "simulated",
+        mouthForm: 0.22
       }
     }
   );
@@ -155,7 +162,8 @@ function testBehaviorTimelineUsesStableDelays() {
         expression: "soft",
         intensity: 0.68,
         gaze: "cursor",
-        mouth: 0.18
+        mouth: 0.18,
+        mouthForm: 0
       }
     },
     {

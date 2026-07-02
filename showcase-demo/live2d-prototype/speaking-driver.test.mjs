@@ -25,43 +25,88 @@ function testTtsSpeakingActivatesSpeakingDriver() {
 }
 
 function testStateSpeakingActivatesWithoutTts() {
-  assert.deepEqual(
-    resolveSpeakingState({
-      emotionState: {
-        state: "speaking",
-        activity: "speak",
-        mouth: 0.65
-      },
-      now: 0
-    }),
-    {
-      active: true,
-      source: "state",
-      mouth: 0.533,
-      baseMouth: 0.65,
-      rhythm: "simulated"
-    }
-  );
+  const state = resolveSpeakingState({
+    emotionState: {
+      state: "speaking",
+      activity: "speak",
+      mouth: 0.65
+    },
+    now: 0
+  });
+
+  assert.equal(state.active, true);
+  assert.equal(state.source, "state");
+  assert.equal(state.ttsState, "none");
+  assert.equal(state.mouth, 0.533);
+  assert.equal(state.baseMouth, 0.65);
+  assert.equal(state.rhythm, "simulated");
+  assert.equal(state.mouthForm, 0.096);
 }
 
 function testIdleSpeakingDriverKeepsMouthStable() {
-  assert.deepEqual(
-    resolveSpeakingState({
+  const state = resolveSpeakingState({
+    emotionState: {
+      state: "idle",
+      activity: "idle",
+      mouth: 0
+    },
+    now: 1000
+  });
+
+  assert.equal(state.active, false);
+  assert.equal(state.source, "idle");
+  assert.equal(state.ttsState, "none");
+  assert.equal(state.mouth, 0);
+  assert.equal(state.baseMouth, 0);
+  assert.equal(state.rhythm, "none");
+  assert.equal(state.mouthForm, 0);
+}
+
+function testTtsPlayingKeepsSpeakingActiveAndVariesMouthForm() {
+  const first = resolveSpeakingState({
+    emotionState: {
+      state: "speaking",
+      activity: "speak",
+      mouth: 0.65,
+      turn: { ttsState: "playing" }
+    },
+    now: 120
+  });
+  const second = resolveSpeakingState({
+    emotionState: {
+      state: "speaking",
+      activity: "speak",
+      mouth: 0.65,
+      turn: { ttsState: "playing" }
+    },
+    now: 260
+  });
+
+  assert.equal(first.active, true);
+  assert.equal(first.source, "tts");
+  assert.equal(first.ttsState, "playing");
+  assert.notEqual(first.mouth, second.mouth);
+  assert.notEqual(first.mouthForm, second.mouthForm);
+}
+
+function testTtsEndedAndInterruptedCloseMouth() {
+  for (const ttsState of ["ended", "interrupted"]) {
+    const state = resolveSpeakingState({
       emotionState: {
-        state: "idle",
-        activity: "idle",
-        mouth: 0
+        state: "speaking",
+        activity: "speak",
+        mouth: 0.65,
+        turn: { ttsState }
       },
-      now: 1000
-    }),
-    {
-      active: false,
-      source: "idle",
-      mouth: 0,
-      baseMouth: 0,
-      rhythm: "none"
-    }
-  );
+      now: 400
+    });
+
+    assert.equal(state.active, false);
+    assert.equal(state.source, "tts");
+    assert.equal(state.ttsState, ttsState);
+    assert.equal(state.mouth, 0);
+    assert.equal(state.mouthForm, 0);
+  }
 }
 
 function testMouthEnvelopeStaysInRange() {
@@ -73,5 +118,7 @@ function testMouthEnvelopeStaysInRange() {
 testTtsSpeakingActivatesSpeakingDriver();
 testStateSpeakingActivatesWithoutTts();
 testIdleSpeakingDriverKeepsMouthStable();
+testTtsPlayingKeepsSpeakingActiveAndVariesMouthForm();
+testTtsEndedAndInterruptedCloseMouth();
 testMouthEnvelopeStaysInRange();
 console.log("speaking-driver tests passed");

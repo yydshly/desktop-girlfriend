@@ -23,6 +23,23 @@ function createStageElement() {
   };
 }
 
+function createVisualizerElement() {
+  const bars = Array.from({ length: 5 }, () => ({
+    style: {},
+    dataset: {}
+  }));
+  return {
+    hidden: false,
+    className: "",
+    dataset: {},
+    style: {},
+    querySelectorAll(selector) {
+      return selector === ".voice-bar" ? bars : [];
+    },
+    bars
+  };
+}
+
 function createRendererProbe() {
   return {
     appliedStates: [],
@@ -133,12 +150,15 @@ function testControllerStoresEmotionAndBehaviorForMappedState() {
     intensity: 0.76,
     gaze: "user",
     mouth: 0.533,
+    mouthForm: 0.096,
     speaking: {
       active: true,
       source: "state",
       mouth: 0.533,
       baseMouth: 0.65,
-      rhythm: "simulated"
+      rhythm: "simulated",
+      ttsState: "none",
+      mouthForm: 0.096
     },
     attention: {
       target: "user",
@@ -200,11 +220,16 @@ function testControllerStoresModelCommandsWhenProfileProviderExists() {
     parameters: {
       gaze: "user",
       mouth: 0.533,
+      mouthForm: 0.096,
       intensity: 0.76,
       speaking: {
         active: true,
         source: "state",
-        rhythm: "simulated"
+        rhythm: "simulated",
+        ttsState: "none",
+        mouth: 0.533,
+        baseMouth: 0.65,
+        mouthForm: 0.096
       }
     }
   });
@@ -260,6 +285,54 @@ function testControllerPassesPointerStateToRuntimeAttention() {
   assert.equal(applied.behavior.gaze, "cursor");
 }
 
+function testControllerRendersVoiceVisualizerForTtsPlaying() {
+  const renderer = createRendererProbe();
+  const readout = createTextElement();
+  const bubble = createTextElement();
+  const stage = createStageElement();
+  const visualizer = createVisualizerElement();
+  const controller = new AvatarController(renderer, readout, bubble, stage, {
+    getNow: () => 180,
+    voiceVisualizerElement: visualizer
+  });
+
+  controller.handleBridgeMessage({
+    type: "dialogue.turn",
+    payload: {
+      response_text: "hello",
+      tts_state: "playing"
+    }
+  });
+
+  assert.equal(visualizer.hidden, false);
+  assert.equal(visualizer.className, "voice-visualizer is-visible state-playing");
+  assert.equal(stage.className, "avatar-stage is-state-speaking is-voice-active");
+  assert.ok(visualizer.bars.every((bar) => Number(bar.dataset.level) > 0));
+}
+
+function testControllerTickRefreshesSpeakingMouthFromRuntime() {
+  const renderer = createRendererProbe();
+  const readout = createTextElement();
+  let now = 120;
+  const controller = new AvatarController(renderer, readout, null, null, {
+    getNow: () => now
+  });
+
+  controller.handleBridgeMessage({
+    type: "dialogue.turn",
+    payload: {
+      response_text: "hello",
+      tts_state: "playing"
+    }
+  });
+  const firstMouth = renderer.appliedStates.at(-1).modelCommands.parameters.mouth;
+  now = 260;
+  controller.tick();
+
+  assert.notEqual(renderer.appliedStates.at(-1).modelCommands.parameters.mouth, firstMouth);
+  assert.equal(renderer.appliedStates.at(-1).speakingState.ttsState, "playing");
+}
+
 testControllerRendersSpeechBubbleFromDialogueTurn();
 testControllerHidesBubbleForIdleStateWithoutBubble();
 testControllerMarksStageWithVisualStateClass();
@@ -270,4 +343,6 @@ testControllerStoresModelCommandsWhenProfileProviderExists();
 testControllerPlaysMotionProbe();
 testControllerTriggersPointerReactionFromEvent();
 testControllerPassesPointerStateToRuntimeAttention();
+testControllerRendersVoiceVisualizerForTtsPlaying();
+testControllerTickRefreshesSpeakingMouthFromRuntime();
 console.log("avatar-controller tests passed");

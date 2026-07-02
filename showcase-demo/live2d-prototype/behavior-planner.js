@@ -37,6 +37,7 @@ export function planBehaviorFromEmotionState(
     intensity: clamp01(emotionState.intensity ?? IDLE_BEHAVIOR.intensity),
     gaze,
     mouth: clamp01(speakingState?.mouth ?? emotionState.mouth ?? IDLE_BEHAVIOR.mouth),
+    mouthForm: clampSignedUnit(speakingState?.mouthForm ?? emotionState.mouthForm ?? 0),
     ...(speakingState ? { speaking: speakingState } : {}),
     ...(attentionState ? { attention: attentionState } : {})
   };
@@ -65,6 +66,14 @@ function clamp01(value) {
     return 0;
   }
   return Math.min(1, Math.max(0, number));
+}
+
+function clampSignedUnit(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return 0;
+  }
+  return Math.min(1, Math.max(-1, number));
 }
 
 function resolveBehaviorGaze(emotionState = {}, attentionState = null) {

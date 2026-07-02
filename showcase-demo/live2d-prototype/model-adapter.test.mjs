@@ -44,11 +44,16 @@ function testBehaviorAdaptsToModelMotionAndExpression() {
       parameters: {
         gaze: "cursor",
         mouth: 0.65,
+        mouthForm: 0,
         intensity: 0.76,
         speaking: {
           active: false,
           source: "idle",
-          rhythm: "none"
+          rhythm: "none",
+          ttsState: "none",
+          mouth: 0,
+          baseMouth: 0,
+          mouthForm: 0
         }
       }
     }
@@ -100,7 +105,11 @@ function testEmotionStateAdaptsThroughPlanner() {
   assert.deepEqual(commands.parameters.speaking, {
     active: false,
     source: "idle",
-    rhythm: "none"
+    rhythm: "none",
+    ttsState: "none",
+    mouth: 0,
+    baseMouth: 0,
+    mouthForm: 0
   });
 }
 
@@ -112,10 +121,15 @@ function testSpeakingMetadataPassesToModelParameters() {
       intensity: 0.76,
       gaze: "cursor",
       mouth: 0.533,
+      mouthForm: 0.18,
       speaking: {
         active: true,
         source: "tts",
-        rhythm: "simulated"
+        rhythm: "simulated",
+        ttsState: "playing",
+        mouth: 0.533,
+        baseMouth: 0.65,
+        mouthForm: 0.18
       }
     },
     profile
@@ -124,8 +138,13 @@ function testSpeakingMetadataPassesToModelParameters() {
   assert.deepEqual(commands.parameters.speaking, {
     active: true,
     source: "tts",
-    rhythm: "simulated"
+    rhythm: "simulated",
+    ttsState: "playing",
+    mouth: 0.533,
+    baseMouth: 0.65,
+    mouthForm: 0.18
   });
+  assert.equal(commands.parameters.mouthForm, 0.18);
 }
 
 testBehaviorAdaptsToModelMotionAndExpression();

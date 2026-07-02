@@ -3,6 +3,7 @@ import { resolveAttentionState } from "./attention-system.js";
 import { resolveSpeakingState } from "./speaking-driver.js";
 import { planBehaviorFromEmotionState } from "./behavior-planner.js";
 import { adaptBehaviorToModelCommands } from "./model-adapter.js";
+import { resolveEmotionalSurfaceState } from "./surface-feedback.js";
 
 export function buildCharacterRuntimeState({
   previousState = {},
@@ -25,12 +26,19 @@ export function buildCharacterRuntimeState({
   });
   const behavior = planBehaviorFromEmotionState(nextEmotionState, attentionState, speakingState);
   const modelCommands = adaptBehaviorToModelCommands(behavior, profile);
+  const surface = resolveEmotionalSurfaceState({
+    emotionState: nextEmotionState,
+    speakingState,
+    now
+  });
   return {
     ...previousState,
     ...mappedState,
     emotionState: nextEmotionState,
     attentionState,
     speakingState,
+    surface,
+    visualIntent: mappedState.visualIntent || surface.visualIntent,
     behavior,
     modelCommands,
     updatedAt

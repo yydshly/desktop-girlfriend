@@ -53,12 +53,15 @@ function testTimelineBuildsEmotionBehaviorAndAdapterCommands() {
     intensity: 0.76,
     gaze: "cursor",
     mouth: 0.514,
+    mouthForm: -0.187,
     speaking: {
       active: true,
       source: "state",
       mouth: 0.514,
       baseMouth: 0.65,
-      rhythm: "simulated"
+      rhythm: "simulated",
+      ttsState: "none",
+      mouthForm: -0.187
     },
     attention: {
       target: "cursor",
@@ -81,11 +84,16 @@ function testTimelineBuildsEmotionBehaviorAndAdapterCommands() {
     parameters: {
       gaze: "cursor",
       mouth: 0.514,
+      mouthForm: -0.187,
       intensity: 0.76,
       speaking: {
         active: true,
         source: "state",
-        rhythm: "simulated"
+        rhythm: "simulated",
+        ttsState: "none",
+        mouth: 0.514,
+        baseMouth: 0.65,
+        mouthForm: -0.187
       }
     }
   });
@@ -94,7 +102,9 @@ function testTimelineBuildsEmotionBehaviorAndAdapterCommands() {
     source: "state",
     mouth: 0.514,
     baseMouth: 0.65,
-    rhythm: "simulated"
+    rhythm: "simulated",
+    ttsState: "none",
+    mouthForm: -0.187
   });
   assert.equal(timeline[3].semanticState, "speak");
   assert.equal(timeline[3].validation.blockers.length, 0);

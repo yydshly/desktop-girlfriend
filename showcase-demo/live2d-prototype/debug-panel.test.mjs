@@ -107,7 +107,13 @@ function createRuntime() {
           source: "idle",
           mouth: 0,
           baseMouth: 0,
-          rhythm: "none"
+          rhythm: "none",
+          ttsState: "none",
+          mouthForm: 0
+        },
+        surface: {
+          visualIntent: "idle",
+          visualizer: { visible: false, state: "hidden", intensity: 0, bars: [] }
         },
         behavior: {
           action: "idle",
@@ -483,19 +489,31 @@ function testShowcasePanelRendersRuntimeChain() {
       source: "tts",
       mouth: 0.533,
       baseMouth: 0.65,
-      rhythm: "simulated"
+      rhythm: "simulated",
+      ttsState: "playing",
+      mouthForm: 0.24
+    },
+    surface: {
+      visualIntent: "speaking",
+      visualizer: {
+        visible: true,
+        state: "playing",
+        intensity: 0.72,
+        bars: [0.2, 0.4, 0.7, 0.4, 0.2]
+      }
     },
     behavior: {
       action: "speak",
       expression: "engaged",
       gaze: "cursor",
       mouth: 0.65,
+      mouthForm: 0.24,
       intensity: 0.76
     },
     modelCommands: {
       motion: { group: "TapBody", index: 0, action: "speak" },
       expression: { name: "smile", semantic: "engaged" },
-      parameters: { mouth: 0.65, intensity: 0.76, gaze: "cursor" }
+      parameters: { mouth: 0.65, mouthForm: 0.24, intensity: 0.76, gaze: "cursor" }
     }
   };
   runtime.getLastRendererStatus = () => ({
@@ -514,9 +532,11 @@ function testShowcasePanelRendersRuntimeChain() {
 
   assert.match(elements["#runtimeChainStatus"].textContent, /semantic state: speaking/);
   assert.match(elements["#runtimeChainStatus"].textContent, /attention: cursor \/ source speaking/);
-  assert.match(elements["#runtimeChainStatus"].textContent, /speaking: active \/ source tts \/ rhythm simulated \/ mouth 0\.533/);
+  assert.match(elements["#runtimeChainStatus"].textContent, /speaking: active \/ source tts \/ tts playing \/ rhythm simulated \/ mouth 0\.533 \/ form 0\.24/);
+  assert.match(elements["#runtimeChainStatus"].textContent, /visualizer: playing \/ visible true \/ intensity 0\.72/);
   assert.match(elements["#runtimeChainStatus"].textContent, /behavior: speak \/ engaged \/ gaze cursor/);
   assert.match(elements["#runtimeChainStatus"].textContent, /adapter motion: speak -> TapBody\[0\]/);
+  assert.match(elements["#runtimeChainStatus"].textContent, /mouthForm 0\.24/);
   assert.match(elements["#runtimeChainStatus"].textContent, /active Live2D expression: smile/);
 }
 

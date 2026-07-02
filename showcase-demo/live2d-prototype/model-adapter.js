@@ -28,6 +28,7 @@ export function adaptBehaviorToModelCommands(behavior = {}, profile = {}) {
         ? behavior.gaze.trim()
         : "cursor",
       mouth: clamp01(behavior.mouth ?? 0),
+      mouthForm: clampSignedUnit(behavior.mouthForm ?? 0),
       intensity: clamp01(behavior.intensity ?? 0.25),
       speaking: normalizeSpeakingParameter(behavior.speaking)
     }
@@ -83,6 +84,20 @@ function normalizeSpeakingParameter(speaking = null) {
       : "idle",
     rhythm: typeof speaking?.rhythm === "string" && speaking.rhythm.trim()
       ? speaking.rhythm.trim()
-      : "none"
+      : "none",
+    ttsState: typeof speaking?.ttsState === "string" && speaking.ttsState.trim()
+      ? speaking.ttsState.trim()
+      : "none",
+    mouth: clamp01(speaking?.mouth ?? 0),
+    baseMouth: clamp01(speaking?.baseMouth ?? 0),
+    mouthForm: clampSignedUnit(speaking?.mouthForm ?? 0)
   };
+}
+
+function clampSignedUnit(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return 0;
+  }
+  return Math.min(1, Math.max(-1, number));
 }

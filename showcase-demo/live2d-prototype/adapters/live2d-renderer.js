@@ -703,6 +703,10 @@ function mergeAdapterParameters(parameters = {}, state = {}, command = {}) {
   if (mouth !== null) {
     writeAliasedParameter(next, aliases.mouthOpen, mouth, "ParamMouthOpenY");
   }
+  const mouthForm = readSignedParameter(adapterParameters.mouthForm);
+  if (mouthForm !== null) {
+    writeAliasedParameter(next, aliases.mouthForm, mouthForm, "ParamMouthForm", -1, 1);
+  }
 
   const intensity = readUnitParameter(adapterParameters.intensity);
   if (intensity !== null) {
@@ -712,14 +716,14 @@ function mergeAdapterParameters(parameters = {}, state = {}, command = {}) {
   return next;
 }
 
-function writeAliasedParameter(parameters, alias = null, value, fallbackId) {
+function writeAliasedParameter(parameters, alias = null, value, fallbackId, fallbackMin = 0, fallbackMax = 1) {
   const id = typeof alias?.id === "string" && alias.id.trim() ? alias.id.trim() : fallbackId;
-  const min = Number.isFinite(Number(alias?.min)) ? Number(alias.min) : 0;
-  const max = Number.isFinite(Number(alias?.max)) ? Number(alias.max) : 1;
+  const min = Number.isFinite(Number(alias?.min)) ? Number(alias.min) : fallbackMin;
+  const max = Number.isFinite(Number(alias?.max)) ? Number(alias.max) : fallbackMax;
   const scale = Number.isFinite(Number(alias?.scale)) ? Number(alias.scale) : 1;
   const scaled = Number(value) * scale;
   const next = alias?.invert ? -scaled : scaled;
-  parameters[id] = roundToThree(Math.min(max, Math.max(min, next)));
+  parameters[id] = roundParameter(Math.min(max, Math.max(min, next)));
 }
 
 function readUnitParameter(value) {
@@ -728,6 +732,14 @@ function readUnitParameter(value) {
     return null;
   }
   return Math.min(1, Math.max(0, number));
+}
+
+function readSignedParameter(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return null;
+  }
+  return Math.min(1, Math.max(-1, number));
 }
 
 export function mapCommandToModelMotion(command = {}, motionGroupCounts = null, motionBindings = {}) {
@@ -892,11 +904,16 @@ function formatAdapterParameterDiagnostic(parameters = null) {
       ? parameters.gaze.trim()
       : "cursor",
     mouth: readUnitParameter(parameters.mouth) ?? 0,
+    mouthForm: readSignedParameter(parameters.mouthForm) ?? 0,
     intensity: readUnitParameter(parameters.intensity) ?? 0,
     speaking: {
       active: Boolean(parameters.speaking?.active),
       source: typeof parameters.speaking?.source === "string" ? parameters.speaking.source : "idle",
-      rhythm: typeof parameters.speaking?.rhythm === "string" ? parameters.speaking.rhythm : "none"
+      rhythm: typeof parameters.speaking?.rhythm === "string" ? parameters.speaking.rhythm : "none",
+      ttsState: typeof parameters.speaking?.ttsState === "string" ? parameters.speaking.ttsState : "none",
+      mouth: readUnitParameter(parameters.speaking?.mouth) ?? 0,
+      baseMouth: readUnitParameter(parameters.speaking?.baseMouth) ?? 0,
+      mouthForm: readSignedParameter(parameters.speaking?.mouthForm) ?? 0
     }
   };
 }
@@ -919,6 +936,7 @@ export function calculateAnimatedLive2DParameters(parameters = {}, command = {},
   const speakingParameter = adapterParameters.speaking || {};
   const speaking = Boolean(speakingParameter.active);
   const speakingMouth = readUnitParameter(adapterParameters.mouth);
+  const speakingMouthForm = readSignedParameter(adapterParameters.mouthForm);
   const pointer = normalizePointerCommand(command);
   const idleHeadScale = 1 - pointer.strength * 0.35;
   const idleEyeScale = 1 - pointer.strength * 0.7;
@@ -931,6 +949,9 @@ export function calculateAnimatedLive2DParameters(parameters = {}, command = {},
   if (speaking) {
     if (speakingMouth !== null) {
       maxAliasedParameter(next, aliases.mouthOpen, speakingMouth, "ParamMouthOpenY");
+    }
+    if (speakingMouthForm !== null) {
+      writeAliasedParameter(next, aliases.mouthForm, speakingMouthForm, "ParamMouthForm", -1, 1);
     }
     addAliasedParameter(next, aliases.headX, Math.sin(now / 260) * 2.2, "ParamAngleX");
     addAliasedParameter(next, aliases.bodyX, Math.sin(now / 320) * 1.4, "ParamBodyAngleX");

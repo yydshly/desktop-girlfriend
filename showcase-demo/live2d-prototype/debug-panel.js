@@ -310,6 +310,8 @@ function renderRuntimeChainStatus(elements, runtime, rendererStatus = {}) {
   const emotion = state.emotionState || {};
   const attention = state.attentionState || state.behavior?.attention || {};
   const speaking = state.speakingState || state.behavior?.speaking || {};
+  const surface = state.surface || {};
+  const visualizer = surface.visualizer || {};
   const behavior = state.behavior || {};
   const adapter = state.modelCommands || {};
   const activeMotion = rendererStatus.activeMotion?.group
@@ -327,11 +329,12 @@ function renderRuntimeChainStatus(elements, runtime, rendererStatus = {}) {
     `semantic state: ${state.state || "unknown"}`,
     `emotion: ${emotion.emotion || "unknown"} / activity ${emotion.activity || "unknown"} / intensity ${formatNumber(emotion.intensity)}`,
     `attention: ${attention.target || "unknown"} / source ${attention.source || "unknown"} / gaze ${attention.gaze || "unknown"} / body ${attention.bodyFollow || "unknown"} / intensity ${formatNumber(attention.intensity)}`,
-    `speaking: ${speaking.active ? "active" : "idle"} / source ${speaking.source || "unknown"} / rhythm ${speaking.rhythm || "unknown"} / mouth ${formatNumber(speaking.mouth)}`,
-    `behavior: ${behavior.action || "unknown"} / ${behavior.expression || "unknown"} / gaze ${behavior.gaze || "unknown"} / mouth ${formatNumber(behavior.mouth)} / intensity ${formatNumber(behavior.intensity)}`,
+    `speaking: ${speaking.active ? "active" : "idle"} / source ${speaking.source || "unknown"} / tts ${speaking.ttsState || "none"} / rhythm ${speaking.rhythm || "unknown"} / mouth ${formatNumber(speaking.mouth)} / form ${formatNumber(speaking.mouthForm)}`,
+    `visualizer: ${visualizer.state || "hidden"} / visible ${Boolean(visualizer.visible)} / intensity ${formatNumber(visualizer.intensity)}`,
+    `behavior: ${behavior.action || "unknown"} / ${behavior.expression || "unknown"} / gaze ${behavior.gaze || "unknown"} / mouth ${formatNumber(behavior.mouth)} / mouthForm ${formatNumber(behavior.mouthForm)} / intensity ${formatNumber(behavior.intensity)}`,
     `adapter motion: ${adapterMotion}`,
     `adapter expression: ${adapterExpression}`,
-    `adapter parameters: gaze ${adapterParameters.gaze || "unknown"} / mouth ${formatNumber(adapterParameters.mouth)} / intensity ${formatNumber(adapterParameters.intensity)}`,
+    `adapter parameters: gaze ${adapterParameters.gaze || "unknown"} / mouth ${formatNumber(adapterParameters.mouth)} / mouthForm ${formatNumber(adapterParameters.mouthForm)} / intensity ${formatNumber(adapterParameters.intensity)}`,
     `active Live2D motion: ${activeMotion}`,
     `active Live2D expression: ${rendererStatus.activeExpression || "none"}`
   ].join("\n");

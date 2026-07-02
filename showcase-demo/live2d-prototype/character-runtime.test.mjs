@@ -40,12 +40,15 @@ function testRuntimeStateBuildsBehaviorAndModelCommands() {
     intensity: 0.76,
     gaze: "cursor",
     mouth: 0.533,
+    mouthForm: 0.096,
     speaking: {
       active: true,
       source: "state",
       mouth: 0.533,
       baseMouth: 0.65,
-      rhythm: "simulated"
+      rhythm: "simulated",
+      ttsState: "none",
+      mouthForm: 0.096
     },
     attention: {
       target: "cursor",
@@ -65,8 +68,12 @@ function testRuntimeStateBuildsBehaviorAndModelCommands() {
     source: "state",
     mouth: 0.533,
     baseMouth: 0.65,
-    rhythm: "simulated"
+    rhythm: "simulated",
+    ttsState: "none",
+    mouthForm: 0.096
   });
+  assert.equal(state.surface.visualIntent, "speaking");
+  assert.equal(state.surface.visualizer.visible, true);
   assert.equal(state.updatedAt, "2026-07-02T00:00:00.000Z");
 }
 
@@ -176,13 +183,74 @@ function testDialogueTtsSpeakingIsRuntimeSpeakingSource() {
   });
 
   assert.equal(state.speakingState.source, "tts");
+  assert.equal(state.speakingState.ttsState, "speaking");
   assert.equal(state.attentionState.source, "tts");
   assert.equal(state.modelCommands.parameters.speaking.source, "tts");
   assert.equal(state.modelCommands.parameters.speaking.active, true);
+}
+
+function testTtsPlayingRuntimeCarriesSurfaceAndMouthForm() {
+  const first = buildCharacterRuntimeState({
+    emotionState: {
+      state: "speaking",
+      emotion: "engaged",
+      intensity: 0.76,
+      activity: "speak",
+      gaze: "cursor",
+      mouth: 0.65,
+      turn: { ttsState: "playing" }
+    },
+    now: 120,
+    updatedAt: "2026-07-02T00:00:00.000Z"
+  });
+  const second = buildCharacterRuntimeState({
+    emotionState: {
+      state: "speaking",
+      emotion: "engaged",
+      intensity: 0.76,
+      activity: "speak",
+      gaze: "cursor",
+      mouth: 0.65,
+      turn: { ttsState: "playing" }
+    },
+    now: 260,
+    updatedAt: "2026-07-02T00:00:00.000Z"
+  });
+
+  assert.equal(first.speakingState.ttsState, "playing");
+  assert.equal(first.surface.visualizer.visible, true);
+  assert.equal(first.surface.visualizer.state, "playing");
+  assert.notEqual(first.modelCommands.parameters.mouth, second.modelCommands.parameters.mouth);
+  assert.notEqual(first.modelCommands.parameters.mouthForm, second.modelCommands.parameters.mouthForm);
+  assert.equal(first.modelCommands.parameters.speaking.mouthForm, first.speakingState.mouthForm);
+}
+
+function testTtsEndedRuntimeClosesMouthAndHidesVisualizer() {
+  const state = buildCharacterRuntimeState({
+    emotionState: {
+      state: "speaking",
+      emotion: "engaged",
+      intensity: 0.76,
+      activity: "speak",
+      gaze: "cursor",
+      mouth: 0.65,
+      turn: { ttsState: "ended" }
+    },
+    now: 500,
+    updatedAt: "2026-07-02T00:00:00.000Z"
+  });
+
+  assert.equal(state.speakingState.active, false);
+  assert.equal(state.speakingState.ttsState, "ended");
+  assert.equal(state.modelCommands.parameters.mouth, 0);
+  assert.equal(state.modelCommands.parameters.mouthForm, 0);
+  assert.equal(state.surface.visualizer.visible, false);
 }
 
 testRuntimeStateBuildsBehaviorAndModelCommands();
 testExplicitEmotionStateOverridesMappedStatePreset();
 testPointerStateOverridesRuntimeAttention();
 testDialogueTtsSpeakingIsRuntimeSpeakingSource();
+testTtsPlayingRuntimeCarriesSurfaceAndMouthForm();
+testTtsEndedRuntimeClosesMouthAndHidesVisualizer();
 console.log("character-runtime tests passed");

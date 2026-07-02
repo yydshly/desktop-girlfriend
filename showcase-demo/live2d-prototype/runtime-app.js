@@ -28,6 +28,7 @@ export function createLive2DRuntime({
   const stage = document.querySelector("#avatarStage");
   const readout = document.querySelector("#stateReadout");
   const avatarBubble = document.querySelector("#avatarBubble");
+  const voiceVisualizer = document.querySelector("#voiceVisualizer");
   const isDesktopMode = mode === "desktop";
   const defaultModelUrl = document.querySelector("#modelUrl")?.value
     || "./assets/models/sample/Hiyori/Hiyori.model3.json";
@@ -72,7 +73,8 @@ export function createLive2DRuntime({
     avatarBubble,
     stage,
     {
-      getModelProfile: getEffectiveModelProfile
+      getModelProfile: getEffectiveModelProfile,
+      voiceVisualizerElement: voiceVisualizer
     }
   );
 

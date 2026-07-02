@@ -533,11 +533,16 @@ function testStatusReportsModelAdapterCommands() {
     parameters: {
       gaze: "cursor",
       mouth: 0.64,
+      mouthForm: 0,
       intensity: 0.7,
       speaking: {
         active: false,
         source: "idle",
-        rhythm: "none"
+        rhythm: "none",
+        ttsState: "none",
+        mouth: 0,
+        baseMouth: 0,
+        mouthForm: 0
       }
     }
   });
@@ -691,13 +696,14 @@ testMotionProbePlaysRequestedModelMotion();
 
 function testSpeakingStateAnimatesMouthOpen() {
   const parameters = calculateAnimatedLive2DParameters(
-    { ParamMouthOpenY: 0.1, ParamAngleX: 2 },
+    { ParamMouthOpenY: 0.1, ParamMouthForm: 0, ParamAngleX: 2 },
     {
       motion: "reply",
       expression: "speaking",
       modelCommands: {
         parameters: {
           mouth: 0.62,
+          mouthForm: 0.28,
           speaking: {
             active: true,
             source: "tts",
@@ -710,6 +716,7 @@ function testSpeakingStateAnimatesMouthOpen() {
   );
 
   assert.equal(parameters.ParamMouthOpenY, 0.62);
+  assert.equal(parameters.ParamMouthForm, 0.28);
   assert.notEqual(parameters.ParamAngleX, 2);
 }
 
@@ -824,11 +831,12 @@ function testThinkingStateAddsFocusedMicroMotion() {
 
 function testAnimatedParametersUseProfileAliasesForSpeakingMotion() {
   const parameters = calculateAnimatedLive2DParameters(
-    { ParamCustomMouth: 0.1, ParamCustomHeadX: 0, ParamCustomBodyX: 0 },
+    { ParamCustomMouth: 0.1, ParamCustomMouthForm: 0, ParamCustomHeadX: 0, ParamCustomBodyX: 0 },
     {
       modelCommands: {
         parameters: {
           mouth: 0.62,
+          mouthForm: -0.18,
           speaking: {
             active: true,
             source: "tts",
@@ -838,6 +846,7 @@ function testAnimatedParametersUseProfileAliasesForSpeakingMotion() {
       },
       parameterDiagnostics: {
         mouthOpen: { id: "ParamCustomMouth", min: 0, max: 1, scale: 1, invert: false },
+        mouthForm: { id: "ParamCustomMouthForm", min: -1, max: 1, scale: 1, invert: false },
         headX: { id: "ParamCustomHeadX", min: -30, max: 30, scale: 1, invert: false },
         bodyX: { id: "ParamCustomBodyX", min: -10, max: 10, scale: 1, invert: false }
       }
@@ -846,9 +855,11 @@ function testAnimatedParametersUseProfileAliasesForSpeakingMotion() {
   );
 
   assert.equal(parameters.ParamCustomMouth, 0.62);
+  assert.equal(parameters.ParamCustomMouthForm, -0.18);
   assert.notEqual(parameters.ParamCustomHeadX, 0);
   assert.notEqual(parameters.ParamCustomBodyX, 0);
   assert.equal(parameters.ParamMouthOpenY, undefined);
+  assert.equal(parameters.ParamMouthForm, undefined);
   assert.equal(parameters.ParamAngleX, undefined);
   assert.equal(parameters.ParamBodyAngleX, undefined);
 }
