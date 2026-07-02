@@ -11,6 +11,7 @@ from app.contracts.events import (
     CONVERSATION_CLEARED,
     STATE_CHANGED,
     SYSTEM_ERROR,
+    TTS_PLAYBACK_STATE_CHANGED,
     USER_TEXT_SUBMITTED,
     BaseEvent,
 )
@@ -34,6 +35,7 @@ _STATE_TO_VISUAL_FEEDBACK = {
 _SUPPORTED_EVENT_TYPES = (
     USER_TEXT_SUBMITTED,
     ASSISTANT_TEXT_RECEIVED,
+    TTS_PLAYBACK_STATE_CHANGED,
     STATE_CHANGED,
     SYSTEM_ERROR,
     CONVERSATION_CLEARED,
@@ -53,6 +55,8 @@ class Live2DBridgeEventMapper:
             return self._map_user_text_submitted(event)
         if event.event_type == ASSISTANT_TEXT_RECEIVED:
             return self._map_assistant_text_received(event)
+        if event.event_type == TTS_PLAYBACK_STATE_CHANGED:
+            return self._map_tts_playback_state_changed(event)
         if event.event_type == STATE_CHANGED:
             return self._map_state_changed(event)
         if event.event_type == SYSTEM_ERROR:
@@ -80,6 +84,27 @@ class Live2DBridgeEventMapper:
                 "tts_state": "speaking",
                 "source_event": event.event_type,
             },
+        }
+
+    def _map_tts_playback_state_changed(self, event: BaseEvent) -> dict[str, Any]:
+        state = event.payload.get("state")
+        tts_state = state.strip() if isinstance(state, str) and state.strip() else "error"
+        source = event.payload.get("source")
+        text = event.payload.get("text")
+        payload: dict[str, Any] = {
+            "request_id": event.request_id,
+            "tts_state": tts_state,
+            "source": source if isinstance(source, str) and source.strip() else event.source,
+            "source_event": event.event_type,
+        }
+        if isinstance(text, str) and text.strip():
+            payload["text"] = text.strip()
+        message = event.payload.get("message")
+        if isinstance(message, str) and message.strip():
+            payload["message"] = message.strip()
+        return {
+            "type": "tts.playback",
+            "payload": payload,
         }
 
     def _map_state_changed(self, event: BaseEvent) -> dict[str, Any]:

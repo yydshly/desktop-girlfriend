@@ -911,6 +911,7 @@ function formatAdapterParameterDiagnostic(parameters = null) {
       source: typeof parameters.speaking?.source === "string" ? parameters.speaking.source : "idle",
       rhythm: typeof parameters.speaking?.rhythm === "string" ? parameters.speaking.rhythm : "none",
       ttsState: typeof parameters.speaking?.ttsState === "string" ? parameters.speaking.ttsState : "none",
+      ttsSource: typeof parameters.speaking?.ttsSource === "string" ? parameters.speaking.ttsSource : "unknown",
       mouth: readUnitParameter(parameters.speaking?.mouth) ?? 0,
       baseMouth: readUnitParameter(parameters.speaking?.baseMouth) ?? 0,
       mouthForm: readSignedParameter(parameters.speaking?.mouthForm) ?? 0

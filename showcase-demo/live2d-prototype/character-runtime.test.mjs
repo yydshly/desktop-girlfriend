@@ -48,6 +48,7 @@ function testRuntimeStateBuildsBehaviorAndModelCommands() {
       baseMouth: 0.65,
       rhythm: "simulated",
       ttsState: "none",
+      ttsSource: "unknown",
       mouthForm: 0.096
     },
     attention: {
@@ -70,6 +71,7 @@ function testRuntimeStateBuildsBehaviorAndModelCommands() {
     baseMouth: 0.65,
     rhythm: "simulated",
     ttsState: "none",
+    ttsSource: "unknown",
     mouthForm: 0.096
   });
   assert.equal(state.surface.visualIntent, "speaking");

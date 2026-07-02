@@ -134,6 +134,23 @@ export function mapDialogueTurnToEmotionState(payload = {}) {
   };
 }
 
+export function mapTtsPlaybackToEmotionState(payload = {}) {
+  const ttsState = normalizeTtsState(payload.tts_state);
+  const stateName = stateForTtsPlayback(ttsState);
+  return {
+    ...normalizeEmotionState({
+      ...EMOTION_PRESETS[stateName],
+      activity: stateName === "speaking" ? "speak" : EMOTION_PRESETS[stateName].activity,
+      mouth: stateName === "speaking" ? EMOTION_PRESETS.speaking.mouth : EMOTION_PRESETS[stateName].mouth
+    }),
+    turn: {
+      turnId: payload.request_id || payload.turn_id || "",
+      source: payload.source || "tts",
+      ttsState
+    }
+  };
+}
+
 export function mapBridgeMessageToEmotionState(message = {}) {
   if (message.type === "avatar.state") {
     return {
@@ -153,10 +170,43 @@ export function mapBridgeMessageToEmotionState(message = {}) {
       source: "dialogue.turn"
     };
   }
+  if (message.type === "tts.playback") {
+    return {
+      ...mapTtsPlaybackToEmotionState(message.payload),
+      source: "tts.playback"
+    };
+  }
   return {
     ...normalizeEmotionState(),
     source: message.type || "unknown"
   };
+}
+
+function stateForTtsPlayback(ttsState) {
+  if (ttsState === "started" || ttsState === "playing" || ttsState === "speaking") {
+    return "speaking";
+  }
+  if (ttsState === "error") {
+    return "error";
+  }
+  return "idle";
+}
+
+function normalizeTtsState(value) {
+  const state = String(value || "").trim().toLowerCase();
+  if (state === "start") {
+    return "started";
+  }
+  if (state === "started" || state === "playing" || state === "speaking") {
+    return state;
+  }
+  if (state === "end" || state === "done" || state === "stopped") {
+    return "ended";
+  }
+  if (state === "ended" || state === "interrupted" || state === "error") {
+    return state;
+  }
+  return "none";
 }
 
 function clamp01(value) {

@@ -133,6 +133,24 @@ export function mapDialogueTurn(payload = {}) {
   };
 }
 
+export function mapTtsPlayback(payload = {}) {
+  const ttsState = normalizeTtsState(payload.tts_state);
+  const stateName = stateForTtsPlayback(ttsState);
+  return {
+    ...STATE_PRESETS[stateName],
+    turn: {
+      turnId: payload.request_id || payload.turn_id || "",
+      responseText: payload.text || "",
+      ttsState,
+      source: payload.source || "tts"
+    },
+    visualIntent: ttsState === "started" || ttsState === "playing" || ttsState === "speaking"
+      ? "speaking"
+      : stateName,
+    source: "tts.playback"
+  };
+}
+
 export function mapBridgeMessage(message = {}) {
   if (message.type === "avatar.state") {
     return mapAvatarState(message.payload);
@@ -143,10 +161,40 @@ export function mapBridgeMessage(message = {}) {
   if (message.type === "dialogue.turn") {
     return mapDialogueTurn(message.payload);
   }
+  if (message.type === "tts.playback") {
+    return mapTtsPlayback(message.payload);
+  }
   return {
     ...STATE_PRESETS.idle,
     source: message.type || "unknown"
   };
+}
+
+function stateForTtsPlayback(ttsState) {
+  if (ttsState === "started" || ttsState === "playing" || ttsState === "speaking") {
+    return "speaking";
+  }
+  if (ttsState === "error") {
+    return "error";
+  }
+  return "idle";
+}
+
+function normalizeTtsState(value) {
+  const state = String(value || "").trim().toLowerCase();
+  if (state === "start") {
+    return "started";
+  }
+  if (state === "started" || state === "playing" || state === "speaking") {
+    return state;
+  }
+  if (state === "end" || state === "done" || state === "stopped") {
+    return "ended";
+  }
+  if (state === "ended" || state === "interrupted" || state === "error") {
+    return state;
+  }
+  return "none";
 }
 
 function compactBubbleText(text, maxLength = 42) {

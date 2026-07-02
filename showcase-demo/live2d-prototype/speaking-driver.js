@@ -7,7 +7,7 @@ export function resolveSpeakingState({
   const state = String(emotionState.state || "").trim();
   const hasTtsPresence = ttsState !== "none";
   const activeTts = ttsState === "started" || ttsState === "playing" || ttsState === "speaking";
-  const endedTts = ttsState === "ended" || ttsState === "interrupted";
+  const endedTts = ttsState === "ended" || ttsState === "interrupted" || ttsState === "error";
   const active = activeTts || (!endedTts && (activity === "speak" || state === "speaking"));
   const source = hasTtsPresence ? "tts" : (active ? "state" : "idle");
   const baseMouth = active ? clamp01(emotionState.mouth ?? 0.65) : clamp01(emotionState.mouth ?? 0);
@@ -19,6 +19,7 @@ export function resolveSpeakingState({
     baseMouth,
     rhythm: active ? "simulated" : "none",
     ttsState,
+    ttsSource: readTtsSource(emotionState.turn?.source),
     mouthForm: active ? calculateMouthForm(now, mouth) : 0
   };
 }
@@ -61,5 +62,13 @@ function normalizeTtsState(value) {
   if (state === "interrupted" || state === "interrupt" || state === "cancelled" || state === "canceled") {
     return "interrupted";
   }
+  if (state === "error" || state === "failed" || state === "failure") {
+    return "error";
+  }
   return "none";
+}
+
+function readTtsSource(value) {
+  const source = String(value || "").trim();
+  return source || "unknown";
 }

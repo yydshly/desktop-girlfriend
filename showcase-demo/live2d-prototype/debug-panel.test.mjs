@@ -490,8 +490,9 @@ function testShowcasePanelRendersRuntimeChain() {
       mouth: 0.533,
       baseMouth: 0.65,
       rhythm: "simulated",
-      ttsState: "playing",
-      mouthForm: 0.24
+          ttsState: "playing",
+          ttsSource: "tts_controller",
+          mouthForm: 0.24
     },
     surface: {
       visualIntent: "speaking",
@@ -532,7 +533,7 @@ function testShowcasePanelRendersRuntimeChain() {
 
   assert.match(elements["#runtimeChainStatus"].textContent, /semantic state: speaking/);
   assert.match(elements["#runtimeChainStatus"].textContent, /attention: cursor \/ source speaking/);
-  assert.match(elements["#runtimeChainStatus"].textContent, /speaking: active \/ source tts \/ tts playing \/ rhythm simulated \/ mouth 0\.533 \/ form 0\.24/);
+  assert.match(elements["#runtimeChainStatus"].textContent, /speaking: active \/ source tts \/ tts playing \/ origin tts_controller \/ rhythm simulated \/ mouth 0\.533 \/ form 0\.24/);
   assert.match(elements["#runtimeChainStatus"].textContent, /visualizer: playing \/ visible true \/ intensity 0\.72/);
   assert.match(elements["#runtimeChainStatus"].textContent, /behavior: speak \/ engaged \/ gaze cursor/);
   assert.match(elements["#runtimeChainStatus"].textContent, /adapter motion: speak -> TapBody\[0\]/);

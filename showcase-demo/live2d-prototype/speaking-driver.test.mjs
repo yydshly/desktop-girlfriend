@@ -68,7 +68,7 @@ function testTtsPlayingKeepsSpeakingActiveAndVariesMouthForm() {
       state: "speaking",
       activity: "speak",
       mouth: 0.65,
-      turn: { ttsState: "playing" }
+      turn: { ttsState: "playing", source: "tts_controller" }
     },
     now: 120
   });
@@ -84,6 +84,7 @@ function testTtsPlayingKeepsSpeakingActiveAndVariesMouthForm() {
 
   assert.equal(first.active, true);
   assert.equal(first.source, "tts");
+  assert.equal(first.ttsSource, "tts_controller");
   assert.equal(first.ttsState, "playing");
   assert.notEqual(first.mouth, second.mouth);
   assert.notEqual(first.mouthForm, second.mouthForm);
@@ -109,6 +110,24 @@ function testTtsEndedAndInterruptedCloseMouth() {
   }
 }
 
+function testTtsErrorClosesMouthButKeepsTtsSource() {
+  const state = resolveSpeakingState({
+    emotionState: {
+      state: "error",
+      activity: "sad",
+      mouth: 0.2,
+      turn: { ttsState: "error" }
+    },
+    now: 400
+  });
+
+  assert.equal(state.active, false);
+  assert.equal(state.source, "tts");
+  assert.equal(state.ttsState, "error");
+  assert.equal(state.mouth, 0);
+  assert.equal(state.mouthForm, 0);
+}
+
 function testMouthEnvelopeStaysInRange() {
   assert.equal(calculateMouthEnvelope(0.65, 0), 0.533);
   assert.ok(calculateMouthEnvelope(0.65, 300) <= 1);
@@ -120,5 +139,6 @@ testStateSpeakingActivatesWithoutTts();
 testIdleSpeakingDriverKeepsMouthStable();
 testTtsPlayingKeepsSpeakingActiveAndVariesMouthForm();
 testTtsEndedAndInterruptedCloseMouth();
+testTtsErrorClosesMouthButKeepsTtsSource();
 testMouthEnvelopeStaysInRange();
 console.log("speaking-driver tests passed");

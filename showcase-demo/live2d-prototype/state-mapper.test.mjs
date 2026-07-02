@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mapAvatarState, mapDialogueTurn } from "./state-mapper.js";
+import { mapAvatarState, mapBridgeMessage, mapDialogueTurn, mapTtsPlayback } from "./state-mapper.js";
 
 function testCanonicalStateNamesAreStable() {
   assert.equal(mapAvatarState({ state: "thinking" }).state, "thinking");
@@ -51,10 +51,42 @@ function testDialogueTurnCarriesSpeakingVisualIntent() {
   assert.equal(state.visualIntent, "speaking");
 }
 
+function testTtsPlaybackPlayingMapsToSpeakingSurface() {
+  const state = mapTtsPlayback({
+    request_id: "req-1",
+    tts_state: "playing",
+    source: "tts_controller",
+    text: "hello"
+  });
+
+  assert.equal(state.state, "speaking");
+  assert.equal(state.turn.ttsState, "playing");
+  assert.equal(state.turn.source, "tts_controller");
+  assert.equal(state.visualIntent, "speaking");
+  assert.equal(state.source, "tts.playback");
+}
+
+function testTtsPlaybackEndedMapsToIdleAndClosedMouth() {
+  const state = mapBridgeMessage({
+    type: "tts.playback",
+    payload: {
+      request_id: "req-1",
+      tts_state: "ended",
+      source: "tts_controller"
+    }
+  });
+
+  assert.equal(state.state, "idle");
+  assert.equal(state.mouth, 0);
+  assert.equal(state.turn.ttsState, "ended");
+}
+
 testCanonicalStateNamesAreStable();
 testLegacyStateAliasesNormalizeToCanonicalStates();
 testDialogueTurnCreatesShortReplyBubble();
 testThinkingStateCreatesThinkingBubble();
 testStateCarriesStableVisualIntent();
 testDialogueTurnCarriesSpeakingVisualIntent();
+testTtsPlaybackPlayingMapsToSpeakingSurface();
+testTtsPlaybackEndedMapsToIdleAndClosedMouth();
 console.log("state-mapper tests passed");

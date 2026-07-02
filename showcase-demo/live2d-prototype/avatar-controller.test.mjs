@@ -158,6 +158,7 @@ function testControllerStoresEmotionAndBehaviorForMappedState() {
       baseMouth: 0.65,
       rhythm: "simulated",
       ttsState: "none",
+      ttsSource: "unknown",
       mouthForm: 0.096
     },
     attention: {
@@ -227,6 +228,7 @@ function testControllerStoresModelCommandsWhenProfileProviderExists() {
         source: "state",
         rhythm: "simulated",
         ttsState: "none",
+        ttsSource: "unknown",
         mouth: 0.533,
         baseMouth: 0.65,
         mouthForm: 0.096
@@ -333,6 +335,44 @@ function testControllerTickRefreshesSpeakingMouthFromRuntime() {
   assert.equal(renderer.appliedStates.at(-1).speakingState.ttsState, "playing");
 }
 
+function testControllerConsumesRealTtsPlaybackEnded() {
+  const renderer = createRendererProbe();
+  const readout = createTextElement();
+  const visualizer = createVisualizerElement();
+  const controller = new AvatarController(renderer, readout, null, null, {
+    getNow: () => 300,
+    voiceVisualizerElement: visualizer
+  });
+
+  controller.handleBridgeMessage({
+    type: "tts.playback",
+    payload: {
+      request_id: "req-1",
+      tts_state: "playing",
+      source: "tts_controller"
+    }
+  });
+  assert.equal(renderer.appliedStates.at(-1).speakingState.active, true);
+  assert.equal(visualizer.hidden, false);
+
+  controller.handleBridgeMessage({
+    type: "tts.playback",
+    payload: {
+      request_id: "req-1",
+      tts_state: "ended",
+      source: "tts_controller"
+    }
+  });
+
+  const applied = renderer.appliedStates.at(-1);
+  assert.equal(applied.speakingState.active, false);
+  assert.equal(applied.speakingState.source, "tts");
+  assert.equal(applied.speakingState.ttsState, "ended");
+  assert.equal(applied.modelCommands.parameters.mouth, 0);
+  assert.equal(applied.modelCommands.parameters.mouthForm, 0);
+  assert.equal(visualizer.hidden, true);
+}
+
 testControllerRendersSpeechBubbleFromDialogueTurn();
 testControllerHidesBubbleForIdleStateWithoutBubble();
 testControllerMarksStageWithVisualStateClass();
@@ -345,4 +385,5 @@ testControllerTriggersPointerReactionFromEvent();
 testControllerPassesPointerStateToRuntimeAttention();
 testControllerRendersVoiceVisualizerForTtsPlaying();
 testControllerTickRefreshesSpeakingMouthFromRuntime();
+testControllerConsumesRealTtsPlaybackEnded();
 console.log("avatar-controller tests passed");

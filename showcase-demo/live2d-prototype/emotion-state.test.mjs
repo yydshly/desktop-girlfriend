@@ -4,6 +4,7 @@ import {
   mapAvatarSequenceToEmotionState,
   mapBridgeMessageToEmotionState,
   mapDialogueTurnToEmotionState,
+  mapTtsPlaybackToEmotionState,
   normalizeEmotionState
 } from "./emotion-state.js";
 
@@ -91,9 +92,50 @@ function testBridgeMessageFallsBackToIdleEmotionState() {
   });
 }
 
+function testTtsPlaybackPlayingMapsToSpeakingEmotionState() {
+  const state = mapTtsPlaybackToEmotionState({
+    request_id: "req-1",
+    tts_state: "playing",
+    source: "tts_controller"
+  });
+
+  assert.deepEqual(state, {
+    state: "speaking",
+    emotion: "engaged",
+    intensity: 0.76,
+    activity: "speak",
+    gaze: "cursor",
+    mouth: 0.65,
+    turn: {
+      turnId: "req-1",
+      source: "tts_controller",
+      ttsState: "playing"
+    }
+  });
+}
+
+function testTtsPlaybackEndedMapsToIdleEmotionStateButKeepsTurnState() {
+  const state = mapBridgeMessageToEmotionState({
+    type: "tts.playback",
+    payload: {
+      request_id: "req-1",
+      tts_state: "ended",
+      source: "tts_controller"
+    }
+  });
+
+  assert.equal(state.state, "idle");
+  assert.equal(state.activity, "idle");
+  assert.equal(state.mouth, 0);
+  assert.equal(state.turn.ttsState, "ended");
+  assert.equal(state.source, "tts.playback");
+}
+
 testNormalizeEmotionStateKeepsRendererNeutralFields();
 testAvatarStateMapsToEmotionState();
 testAvatarSequenceMapsToSemanticActivity();
 testDialogueTurnDoesNotExposeMotion();
 testBridgeMessageFallsBackToIdleEmotionState();
+testTtsPlaybackPlayingMapsToSpeakingEmotionState();
+testTtsPlaybackEndedMapsToIdleEmotionStateButKeepsTurnState();
 console.log("emotion-state tests passed");

@@ -11,6 +11,7 @@ from app.contracts.events import (
     STATE_CHANGE_REQUESTED,
     SYSTEM_ERROR,
     TTS_AUDIO_READY,
+    TTS_PLAYBACK_STATE_CHANGED,
     TTS_STOP_REQUESTED,
     TTS_STOPPED,
     BaseEvent,
@@ -116,6 +117,7 @@ class TTSController:
 
         # Request SPEAKING state on UI thread immediately
         self._request_state(AppState.SPEAKING, "tts_start")
+        self._publish_playback_state(self._active_request_id, "started", text=text)
 
         # Start worker thread
         thread = threading.Thread(
@@ -166,6 +168,7 @@ class TTSController:
                 # Do NOT release _is_speaking here — wait for playback to finish
             else:
                 # Legacy path: provider.speak() handles playback (e.g. os.startfile)
+                self._dispatch_playback_state(request_id, "playing", text=text)
                 self._provider.speak(request)
 
                 # Guard: if this request was stopped, do not dispatch tts_complete
@@ -174,11 +177,13 @@ class TTSController:
                     return
 
                 if self._release_speaking(request_id):
+                    self._dispatch_playback_state(request_id, "ended", text=text)
                     self._dispatch_state_request(AppState.IDLE, "tts_complete")
         except TTSProviderError:
             # Silently ignore if request was already stopped
             if self._should_ignore_request(request_id) or self._should_discard_worker_result():
                 return
+            self._dispatch_playback_state(request_id, "error", message="tts_error", text=text)
             self._dispatch_error(request_id, _SAFE_TTS_ERROR_MESSAGE)
             self._dispatch_state_request(AppState.ERROR, "tts_error")
             self._release_speaking(request_id)
@@ -186,6 +191,7 @@ class TTSController:
             # Silently ignore if request was already stopped
             if self._should_ignore_request(request_id) or self._should_discard_worker_result():
                 return
+            self._dispatch_playback_state(request_id, "error", message="tts_error", text=text)
             self._dispatch_error(request_id, _SAFE_TTS_ERROR_MESSAGE)
             self._dispatch_state_request(AppState.ERROR, "tts_error")
             self._release_speaking(request_id)
@@ -212,6 +218,7 @@ class TTSController:
             self._audio_player.stop()
         self._stop_provider()
         self._join_worker_thread()
+        self._dispatch_playback_state(request_id or str(uuid.uuid4()), "interrupted")
 
         stopped_event = BaseEvent(
             event_type=TTS_STOPPED,
@@ -249,6 +256,7 @@ class TTSController:
         audio_path = event.payload.get("audio_path")
         if not audio_path:
             if self._release_speaking(event.request_id):
+                self._dispatch_playback_state(event.request_id, "error", message="tts_error")
                 self._dispatch_error(event.request_id, _SAFE_TTS_ERROR_MESSAGE)
                 self._dispatch_state_request(AppState.ERROR, "tts_error")
             return
@@ -256,19 +264,23 @@ class TTSController:
         # Callbacks release _is_speaking and dispatch events
         def on_finished() -> None:
             if self._release_speaking(event.request_id):
+                self._dispatch_playback_state(event.request_id, "ended")
                 self._dispatch_state_request(AppState.IDLE, "tts_complete")
 
         def on_error(message: str) -> None:
             if self._release_speaking(event.request_id):
+                self._dispatch_playback_state(event.request_id, "error", message="tts_error")
                 self._dispatch_error(event.request_id, _SAFE_TTS_ERROR_MESSAGE)
                 self._dispatch_state_request(AppState.ERROR, "tts_error")
 
         assert self._audio_player is not None
         try:
+            self._dispatch_playback_state(event.request_id, "playing")
             self._audio_player.play(audio_path, on_finished, on_error)
         except Exception:
             # audio_player.play() should not raise, but guard against it
             if self._release_speaking(event.request_id):
+                self._dispatch_playback_state(event.request_id, "error", message="tts_error")
                 self._dispatch_error(event.request_id, _SAFE_TTS_ERROR_MESSAGE)
                 self._dispatch_state_request(AppState.ERROR, "tts_error")
 
@@ -402,4 +414,63 @@ class TTSController:
             payload={"message": message},
         )
         self._event_bus.publish(event)
+
+    def _publish_playback_state(
+        self,
+        request_id: str,
+        state: str,
+        *,
+        text: str = "",
+        message: str = "",
+    ) -> None:
+        """Publish a TTS playback state from the UI thread."""
+        self._event_bus.publish(
+            self._make_playback_state_event(
+                request_id,
+                state,
+                text=text,
+                message=message,
+            )
+        )
+
+    def _dispatch_playback_state(
+        self,
+        request_id: str,
+        state: str,
+        *,
+        text: str = "",
+        message: str = "",
+    ) -> None:
+        """Dispatch a TTS playback state from worker callbacks."""
+        self._dispatch_event(
+            self._make_playback_state_event(
+                request_id,
+                state,
+                text=text,
+                message=message,
+            )
+        )
+
+    @staticmethod
+    def _make_playback_state_event(
+        request_id: str,
+        state: str,
+        *,
+        text: str = "",
+        message: str = "",
+    ) -> BaseEvent:
+        payload = {
+            "state": state,
+            "source": "tts_controller",
+        }
+        if text:
+            payload["text"] = text
+        if message:
+            payload["message"] = message
+        return BaseEvent(
+            event_type=TTS_PLAYBACK_STATE_CHANGED,
+            request_id=request_id,
+            source="tts_controller",
+            payload=payload,
+        )
 

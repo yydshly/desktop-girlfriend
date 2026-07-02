@@ -540,6 +540,7 @@ function testStatusReportsModelAdapterCommands() {
         source: "idle",
         rhythm: "none",
         ttsState: "none",
+        ttsSource: "unknown",
         mouth: 0,
         baseMouth: 0,
         mouthForm: 0

@@ -51,6 +51,7 @@ function testBehaviorAdaptsToModelMotionAndExpression() {
           source: "idle",
           rhythm: "none",
           ttsState: "none",
+          ttsSource: "unknown",
           mouth: 0,
           baseMouth: 0,
           mouthForm: 0
@@ -107,6 +108,7 @@ function testEmotionStateAdaptsThroughPlanner() {
     source: "idle",
     rhythm: "none",
     ttsState: "none",
+    ttsSource: "unknown",
     mouth: 0,
     baseMouth: 0,
     mouthForm: 0
@@ -127,6 +129,7 @@ function testSpeakingMetadataPassesToModelParameters() {
         source: "tts",
         rhythm: "simulated",
         ttsState: "playing",
+        ttsSource: "unknown",
         mouth: 0.533,
         baseMouth: 0.65,
         mouthForm: 0.18
@@ -140,6 +143,7 @@ function testSpeakingMetadataPassesToModelParameters() {
     source: "tts",
     rhythm: "simulated",
     ttsState: "playing",
+    ttsSource: "unknown",
     mouth: 0.533,
     baseMouth: 0.65,
     mouthForm: 0.18

@@ -7,6 +7,7 @@ from app.contracts.events import (
     ASSISTANT_TEXT_RECEIVED,
     STATE_CHANGE_REQUESTED,
     SYSTEM_ERROR,
+    TTS_PLAYBACK_STATE_CHANGED,
     BaseEvent,
 )
 from app.core.event_bus import EventBus
@@ -91,6 +92,29 @@ class TestTTSController:
             e for e in dispatch_events if e.payload.get("target_state") == "idle"
         ]
         assert len(idle_events) >= 1
+
+    def test_legacy_playback_emits_started_playing_and_ended(self) -> None:
+        """Legacy provider.speak() playback reports its real lifecycle."""
+        event_bus = EventBus()
+        provider = ImmediateTTSProvider(delay=0.01)
+        bus_events: list[BaseEvent] = []
+        event_bus.subscribe(TTS_PLAYBACK_STATE_CHANGED, bus_events.append)
+        dispatch_events, dispatch_event = _make_dispatch_collector(event_bus)
+
+        controller = TTSController(event_bus, provider, dispatch_event)
+        controller.start()
+
+        event_bus.publish(_make_assistant_event("Hello"))
+        time.sleep(0.05)
+
+        playback_events = [
+            *bus_events,
+            *[event for event in dispatch_events if event.event_type == TTS_PLAYBACK_STATE_CHANGED],
+        ]
+        states = [event.payload.get("state") for event in playback_events]
+        assert states[:3] == ["started", "playing", "ended"]
+        assert all(event.payload.get("source") == "tts_controller" for event in playback_events[:3])
+        assert all(event.request_id == "req1" for event in playback_events[:3])
 
     def test_invalid_event_type_ignored(self) -> None:
         """Test that non-assistant event type is ignored."""
@@ -234,6 +258,27 @@ class TestTTSController:
             e for e in dispatch_events if e.payload.get("target_state") == "error"
         ]
         assert len(error_state_events) >= 1
+
+    def test_provider_failure_emits_playback_error(self) -> None:
+        """Provider errors report TTS playback error without leaking secrets."""
+        event_bus = EventBus()
+        provider = FailingTTSProvider()
+        dispatch_events, dispatch_event = _make_dispatch_collector(event_bus)
+
+        controller = TTSController(event_bus, provider, dispatch_event)
+        controller.start()
+
+        event_bus.publish(_make_assistant_event("Hello"))
+        time.sleep(0.05)
+
+        playback_errors = [
+            event for event in dispatch_events
+            if event.event_type == TTS_PLAYBACK_STATE_CHANGED
+            and event.payload.get("state") == "error"
+        ]
+        assert len(playback_errors) == 1
+        assert playback_errors[0].payload.get("message") == "tts_error"
+        assert "secret" not in str(playback_errors[0].payload)
 
     def test_inflight_guard_ignores_second_event_while_speaking(self) -> None:
         """Test that a second event while speaking is ignored."""
@@ -499,6 +544,34 @@ class TestTTSControllerWithAudioPlayer:
         ]
         assert len(idle_events) >= 1
 
+    def test_embedded_playback_emits_playing_and_ended(self) -> None:
+        """Embedded Qt playback reports playing when player starts and ended when finished."""
+        event_bus = EventBus()
+        provider = SynthesizeOnlyProvider(audio_path="/tmp/test.mp3")
+        mock_player = MockAudioPlayer()
+        dispatch_events, dispatch_event = _make_dispatch_collector(event_bus)
+
+        controller = TTSController(
+            event_bus,
+            provider,
+            dispatch_event,
+            audio_player=mock_player,  # type: ignore[arg-type]
+        )
+        controller.start()
+
+        event_bus.publish(_make_assistant_event("Hello"))
+        time.sleep(0.05)
+        mock_player.simulate_finished()
+        time.sleep(0.02)
+
+        playback_events = [
+            event for event in dispatch_events
+            if event.event_type == TTS_PLAYBACK_STATE_CHANGED
+        ]
+        states = [event.payload.get("state") for event in playback_events]
+        assert "playing" in states
+        assert "ended" in states
+
     def test_audio_playback_error_dispatches_error_and_error_state(self) -> None:
         """Test playback error callback dispatches SYSTEM_ERROR and ERROR state."""
         event_bus = EventBus()
@@ -533,6 +606,33 @@ class TestTTSControllerWithAudioPlayer:
             e for e in dispatch_events if e.payload.get("target_state") == "error"
         ]
         assert len(error_state_events) >= 1
+
+    def test_audio_playback_error_emits_playback_error(self) -> None:
+        """Embedded playback errors emit tts playback error state."""
+        event_bus = EventBus()
+        provider = SynthesizeOnlyProvider(audio_path="/tmp/test.mp3")
+        mock_player = MockAudioPlayer()
+        dispatch_events, dispatch_event = _make_dispatch_collector(event_bus)
+
+        controller = TTSController(
+            event_bus,
+            provider,
+            dispatch_event,
+            audio_player=mock_player,  # type: ignore[arg-type]
+        )
+        controller.start()
+
+        event_bus.publish(_make_assistant_event("Hello"))
+        time.sleep(0.05)
+        mock_player.simulate_error("Audio playback failed")
+        time.sleep(0.02)
+
+        playback_errors = [
+            event for event in dispatch_events
+            if event.event_type == TTS_PLAYBACK_STATE_CHANGED
+            and event.payload.get("state") == "error"
+        ]
+        assert len(playback_errors) == 1
 
     def test_synthesize_failure_dispatches_error_and_error_state(self) -> None:
         """Test synthesize failure dispatches SYSTEM_ERROR and ERROR state."""
@@ -862,6 +962,37 @@ class TestTTSControllerStop:
             e for e in dispatch_events if e.event_type == "system.error"
         ]
         assert len(error_events) == 0
+
+    def test_stop_legacy_speaking_emits_interrupted(self) -> None:
+        """Stopping legacy playback emits interrupted for the active request."""
+        from app.contracts.events import TTS_STOP_REQUESTED
+
+        event_bus = EventBus()
+        provider = ImmediateTTSProvider(delay=0.5)
+        dispatch_events, dispatch_event = _make_dispatch_collector(event_bus)
+
+        controller = TTSController(event_bus, provider, dispatch_event)
+        controller.start()
+
+        event_bus.publish(_make_assistant_event("Hello"))
+        time.sleep(0.05)
+
+        event_bus.publish(
+            BaseEvent(
+                event_type=TTS_STOP_REQUESTED,
+                request_id="stop2",
+                source="test",
+                payload={},
+            )
+        )
+        time.sleep(0.05)
+
+        interrupted = [
+            event for event in dispatch_events
+            if event.event_type == TTS_PLAYBACK_STATE_CHANGED
+            and event.payload.get("state") == "interrupted"
+        ]
+        assert len(interrupted) == 1
 
     def test_stop_legacy_speaking_calls_provider_stop(self) -> None:
         """Test stop during legacy speak() forwards stop to provider."""

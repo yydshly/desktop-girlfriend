@@ -7,6 +7,7 @@ from app.contracts.events import (
     CONVERSATION_CLEARED,
     STATE_CHANGED,
     SYSTEM_ERROR,
+    TTS_PLAYBACK_STATE_CHANGED,
     USER_TEXT_SUBMITTED,
     BaseEvent,
 )
@@ -55,6 +56,33 @@ def test_assistant_text_maps_to_dialogue_turn_with_last_user_text() -> None:
             "response_text": "hi",
             "tts_state": "speaking",
             "source_event": ASSISTANT_TEXT_RECEIVED,
+        },
+    }
+
+
+def test_tts_playback_state_maps_to_tts_playback_message() -> None:
+    """Real TTS playback lifecycle is forwarded to the Web runtime."""
+    mapper = Live2DBridgeEventMapper(last_user_text="hello")
+
+    message = mapper.map_event(
+        _event(
+            TTS_PLAYBACK_STATE_CHANGED,
+            {
+                "state": "playing",
+                "source": "tts_controller",
+                "text": "hi",
+            },
+        )
+    )
+
+    assert message == {
+        "type": "tts.playback",
+        "payload": {
+            "request_id": "req-1",
+            "tts_state": "playing",
+            "source": "tts_controller",
+            "text": "hi",
+            "source_event": TTS_PLAYBACK_STATE_CHANGED,
         },
     }
 
@@ -141,6 +169,7 @@ def test_dispatcher_subscribes_and_broadcasts_mapped_events() -> None:
     assert {event_type for event_type, _ in subscriptions} == {
         USER_TEXT_SUBMITTED,
         ASSISTANT_TEXT_RECEIVED,
+        TTS_PLAYBACK_STATE_CHANGED,
         STATE_CHANGED,
         SYSTEM_ERROR,
         CONVERSATION_CLEARED,
@@ -174,7 +203,7 @@ def test_dispatcher_start_stop_are_idempotent() -> None:
 
     dispatcher.start()
     dispatcher.start()
-    assert len(subscriptions) == 5
+    assert len(subscriptions) == 6
 
     dispatcher.stop()
     dispatcher.stop()

@@ -88,6 +88,9 @@ function normalizeSpeakingParameter(speaking = null) {
     ttsState: typeof speaking?.ttsState === "string" && speaking.ttsState.trim()
       ? speaking.ttsState.trim()
       : "none",
+    ttsSource: typeof speaking?.ttsSource === "string" && speaking.ttsSource.trim()
+      ? speaking.ttsSource.trim()
+      : "unknown",
     mouth: clamp01(speaking?.mouth ?? 0),
     baseMouth: clamp01(speaking?.baseMouth ?? 0),
     mouthForm: clampSignedUnit(speaking?.mouthForm ?? 0)

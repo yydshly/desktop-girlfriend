@@ -61,6 +61,7 @@ function testTimelineBuildsEmotionBehaviorAndAdapterCommands() {
       baseMouth: 0.65,
       rhythm: "simulated",
       ttsState: "none",
+      ttsSource: "unknown",
       mouthForm: -0.187
     },
     attention: {
@@ -91,6 +92,7 @@ function testTimelineBuildsEmotionBehaviorAndAdapterCommands() {
         source: "state",
         rhythm: "simulated",
         ttsState: "none",
+        ttsSource: "unknown",
         mouth: 0.514,
         baseMouth: 0.65,
         mouthForm: -0.187
@@ -104,6 +106,7 @@ function testTimelineBuildsEmotionBehaviorAndAdapterCommands() {
     baseMouth: 0.65,
     rhythm: "simulated",
     ttsState: "none",
+    ttsSource: "unknown",
     mouthForm: -0.187
   });
   assert.equal(timeline[3].semanticState, "speak");

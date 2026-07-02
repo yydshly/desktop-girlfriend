@@ -329,7 +329,7 @@ function renderRuntimeChainStatus(elements, runtime, rendererStatus = {}) {
     `semantic state: ${state.state || "unknown"}`,
     `emotion: ${emotion.emotion || "unknown"} / activity ${emotion.activity || "unknown"} / intensity ${formatNumber(emotion.intensity)}`,
     `attention: ${attention.target || "unknown"} / source ${attention.source || "unknown"} / gaze ${attention.gaze || "unknown"} / body ${attention.bodyFollow || "unknown"} / intensity ${formatNumber(attention.intensity)}`,
-    `speaking: ${speaking.active ? "active" : "idle"} / source ${speaking.source || "unknown"} / tts ${speaking.ttsState || "none"} / rhythm ${speaking.rhythm || "unknown"} / mouth ${formatNumber(speaking.mouth)} / form ${formatNumber(speaking.mouthForm)}`,
+    `speaking: ${speaking.active ? "active" : "idle"} / source ${speaking.source || "unknown"} / tts ${speaking.ttsState || "none"} / origin ${speaking.ttsSource || "unknown"} / rhythm ${speaking.rhythm || "unknown"} / mouth ${formatNumber(speaking.mouth)} / form ${formatNumber(speaking.mouthForm)}`,
     `visualizer: ${visualizer.state || "hidden"} / visible ${Boolean(visualizer.visible)} / intensity ${formatNumber(visualizer.intensity)}`,
     `behavior: ${behavior.action || "unknown"} / ${behavior.expression || "unknown"} / gaze ${behavior.gaze || "unknown"} / mouth ${formatNumber(behavior.mouth)} / mouthForm ${formatNumber(behavior.mouthForm)} / intensity ${formatNumber(behavior.intensity)}`,
     `adapter motion: ${adapterMotion}`,
